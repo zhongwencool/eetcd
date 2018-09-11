@@ -25,6 +25,7 @@ start_link(Request, Callback) ->
 %%%===================================================================
 init([Request, Callback]) ->
     StreamRef = eetcd_watch:watch(Request),
+    erlang:process_flag(trap_exit, true),
     {ok, #state{ref = StreamRef, callback = Callback}}.
 
 handle_call(unwatch, _From, State = #state{ref = Ref, watch_id = WatchId}) ->
@@ -32,8 +33,8 @@ handle_call(unwatch, _From, State = #state{ref = Ref, watch_id = WatchId}) ->
         request_union = {cancel_request, #'Etcd.WatchCancelRequest'{
             watch_id = WatchId
         }}},
-    Req = eetcd_stream:data(Ref, Request, fin),
-    {reply, Req, State};
+    eetcd_stream:data(Ref, Request, fin),
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -51,7 +52,9 @@ handle_info(Info, State) ->
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, #state{ref = Ref}) ->
+    Pid = eetcd_http2_keeper:get_http2_client_pid(),
+    ok = gun:cancel(Pid, Ref),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -66,8 +69,6 @@ handle_change_event(State = #state{callback = Callback, ref = Ref}, Data) ->
         #'Etcd.WatchResponse'{created = true, watch_id = WatchId} ->
             {noreply, State#state{watch_id = WatchId}};
         #'Etcd.WatchResponse'{canceled = true} ->
-            Pid = eetcd_http2_keeper:get_http2_client_pid(),
-            ok = gun:cancel(Pid, Ref),
             {stop, normal, State};
         Resp ->
             try

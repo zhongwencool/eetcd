@@ -6,7 +6,6 @@
 
 -include("router_pb.hrl").
 
-
 %% @doc Watch watches for events happening or that have happened. Both input and output are streams;
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
@@ -21,7 +20,7 @@ watch(CreateReq, Callback) when
 
 %% @doc Cancel watches. No further events will be sent to the canceled watcher.
 -spec unwatch(pid()) -> ok.
-unwatch(Pid) ->
+unwatch(Pid) when is_pid(Pid) ->
     eetcd_watch_sup:unwatch(Pid).
 
 %% @doc Keeps the lease alive by streaming keep alive requests from the client to the server and

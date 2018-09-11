@@ -2,7 +2,7 @@
     [
         {description, "ETCD V3 client"},
         {vsn, "0.1.0"},
-        {registered, []},
+        {registered, [eetcd_sup, eetcd_http2_client, eetcd_lease_server, eetcd_watch_sup]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},
         {env, [{etcd_host, "127.0.0.1"}, {etcd_port, 2379}]},

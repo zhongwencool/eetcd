@@ -17,7 +17,7 @@
 
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link(?MODULE, [], []).
 
 -spec get_http2_client_pid() -> pid() | undefined.
 get_http2_client_pid() ->

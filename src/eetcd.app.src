@@ -1,0 +1,15 @@
+{application, eetcd,
+    [
+        {description, "ETCD V3 client"},
+        {vsn, "0.1.0"},
+        {registered, []},
+        {mod, {eetcd_app, []}},
+        {applications, [kernel, stdlib, gun]},
+        {env, [{etcd_host, "127.0.0.1"}, {etcd_port, 2379}]},
+        {modules, []},
+        
+        {maintainers, ["zhongwencool"]},
+        {licenses, ["Apache 2.0"]},
+        {links, [{"Github", "https://github.com/zhongwencool/eetcd"}]}
+    ]
+}.

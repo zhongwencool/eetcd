@@ -4,7 +4,20 @@
 -export([watch/2, unwatch/1]).
 -export([lease_keep_alive/1]).
 
--include("router_pb.hrl").
+-include("eetcd.hrl").
+
+-type 'Grpc.Status'() ::
+?GRPC_STATUS_OK | ?GRPC_STATUS_CANCELLED |
+?GRPC_STATUS_UNKNOWN | ?GRPC_STATUS_INVALID_ARGUMENT |
+?GRPC_STATUS_DEADLINE_EXCEEDED | ?GRPC_STATUS_NOT_FOUND |
+?GRPC_STATUS_ALREADY_EXISTS | ?GRPC_STATUS_PERMISSION_DENIED |
+?GRPC_STATUS_RESOURCE_EXHAUSTED | ?GRPC_STATUS_RESOURCE_EXHAUSTED |
+?GRPC_STATUS_FAILED_PRECONDITION | ?GRPC_STATUS_ABORTED |
+?GRPC_STATUS_OUT_OF_RANGE | ?GRPC_STATUS_UNIMPLEMENTED |
+?GRPC_STATUS_INTERNAL | ?GRPC_STATUS_UNAVAILABLE |
+?GRPC_STATUS_DATA_LOSS | ?GRPC_STATUS_UNAUTHENTICATED.
+
+-export_type(['Grpc.Status'/0]).
 
 %% @doc Watch watches for events happening or that have happened. Both input and output are streams;
 %% the input stream is for creating watchers and the output stream sends events.

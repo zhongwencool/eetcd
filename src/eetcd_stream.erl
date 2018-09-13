@@ -63,9 +63,9 @@ unary(Request, Path, ResponseType) ->
                         Error
                 end;
             {response, fin, 200, Headers} ->
-                GrpcStatus = proplists:get_value(<<"grpc-status">>, Headers, undefined),
-                GrpcMessage = proplists:get_value(<<"grpc-message">>, Headers, undefined),
-                {error, {'grpc-error', GrpcStatus, GrpcMessage}}
+                GrpcStatus = proplists:get_value(<<"grpc-status">>, Headers, <<"0">>),
+                GrpcMessage = proplists:get_value(<<"grpc-message">>, Headers, <<"">>),
+                {error, binary_to_integer(GrpcStatus), GrpcMessage}
         end,
     erlang:demonitor(MRef, [flush]),
     Res.

@@ -11,7 +11,7 @@
 
 -spec encode(identity | gzip, tuple()) -> binary().
 encode(GrpcType, Msg) ->
-    PbMsg = router_pb:encode_msg(Msg, []),
+    PbMsg = router_pb:encode_msg(Msg, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
 -spec decode(identity | gzip, binary(), atom()) -> tuple().

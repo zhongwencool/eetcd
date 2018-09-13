@@ -67,18 +67,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 handle_change_event(State = #state{callback = Callback}, Data) ->
-    case eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse') of
+    Resp = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
+    try
+        Callback(Resp)
+    catch E:R ->
+        error_logger:error_msg("Watcher(~p) run callback crash ~p~n Event~p~n",
+            [self(), {E, R}, Resp])
+    end,
+    case Resp of
         #'Etcd.WatchResponse'{created = true, watch_id = WatchId} ->
             {noreply, State#state{watch_id = WatchId}};
         #'Etcd.WatchResponse'{canceled = true} ->
             {stop, normal, State};
-        Resp ->
-            try
-                Callback(Resp)
-            catch E:R ->
-                error_logger:error_msg("Watcher(~p) run callback crash ~p~n Event~p~n",
-                    [self(), {E, R}, Resp])
-            end,
+        _ ->
             {noreply, State}
     end.
         

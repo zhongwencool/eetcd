@@ -4,10 +4,11 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2018-09-11T07:54:56+00:00 and should not be modified manually
+%% This module was generated on 2018-09-13T09:22:55+00:00 and should not be modified manually
 
 -module(eetcd_maintenance).
 
+-include("router_pb.hrl").
 -export([alarm/1]).
 -export([status/1]).
 -export([defragment/1]).
@@ -17,44 +18,44 @@
 -export([move_leader/1]).
 
 %% @doc Unary RPC 
--spec alarm(router_pb:'Etcd.AlarmRequest'()) ->
-    {ok, router_pb:'Etcd.AlarmResponse'()} | {error, term()}.
-alarm(Request) ->
+-spec alarm(#'Etcd.AlarmRequest'{}) ->
+    {ok, #'Etcd.AlarmResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+alarm(Request)when is_record(Request, 'Etcd.AlarmRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse').
 
 %% @doc Unary RPC 
--spec status(router_pb:'Etcd.StatusRequest'()) ->
-    {ok, router_pb:'Etcd.StatusResponse'()} | {error, term()}.
-status(Request) ->
+-spec status(#'Etcd.StatusRequest'{}) ->
+    {ok, #'Etcd.StatusResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+status(Request)when is_record(Request, 'Etcd.StatusRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse').
 
 %% @doc Unary RPC 
--spec defragment(router_pb:'Etcd.DefragmentRequest'()) ->
-    {ok, router_pb:'Etcd.DefragmentResponse'()} | {error, term()}.
-defragment(Request) ->
+-spec defragment(#'Etcd.DefragmentRequest'{}) ->
+    {ok, #'Etcd.DefragmentResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+defragment(Request)when is_record(Request, 'Etcd.DefragmentRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse').
 
 %% @doc Unary RPC 
--spec hash(router_pb:'Etcd.HashRequest'()) ->
-    {ok, router_pb:'Etcd.HashResponse'()} | {error, term()}.
-hash(Request) ->
+-spec hash(#'Etcd.HashRequest'{}) ->
+    {ok, #'Etcd.HashResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+hash(Request)when is_record(Request, 'Etcd.HashRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse').
 
 %% @doc Unary RPC 
--spec hash_kv(router_pb:'Etcd.HashKVRequest'()) ->
-    {ok, router_pb:'Etcd.HashKVResponse'()} | {error, term()}.
-hash_kv(Request) ->
+-spec hash_kv(#'Etcd.HashKVRequest'{}) ->
+    {ok, #'Etcd.HashKVResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+hash_kv(Request)when is_record(Request, 'Etcd.HashKVRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse').
 
 %% @doc Unary RPC 
--spec snapshot(router_pb:'Etcd.SnapshotRequest'()) ->
-    {ok, router_pb:'Etcd.SnapshotResponse'()} | {error, term()}.
-snapshot(Request) ->
+-spec snapshot(#'Etcd.SnapshotRequest'{}) ->
+    {ok, #'Etcd.SnapshotResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+snapshot(Request)when is_record(Request, 'Etcd.SnapshotRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse').
 
 %% @doc Unary RPC 
--spec move_leader(router_pb:'Etcd.MoveLeaderRequest'()) ->
-    {ok, router_pb:'Etcd.MoveLeaderResponse'()} | {error, term()}.
-move_leader(Request) ->
+-spec move_leader(#'Etcd.MoveLeaderRequest'{}) ->
+    {ok, #'Etcd.MoveLeaderResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+move_leader(Request)when is_record(Request, 'Etcd.MoveLeaderRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse').
 

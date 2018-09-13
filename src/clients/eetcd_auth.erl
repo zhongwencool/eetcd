@@ -4,10 +4,11 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2018-09-11T07:54:57+00:00 and should not be modified manually
+%% This module was generated on 2018-09-13T09:22:55+00:00 and should not be modified manually
 
 -module(eetcd_auth).
 
+-include("router_pb.hrl").
 -export([auth_enable/1]).
 -export([auth_disable/1]).
 -export([authenticate/1]).
@@ -26,98 +27,98 @@
 -export([role_revoke_permission/1]).
 
 %% @doc Unary RPC 
--spec auth_enable(router_pb:'Etcd.AuthEnableRequest'()) ->
-    {ok, router_pb:'Etcd.AuthEnableResponse'()} | {error, term()}.
-auth_enable(Request) ->
+-spec auth_enable(#'Etcd.AuthEnableRequest'{}) ->
+    {ok, #'Etcd.AuthEnableResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+auth_enable(Request)when is_record(Request, 'Etcd.AuthEnableRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthEnable">>, 'Etcd.AuthEnableResponse').
 
 %% @doc Unary RPC 
--spec auth_disable(router_pb:'Etcd.AuthDisableRequest'()) ->
-    {ok, router_pb:'Etcd.AuthDisableResponse'()} | {error, term()}.
-auth_disable(Request) ->
+-spec auth_disable(#'Etcd.AuthDisableRequest'{}) ->
+    {ok, #'Etcd.AuthDisableResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+auth_disable(Request)when is_record(Request, 'Etcd.AuthDisableRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthDisable">>, 'Etcd.AuthDisableResponse').
 
 %% @doc Unary RPC 
--spec authenticate(router_pb:'Etcd.AuthenticateRequest'()) ->
-    {ok, router_pb:'Etcd.AuthenticateResponse'()} | {error, term()}.
-authenticate(Request) ->
+-spec authenticate(#'Etcd.AuthenticateRequest'{}) ->
+    {ok, #'Etcd.AuthenticateResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+authenticate(Request)when is_record(Request, 'Etcd.AuthenticateRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/Authenticate">>, 'Etcd.AuthenticateResponse').
 
 %% @doc Unary RPC 
--spec user_add(router_pb:'Etcd.AuthUserAddRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserAddResponse'()} | {error, term()}.
-user_add(Request) ->
+-spec user_add(#'Etcd.AuthUserAddRequest'{}) ->
+    {ok, #'Etcd.AuthUserAddResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_add(Request)when is_record(Request, 'Etcd.AuthUserAddRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserAdd">>, 'Etcd.AuthUserAddResponse').
 
 %% @doc Unary RPC 
--spec user_get(router_pb:'Etcd.AuthUserGetRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserGetResponse'()} | {error, term()}.
-user_get(Request) ->
+-spec user_get(#'Etcd.AuthUserGetRequest'{}) ->
+    {ok, #'Etcd.AuthUserGetResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_get(Request)when is_record(Request, 'Etcd.AuthUserGetRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGet">>, 'Etcd.AuthUserGetResponse').
 
 %% @doc Unary RPC 
--spec user_list(router_pb:'Etcd.AuthUserListRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserListResponse'()} | {error, term()}.
-user_list(Request) ->
+-spec user_list(#'Etcd.AuthUserListRequest'{}) ->
+    {ok, #'Etcd.AuthUserListResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_list(Request)when is_record(Request, 'Etcd.AuthUserListRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserList">>, 'Etcd.AuthUserListResponse').
 
 %% @doc Unary RPC 
--spec user_delete(router_pb:'Etcd.AuthUserDeleteRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserDeleteResponse'()} | {error, term()}.
-user_delete(Request) ->
+-spec user_delete(#'Etcd.AuthUserDeleteRequest'{}) ->
+    {ok, #'Etcd.AuthUserDeleteResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_delete(Request)when is_record(Request, 'Etcd.AuthUserDeleteRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserDelete">>, 'Etcd.AuthUserDeleteResponse').
 
 %% @doc Unary RPC 
--spec user_change_password(router_pb:'Etcd.AuthUserChangePasswordRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserChangePasswordResponse'()} | {error, term()}.
-user_change_password(Request) ->
+-spec user_change_password(#'Etcd.AuthUserChangePasswordRequest'{}) ->
+    {ok, #'Etcd.AuthUserChangePasswordResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_change_password(Request)when is_record(Request, 'Etcd.AuthUserChangePasswordRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserChangePassword">>, 'Etcd.AuthUserChangePasswordResponse').
 
 %% @doc Unary RPC 
--spec user_grant_role(router_pb:'Etcd.AuthUserGrantRoleRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserGrantRoleResponse'()} | {error, term()}.
-user_grant_role(Request) ->
+-spec user_grant_role(#'Etcd.AuthUserGrantRoleRequest'{}) ->
+    {ok, #'Etcd.AuthUserGrantRoleResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_grant_role(Request)when is_record(Request, 'Etcd.AuthUserGrantRoleRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGrantRole">>, 'Etcd.AuthUserGrantRoleResponse').
 
 %% @doc Unary RPC 
--spec user_revoke_role(router_pb:'Etcd.AuthUserRevokeRoleRequest'()) ->
-    {ok, router_pb:'Etcd.AuthUserRevokeRoleResponse'()} | {error, term()}.
-user_revoke_role(Request) ->
+-spec user_revoke_role(#'Etcd.AuthUserRevokeRoleRequest'{}) ->
+    {ok, #'Etcd.AuthUserRevokeRoleResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+user_revoke_role(Request)when is_record(Request, 'Etcd.AuthUserRevokeRoleRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserRevokeRole">>, 'Etcd.AuthUserRevokeRoleResponse').
 
 %% @doc Unary RPC 
--spec role_add(router_pb:'Etcd.AuthRoleAddRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleAddResponse'()} | {error, term()}.
-role_add(Request) ->
+-spec role_add(#'Etcd.AuthRoleAddRequest'{}) ->
+    {ok, #'Etcd.AuthRoleAddResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_add(Request)when is_record(Request, 'Etcd.AuthRoleAddRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleAdd">>, 'Etcd.AuthRoleAddResponse').
 
 %% @doc Unary RPC 
--spec role_get(router_pb:'Etcd.AuthRoleGetRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleGetResponse'()} | {error, term()}.
-role_get(Request) ->
+-spec role_get(#'Etcd.AuthRoleGetRequest'{}) ->
+    {ok, #'Etcd.AuthRoleGetResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_get(Request)when is_record(Request, 'Etcd.AuthRoleGetRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGet">>, 'Etcd.AuthRoleGetResponse').
 
 %% @doc Unary RPC 
--spec role_list(router_pb:'Etcd.AuthRoleListRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleListResponse'()} | {error, term()}.
-role_list(Request) ->
+-spec role_list(#'Etcd.AuthRoleListRequest'{}) ->
+    {ok, #'Etcd.AuthRoleListResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_list(Request)when is_record(Request, 'Etcd.AuthRoleListRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleList">>, 'Etcd.AuthRoleListResponse').
 
 %% @doc Unary RPC 
--spec role_delete(router_pb:'Etcd.AuthRoleDeleteRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleDeleteResponse'()} | {error, term()}.
-role_delete(Request) ->
+-spec role_delete(#'Etcd.AuthRoleDeleteRequest'{}) ->
+    {ok, #'Etcd.AuthRoleDeleteResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_delete(Request)when is_record(Request, 'Etcd.AuthRoleDeleteRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleDelete">>, 'Etcd.AuthRoleDeleteResponse').
 
 %% @doc Unary RPC 
--spec role_grant_permission(router_pb:'Etcd.AuthRoleGrantPermissionRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleGrantPermissionResponse'()} | {error, term()}.
-role_grant_permission(Request) ->
+-spec role_grant_permission(#'Etcd.AuthRoleGrantPermissionRequest'{}) ->
+    {ok, #'Etcd.AuthRoleGrantPermissionResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_grant_permission(Request)when is_record(Request, 'Etcd.AuthRoleGrantPermissionRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGrantPermission">>, 'Etcd.AuthRoleGrantPermissionResponse').
 
 %% @doc Unary RPC 
--spec role_revoke_permission(router_pb:'Etcd.AuthRoleRevokePermissionRequest'()) ->
-    {ok, router_pb:'Etcd.AuthRoleRevokePermissionResponse'()} | {error, term()}.
-role_revoke_permission(Request) ->
+-spec role_revoke_permission(#'Etcd.AuthRoleRevokePermissionRequest'{}) ->
+    {ok, #'Etcd.AuthRoleRevokePermissionResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+role_revoke_permission(Request)when is_record(Request, 'Etcd.AuthRoleRevokePermissionRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleRevokePermission">>, 'Etcd.AuthRoleRevokePermissionResponse').
 

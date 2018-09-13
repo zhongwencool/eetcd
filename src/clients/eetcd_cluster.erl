@@ -4,36 +4,37 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2018-09-11T07:54:56+00:00 and should not be modified manually
+%% This module was generated on 2018-09-13T09:22:55+00:00 and should not be modified manually
 
 -module(eetcd_cluster).
 
+-include("router_pb.hrl").
 -export([member_add/1]).
 -export([member_remove/1]).
 -export([member_update/1]).
 -export([member_list/1]).
 
 %% @doc Unary RPC 
--spec member_add(router_pb:'Etcd.MemberAddRequest'()) ->
-    {ok, router_pb:'Etcd.MemberAddResponse'()} | {error, term()}.
-member_add(Request) ->
+-spec member_add(#'Etcd.MemberAddRequest'{}) ->
+    {ok, #'Etcd.MemberAddResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+member_add(Request)when is_record(Request, 'Etcd.MemberAddRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Cluster/MemberAdd">>, 'Etcd.MemberAddResponse').
 
 %% @doc Unary RPC 
--spec member_remove(router_pb:'Etcd.MemberRemoveRequest'()) ->
-    {ok, router_pb:'Etcd.MemberRemoveResponse'()} | {error, term()}.
-member_remove(Request) ->
+-spec member_remove(#'Etcd.MemberRemoveRequest'{}) ->
+    {ok, #'Etcd.MemberRemoveResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+member_remove(Request)when is_record(Request, 'Etcd.MemberRemoveRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Cluster/MemberRemove">>, 'Etcd.MemberRemoveResponse').
 
 %% @doc Unary RPC 
--spec member_update(router_pb:'Etcd.MemberUpdateRequest'()) ->
-    {ok, router_pb:'Etcd.MemberUpdateResponse'()} | {error, term()}.
-member_update(Request) ->
+-spec member_update(#'Etcd.MemberUpdateRequest'{}) ->
+    {ok, #'Etcd.MemberUpdateResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+member_update(Request)when is_record(Request, 'Etcd.MemberUpdateRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Cluster/MemberUpdate">>, 'Etcd.MemberUpdateResponse').
 
 %% @doc Unary RPC 
--spec member_list(router_pb:'Etcd.MemberListRequest'()) ->
-    {ok, router_pb:'Etcd.MemberListResponse'()} | {error, term()}.
-member_list(Request) ->
+-spec member_list(#'Etcd.MemberListRequest'{}) ->
+    {ok, #'Etcd.MemberListResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+member_list(Request)when is_record(Request, 'Etcd.MemberListRequest') ->
     eetcd_stream:unary(Request, <<"/etcdserverpb.Cluster/MemberList">>, 'Etcd.MemberListResponse').
 

@@ -61,12 +61,12 @@ put(Config) ->
     %% ignore_value
     %% If ignore_value is set, etcd updates the key using its current value.
     %% Returns an error if the key does not exist.
-    {error, 3, _} =
+    {error, {grpc_error, 3, _}} =
         eetcd_kv:put(#'Etcd.PutRequest'{key = Kv2, value = Vv2, ignore_value = true}),
     %% ignore_lease
     %% If ignore_lease is set, etcd updates the key using its current lease.
     %% Returns an error if the key does not exist.
-    {error, 3, _} =
+    {error, {grpc_error, 3, _}} =
         eetcd_kv:put(#'Etcd.PutRequest'{key = Kv1, value = Vv1, ignore_lease = true, lease = 100}),
     ok.
 
@@ -329,7 +329,7 @@ compact(Config) ->
     {ok, #'Etcd.RangeResponse'{kvs = [#'mvccpb.KeyValue'{mod_revision = Revision}]}}
         = eetcd_kv:range(#'Etcd.RangeRequest'{key = Kv2}),
     eetcd_kv:compact(#'Etcd.CompactionRequest'{revision = Revision, physical = true}),
-    {error, 11, <<"etcdserver: mvcc: required revision has been compacted">>}
+    {error, {grpc_error, 11, <<"etcdserver: mvcc: required revision has been compacted">>}}
         = eetcd_kv:range(#'Etcd.RangeRequest'{key = Kv1, revision = Revision - 1}),
     ok.
 

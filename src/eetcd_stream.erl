@@ -59,13 +59,15 @@ unary(Request, Path, ResponseType) ->
                 case gun:await_body(Pid, StreamRef, ?TIMEOUT, MRef) of
                     {ok, ResBody, _Trailers} ->
                         {ok, eetcd_grpc:decode(identity, ResBody, ResponseType)};
-                    {error, _Reason} = Error ->
-                        Error
+                    {error, _} = Error1 ->
+                        Error1
                 end;
             {response, fin, 200, Headers} ->
                 GrpcStatus = proplists:get_value(<<"grpc-status">>, Headers, <<"0">>),
                 GrpcMessage = proplists:get_value(<<"grpc-message">>, Headers, <<"">>),
-                {error, binary_to_integer(GrpcStatus), GrpcMessage}
+                {error, {'grpc_error', binary_to_integer(GrpcStatus), GrpcMessage}};
+            {error, _} = Error2 ->
+                Error2
         end,
     erlang:demonitor(MRef, [flush]),
     Res.

@@ -1,8 +1,9 @@
 -module(eetcd).
 
 %% API
--export([watch/2, unwatch/1]).
+-export([watch/2, unwatch/1, get_watch_id/1]).
 -export([lease_keep_alive/1]).
+-export([member_list/0]).
 
 -include("eetcd.hrl").
 
@@ -23,8 +24,8 @@
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
 %% The entire event history can be watched starting from the last compaction revision.
--spec watch(router_pb:'Etcd.WatchCreateRequest'(), Callback) -> {ok, pid()} when
-    Callback :: fun((router_pb:'Etcd.WatchResponse'()) -> term()).
+-spec watch(#'Etcd.WatchCreateRequest'{}, Callback) -> {ok, pid()} when
+    Callback :: fun((#'Etcd.WatchResponse'{}) -> term()).
 watch(CreateReq, Callback) when
     is_record(CreateReq, 'Etcd.WatchCreateRequest'),
     is_function(Callback, 1) ->
@@ -36,10 +37,24 @@ watch(CreateReq, Callback) when
 unwatch(Pid) when is_pid(Pid) ->
     eetcd_watch_sup:unwatch(Pid).
 
+%% @doc get watch id for other watchers
+%% If watch_id is provided and non-zero, it will be assigned to this watcher.
+%% Since creating a watcher in etcd is not a synchronous operation,
+%% this can be used ensure that ordering is correct when creating multiple watchers on the same stream.
+%% Creating a watcher with an ID already in use on the stream will cause an error to be returned.
+-spec get_watch_id(pid()) -> non_neg_integer().
+get_watch_id(Pid) when is_pid(Pid) ->
+    gen_server:call(Pid, watch_id).
+
 %% @doc Keeps the lease alive by streaming keep alive requests from the client to the server and
 %% streaming keep alive responses from the server to the client.
--spec lease_keep_alive(router_pb:'Etcd.LeaseKeepAliveRequest'()|integer()) -> ok.
+-spec lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{}|integer()) -> ok.
 lease_keep_alive(Id) when is_integer(Id) ->
     lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{'ID' = Id});
 lease_keep_alive(Request) when is_record(Request, 'Etcd.LeaseKeepAliveRequest') ->
     eetcd_lease_server:keep_alive(Request).
+
+%% @doc members is a list of all members associated with the cluster.
+-spec member_list() -> {ok, #'Etcd.MemberListResponse'{}} | {error, term()}.
+member_list() ->
+    eetcd_cluster:member_list(#'Etcd.MemberListRequest'{}).

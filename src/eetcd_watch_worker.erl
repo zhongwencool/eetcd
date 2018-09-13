@@ -35,6 +35,8 @@ handle_call(unwatch, _From, State = #state{ref = Ref, watch_id = WatchId}) ->
         }}},
     eetcd_stream:data(Ref, Request, fin),
     {reply, ok, State};
+handle_call(watch_id, _From, State = #state{watch_id = WatchId}) ->
+    {reply, WatchId, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -64,7 +66,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-handle_change_event(State = #state{callback = Callback, ref = Ref}, Data) ->
+handle_change_event(State = #state{callback = Callback}, Data) ->
     case eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse') of
         #'Etcd.WatchResponse'{created = true, watch_id = WatchId} ->
             {noreply, State#state{watch_id = WatchId}};

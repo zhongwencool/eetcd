@@ -34,7 +34,7 @@ init([]) ->
         {ok, Pid} ->
             Ref = erlang:monitor(process, Pid),
             {ok, #state{pid = Pid, ref = Ref}};
-        {error, _Reason} = Err -> Err
+        {error, Reason} -> {stop, Reason}
     end.
 
 handle_call(_Request, _From, State) ->
@@ -83,7 +83,9 @@ connect(Name, Host, Port) ->
             protocols => [http2],
             http2_opts => #{keepalive => 45000},
             retry => 10,
-            retry_timeout =>2500
+            retry_timeout => 2500,
+            transport => application:get_env(eetcd, http2_transport, tcp),
+            transport_opts => application:get_env(eetcd, http2_transport_opts, [])
         }) of
         {ok, Pid} ->
             case gun:await_up(Pid, 1000) of

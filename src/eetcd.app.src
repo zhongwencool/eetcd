@@ -5,7 +5,16 @@
         {registered, [eetcd_sup, eetcd_http2_client, eetcd_lease_server, eetcd_watch_sup]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},
-        {env, [{etcd_host, "127.0.0.1"}, {etcd_port, 2379}]},
+        {env, [
+            {etcd_host, "127.0.0.1"},
+            {etcd_port, 2379},
+            
+            {http2_transport, tcp},  %% tcp | tls | ssl
+            %% ssl:connect_option() see all options in ssl_api.hrl
+            %% If setting https [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]
+            %% should be consider.
+            {http2_transport_opts, []}]},
+        
         {modules, []},
         
         {maintainers, ["zhongwencool"]},

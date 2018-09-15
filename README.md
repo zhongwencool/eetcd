@@ -108,7 +108,6 @@ A full listing of all etcd RPCs are documented in markdown in the [gRPC API list
     Value2 = <<"etcd_value2">>,
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
     #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'PUT',
@@ -125,7 +124,6 @@ A full listing of all etcd RPCs are documented in markdown in the [gRPC API list
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]} = flush(),
 
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value2}),
     {error, timeout} = flush().
 
@@ -172,7 +170,7 @@ rebar3 ct
 Architecture
 -----
 
-![Application](https://user-images.githubusercontent.com/3116225/45582339-569b3f00-b8e0-11e8-84a2-f53863b04ee8.png)
+<img src="https://user-images.githubusercontent.com/3116225/45582339-569b3f00-b8e0-11e8-84a2-f53863b04ee8.png" width="90%" height = "85%" alt="Home"></img>
 
 * `eetcd_http2_keeper` make sure http2 connection always work.
 * `eetcd_lease_server` handle all lease keep alive event, and auto renew lease.

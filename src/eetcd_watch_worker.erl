@@ -3,30 +3,35 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2]).
+-export([start_link/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("eetcd.hrl").
 
--record(state, {ref, watch_id, callback}).
+-record(state, {ref, watch_id, callback, ignore_create = true, ignore_cancel = true}).
 %%%===================================================================
 %%% API
 %%%===================================================================
 
--spec start_link(router_pb:'Etcd.WatchRequest'(), Callback) -> {ok, pid()} when
+-spec start_link(router_pb:'Etcd.WatchRequest'(), Callback, list()) -> {ok, pid()} when
     Callback :: fun((router_pb:'Etcd.WatchResponse'()) -> term()).
-start_link(Request, Callback) ->
-    gen_server:start_link(?MODULE, [Request, Callback], []).
+start_link(Request, Callback, Options) ->
+    gen_server:start_link(?MODULE, [Request, Callback, Options], []).
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
-init([Request, Callback]) ->
+init([Request, Callback, Options]) ->
     StreamRef = eetcd_watch:watch(Request),
     erlang:process_flag(trap_exit, true),
-    {ok, #state{ref = StreamRef, callback = Callback}}.
+    {ok, #state{
+        ref = StreamRef,
+        callback = Callback,
+        ignore_create = proplists:get_value(ignore_create, Options, true),
+        ignore_cancel = proplists:get_value(ignore_cancel, Options, true)
+    }}.
 
 handle_call(unwatch, _From, State = #state{ref = Ref, watch_id = WatchId}) ->
     Request = #'Etcd.WatchRequest'{
@@ -66,20 +71,34 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-handle_change_event(State = #state{callback = Callback}, Data) ->
-    Resp = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
+handle_change_event(State = #state{callback = Callback,
+    ignore_create = IgnoreCreate, ignore_cancel = IgnoreCancel},
+    Data) ->
+    #'Etcd.WatchResponse'{created = Create,
+        watch_id = WatchId, canceled = Cancel} = Resp
+        = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
+    io:format("~p~n", [{Create, Cancel, IgnoreCreate, IgnoreCancel}]),
+    if
+        Create andalso IgnoreCreate ->
+            {noreply, State#state{watch_id = WatchId}};
+        Create ->
+            run_callback(Callback, Resp),
+            {noreply, State#state{watch_id = WatchId}};
+        Cancel andalso IgnoreCancel ->
+            {stop, normal, State};
+        Cancel ->
+            run_callback(Callback, Resp),
+            {stop, normal, State};
+        true ->
+            run_callback(Callback, Resp),
+            {noreply, State}
+    end.
+
+run_callback(Callback, Resp) ->
     try
         Callback(Resp)
     catch E:R ->
         error_logger:error_msg("Watcher(~p) run callback crash ~p~n Event~p~n",
             [self(), {E, R}, Resp])
-    end,
-    case Resp of
-        #'Etcd.WatchResponse'{created = true, watch_id = WatchId} ->
-            {noreply, State#state{watch_id = WatchId}};
-        #'Etcd.WatchResponse'{canceled = true} ->
-            {stop, normal, State};
-        _ ->
-            {noreply, State}
     end.
         

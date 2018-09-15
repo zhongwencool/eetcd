@@ -48,7 +48,7 @@ lease_timeout(_Config) ->
         #'Etcd.LeaseStatus'{'ID' = ID}
     ]}}
         = eetcd_lease:lease_leases(#'Etcd.LeaseLeasesRequest'{}),
-    timer:sleep(NewTTL*1000 + 100),
+    timer:sleep(NewTTL*1000 + 1000),
     {ok, #'Etcd.LeaseLeasesResponse'{leases = [
     ]}}
         = eetcd_lease:lease_leases(#'Etcd.LeaseLeasesRequest'{}),

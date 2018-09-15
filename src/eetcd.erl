@@ -1,7 +1,7 @@
 -module(eetcd).
 
 %% API
--export([watch/2, unwatch/1, get_watch_id/1]).
+-export([watch/2, watch/3, unwatch/1, get_watch_id/1]).
 -export([lease_keep_alive/1]).
 -export([member_list/0]).
 
@@ -24,13 +24,21 @@
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
 %% The entire event history can be watched starting from the last compaction revision.
+%% {ignore_create, true} make callback function ignore create watch event.
+%% {ignore_cancel, true} make callback function ignore cancel watch event.
 -spec watch(#'Etcd.WatchCreateRequest'{}, Callback) -> {ok, pid()} when
     Callback :: fun((#'Etcd.WatchResponse'{}) -> term()).
-watch(CreateReq, Callback) when
+watch(CreateReq, Callback) ->
+    watch(CreateReq, Callback, [{ignore_create, true}, {ignore_cancel, true}]).
+
+-spec watch(#'Etcd.WatchCreateRequest'{}, Callback, Options) -> {ok, pid()} when
+    Callback :: fun((#'Etcd.WatchResponse'{}) -> term()),
+    Options :: [{ignore_create | ignore_cancel, boolean()}].
+watch(CreateReq, Callback, Options) when
     is_record(CreateReq, 'Etcd.WatchCreateRequest'),
     is_function(Callback, 1) ->
     Request = #'Etcd.WatchRequest'{request_union = {create_request, CreateReq}},
-    eetcd_watch_sup:watch(Request, Callback).
+    eetcd_watch_sup:watch(Request, Callback, Options).
 
 %% @doc Cancel watches. No further events will be sent to the canceled watcher.
 -spec unwatch(pid()) -> ok.

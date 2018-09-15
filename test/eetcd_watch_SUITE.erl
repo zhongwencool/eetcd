@@ -5,7 +5,7 @@
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
 
 -export([watch_one_key/1, watch_multi_keys/1,
-    watch_with_start_revision/1, watch_with_filters/1,
+    watch_with_start_revision/1, watch_with_filters/1, watch_with_create_cancel_event/1,
     watch_with_prev_kv/1, watch_with_watch_id/1]).
 
 -include("router_pb.hrl").
@@ -16,7 +16,7 @@ suite() ->
 all() ->
     [
         watch_one_key, watch_multi_keys, watch_with_start_revision, watch_with_filters,
-        watch_with_prev_kv, watch_with_watch_id
+        watch_with_prev_kv, watch_with_watch_id, watch_with_create_cancel_event
     ].
 
 groups() ->
@@ -39,7 +39,6 @@ watch_one_key(_Config) ->
     Value2 = <<"etcd_value2">>,
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
     #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'PUT',
@@ -56,7 +55,6 @@ watch_one_key(_Config) ->
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]} = flush(),
     
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value2}),
     {error, timeout} = flush(),
     
@@ -70,7 +68,6 @@ watch_multi_keys(_Config) ->
     Value2 = <<"etcd_value2">>,
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key, range_end = "\0"}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
     #'Etcd.WatchResponse'{created = false,
@@ -93,7 +90,6 @@ watch_multi_keys(_Config) ->
             kv = #'mvccpb.KeyValue'{key = Key1, value = <<>>}}]} = flush(),
     
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value2}),
     {error, timeout} = flush(),
     
@@ -110,12 +106,10 @@ watch_with_start_revision(_Config) ->
     Pid = self(),
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key, start_revision = Revision}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'PUT',
             kv = #'mvccpb.KeyValue'{key = Key, value = Value}}]} = flush(),
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     ok.
 
 %% progress_notify is set so that the etcd server will periodically send a WatchResponse with no events
@@ -146,14 +140,12 @@ watch_with_filters(_Config) ->
     Pid = self(),
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key, filters = ['NOPUT']}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     
     eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = Key}),
     #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'DELETE',
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]} = flush(),
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     ok.
 
 watch_with_prev_kv(_Config) ->
@@ -164,7 +156,6 @@ watch_with_prev_kv(_Config) ->
     Pid = self(),
     Callback = fun(Res) -> erlang:send(Pid, Res) end,
     {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key, prev_kv = true}, Callback),
-    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
     
     eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = Key}),
     #'Etcd.WatchResponse'{created = false,
@@ -172,9 +163,28 @@ watch_with_prev_kv(_Config) ->
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>},
             prev_kv = #'mvccpb.KeyValue'{key = Key, value = Value}}]} = flush(),
     ok = eetcd:unwatch(WatchPid),
-    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
     ok.
 
+watch_with_create_cancel_event(_Config) ->
+    Pid = self(),
+    Key = <<"etcd_key">>,
+    Value = <<"etcd_value">>,
+    Value2 = <<"etcd_value2">>,
+    Callback = fun(Res) -> erlang:send(Pid, Res) end,
+    {ok, WatchPid} =
+        eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback,
+            [{ignore_create, false}, {ignore_cancel, false}]),
+    #'Etcd.WatchResponse'{created = true, events = []} = flush(),
+    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
+    #'Etcd.WatchResponse'{created = false,
+        events = [#'mvccpb.Event'{type = 'PUT',
+            kv = #'mvccpb.KeyValue'{key = Key, value = Value}}]} = flush(),
+    
+    ok = eetcd:unwatch(WatchPid),
+    #'Etcd.WatchResponse'{canceled = true, events = []} = flush(),
+    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value2}),
+    {error, timeout} = flush(),
+    ok.
 
 watch_with_watch_id(_Config) ->
     Key = <<"etcd_key">>,
@@ -184,24 +194,21 @@ watch_with_watch_id(_Config) ->
     Pid = self(),
     Callback1 = fun(Res) -> erlang:send(Pid, {1, Res}) end,
     {ok, WatchPid1} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback1),
-    {1, #'Etcd.WatchResponse'{created = true, events = []}} = flush(),
     
     WatchId = eetcd:get_watch_id(WatchPid1),
     Callback2 = fun(Res) -> erlang:send(Pid, {2, Res}) end,
     {ok, WatchPid2} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key, watch_id = WatchId}, Callback2),
-    {2, #'Etcd.WatchResponse'{created = true, events = []}} = flush(),
     
     eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = Key}),
-    {1, #'Etcd.WatchResponse'{created = false,
+    {X1, #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'DELETE',
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]}} = flush(),
-    {2, #'Etcd.WatchResponse'{created = false,
+    {X2, #'Etcd.WatchResponse'{created = false,
         events = [#'mvccpb.Event'{type = 'DELETE',
             kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]}} = flush(),
+    [1, 2] = lists:usort([X1, X2]),
     ok = eetcd:unwatch(WatchPid1),
-    {1, #'Etcd.WatchResponse'{canceled = true, events = []}} = flush(),
     ok = eetcd:unwatch(WatchPid2),
-    {2, #'Etcd.WatchResponse'{canceled = true, events = []}} = flush(),
     ok.
 
 %% fragment enables splitting large revisions into multiple watch responses.

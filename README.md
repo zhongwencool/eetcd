@@ -35,7 +35,7 @@ A full listing of all etcd RPCs are documented in markdown in the [gRPC API list
 
 %% creates
 {ok, #'Etcd.PutResponse'{ header = #'Etcd.ResponseHeader'{}, prev_kv = undefined}}
-    = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<value>>}).
+    = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}).
 
 %% updates
 {ok, #'Etcd.PutResponse'{}}

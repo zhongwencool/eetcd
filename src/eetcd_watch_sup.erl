@@ -7,7 +7,7 @@
 
 %% Supervisor callbacks
 -export([init/1]).
--export([watch/2, unwatch/1]).
+-export([watch/3, unwatch/1]).
 
 %%%===================================================================
 %%% API functions
@@ -17,10 +17,11 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec watch(router_pb:'Etcd.WatchRequest'(), Callback) -> {ok, pid()} when
-    Callback :: fun((router_pb:'Etcd.WatchResponse'()) -> term()).
-watch(Request, Callback) when is_function(Callback, 1) ->
-    supervisor:start_child(?MODULE, [Request, Callback]).
+-spec watch(router_pb:'Etcd.WatchRequest'(), Callback, Options) -> {ok, pid()} when
+    Callback :: fun((router_pb:'Etcd.WatchResponse'()) -> term()),
+    Options :: [{ignore_create | ignore_cancel, boolean()}].
+watch(Request, Callback, Options) when is_function(Callback, 1) ->
+    supervisor:start_child(?MODULE, [Request, Callback, Options]).
 
 -spec unwatch(pid()) -> ok.
 unwatch(Pid) ->

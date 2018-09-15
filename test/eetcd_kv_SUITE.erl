@@ -38,7 +38,7 @@ end_per_suite(_Config) ->
 
 init_per_testcase(_TestCase, Config) ->
     {ok, #'Etcd.DeleteRangeResponse'{header = #'Etcd.ResponseHeader'{}}} =
-        eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = <<"eetcd">>, range_end = "\0"}),
+        eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = <<"\0">>, range_end = "\0"}),
     Config.
 
 end_per_testcase(_TestCase, _Config) ->

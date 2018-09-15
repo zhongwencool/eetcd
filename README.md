@@ -171,7 +171,11 @@ rebar3 ct
 
 Architecture
 -----
-TODO
 
-Change Log
------
+![Application](https://user-images.githubusercontent.com/3116225/45582339-569b3f00-b8e0-11e8-84a2-f53863b04ee8.png)
+
+* `eetcd_http2_keeper` make sure http2 connection always work.
+* `eetcd_lease_server` handle all lease keep alive event, and auto renew lease.
+* `eetcd_watch_sup` start a `eetcd_watch_worker` child every `eetcd:watch/2-3`.
+
+

@@ -30,11 +30,12 @@ start_link() ->
 
 init([]) ->
     {ok, Pid, Ref} = eetcd_stream:new(<<"/etcdserverpb.Lease/LeaseKeepAlive">>),
-    MonitorRef = erlang:monitor(process, Pid),
     erlang:process_flag(trap_exit, true),
-    {ok, #state{pid = Pid, stream_ref = Ref, monitor_ref = MonitorRef}}.
+    MonitorRef = erlang:monitor(process, Pid),
+    {ok, #state{pid = Pid, stream_ref = Ref, monitor_ref= MonitorRef}}.
 
-handle_call({keep_alive, Request}, _From, State = #state{pid = Pid, stream_ref = Ref}) ->
+handle_call({keep_alive, Request}, _From, State =
+    #state{pid = Pid, stream_ref = Ref}) ->
     eetcd_stream:data(Pid, Ref, Request, nofin),
     {reply, ok, State};
 handle_call(_Request, _From, State) ->
@@ -43,12 +44,9 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Request, State) ->
     {noreply, State}.
 
-handle_info({'DOWN', Ref, process, Pid, Reason}, #state{pid = Pid, monitor_ref = Ref}) ->
-    error_logger:warning_msg("gun(~p) process stop ~p~n", [Pid, Reason]),
-    case reconnect(16, "") of
-        {ok, State} -> {noreply, State};
-        {error, Reason} -> {stop, Reason, #state{}}
-    end;
+handle_info({'DOWN', Ref, process, Pid, Reason}, #state{pid = Pid, monitor_ref = Ref} = State) ->
+    error_logger:warning_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
+    reconnect(State);
 
 handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{stream_ref = Ref}) ->
     {noreply, State};
@@ -59,6 +57,17 @@ handle_info({gun_data, _Pid, Ref, nofin, Data}, State = #state{stream_ref = Ref}
 handle_info({update_ttl, Id}, State = #state{stream_ref = Ref, pid = Pid}) ->
     Request = #'Etcd.LeaseKeepAliveRequest'{'ID' = Id},
     eetcd_stream:data(Pid, Ref, Request, nofin),
+    {noreply, State};
+
+handle_info({gun_error, Pid, StreamRef, Reason}, State = #state{pid = Pid}) ->
+    error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
+        [?MODULE, self(), {StreamRef, Reason}, State]),
+    io:format("gun_error ~p~n", [eetcd_http2_keeper:get_http2_client_pid()]),
+    {noreply, State};
+handle_info({gun_error, Pid, Reason}, State = #state{pid = Pid}) ->
+    error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
+        [?MODULE, self(), Reason, State]),
+    io:format("gun_error ~p~n", [eetcd_http2_keeper:get_http2_client_pid()]),
     {noreply, State};
 
 handle_info(Info, State) ->
@@ -78,14 +87,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 handle_change_event(State, Data) ->
-    T = #'Etcd.LeaseKeepAliveResponse'{'ID' = Id, 'TTL' = TTL}
+    #'Etcd.LeaseKeepAliveResponse'{'ID' = Id, 'TTL' = TTL}
         = eetcd_grpc:decode(identity, Data, 'Etcd.LeaseKeepAliveResponse'),
-    io:format("lease ~p~n", [T]),
     case TTL > 0 of
-        true -> erlang:send_after(round(TTL / 2) * 1000, self(), {update_ttl, Id});
-        false -> stop
-    end,
-    {noreply, State}.
+        true ->
+            erlang:send_after(round(TTL / 2) * 1000, self(), {update_ttl, Id}),
+            {noreply, State};
+        false ->
+            {noreply, State}
+    end.
+
+reconnect(State) ->
+    case reconnect(16, "") of
+        {ok, NewState} ->
+            {noreply, NewState};
+        {error, Reason} -> {stop, Reason, State}
+    end.
 
 reconnect(0, Reason) -> {error, Reason};
 reconnect(N, _OldReason) ->

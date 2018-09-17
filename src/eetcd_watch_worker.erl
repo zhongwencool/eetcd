@@ -11,6 +11,7 @@
 -include("eetcd.hrl").
 
 -record(state, {ref, watch_id, callback, ignore_create = true, ignore_cancel = true}).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -54,8 +55,23 @@ handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{ref 
 handle_info({gun_data, _Pid, Ref, nofin, Data}, State = #state{ref = Ref}) ->
     handle_change_event(State, Data);
 
+handle_info({gun_error, Pid, StreamRef, Reason}, State =
+    #state{callback = Callback, watch_id = WatchId}) ->
+    error_logger:warning_msg("Watcher({~p,~p}) need reconnect gun_error(~p) ~p~n state~p~n",
+        [?MODULE, self(), Pid, {StreamRef, Reason}, State]),
+    Reps = {gun_error, WatchId, Reason},
+    run_callback(Callback, Reps),
+    {stop, Reason, State};
+handle_info({gun_error, Pid, Reason}, State =
+    #state{callback = Callback, watch_id = WatchId}) ->
+    error_logger:warning_msg("Watcher({~p,~p}) need reconnect gun_error(~p) ~p~n state~p~n",
+        [?MODULE, self(), Pid, Reason, State]),
+    Reps = {gun_error, WatchId, Reason},
+    run_callback(Callback, Reps),
+    {stop, Reason, State};
+
 handle_info(Info, State) ->
-    error_logger:warning_msg("Watcher({~p,~p}) receive unknow msg ~p~n state~p~n",
+    error_logger:error_msg("Watcher({~p,~p}) receive unknow msg ~p~n state~p~n",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 
@@ -77,7 +93,6 @@ handle_change_event(State = #state{callback = Callback,
     #'Etcd.WatchResponse'{created = Create,
         watch_id = WatchId, canceled = Cancel} = Resp
         = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
-    io:format("~p~n", [{Create, Cancel, IgnoreCreate, IgnoreCancel}]),
     if
         Create andalso IgnoreCreate ->
             {noreply, State#state{watch_id = WatchId}};
@@ -101,4 +116,3 @@ run_callback(Callback, Resp) ->
         error_logger:error_msg("Watcher(~p) run callback crash ~p~n Event~p~n",
             [self(), {E, R}, Resp])
     end.
-        

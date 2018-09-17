@@ -54,7 +54,7 @@ unary(Request, Path, ResponseType) ->
     StreamRef = gun:request(Pid, <<"POST">>, Path, ?HEADERS, EncodeBody),
     MRef = erlang:monitor(process, Pid),
     Res =
-        case gun:await(Pid, StreamRef, ?TIMEOUT, MRef) of
+        case gun:await(Pid, StreamRef, ?TIMEOUT + 10000, MRef) of
             {response, nofin, 200, _Headers} ->
                 case gun:await_body(Pid, StreamRef, ?TIMEOUT, MRef) of
                     {ok, ResBody, _Trailers} ->

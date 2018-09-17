@@ -5,6 +5,7 @@
 %% API
 -export([start_link/0]).
 -export([get_http2_client_pid/0]).
+-export([check_leader/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -17,11 +18,15 @@
 
 -spec start_link() -> {ok, pid()} | {error, term()}.
 start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 -spec get_http2_client_pid() -> pid() | undefined.
 get_http2_client_pid() ->
     erlang:whereis(?ETCD_HTTP2_CLIENT).
+
+-spec check_leader() -> ok.
+check_leader() ->
+    gen_server:cast(?MODULE, check_leader).
 
 %%====================================================================
 %% gen_server callbacks
@@ -53,6 +58,11 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
+handle_cast(check_leader, State) ->
+    case check_leader(State) of
+        ignore -> {noreply, State};
+        {ok, NewState} -> {noreply, NewState}
+    end;
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -62,6 +72,8 @@ handle_info({'DOWN', Ref, process, Pid, Reason}, State = #state{pid = Pid, ref =
         {ok, NewState} -> {noreply, NewState};
         {error, Reason} -> {stop, Reason, State}
     end;
+handle_info({'DOWN', _Ref, process, _OldPid, _Reason}, State) ->
+    {noreply, State};
 
 handle_info({gun_down, Pid, http2, {error, Reason}, KilledStreams, UnprocessedStreams},
     State = #state{pid = Pid}) ->
@@ -151,7 +163,60 @@ register_name(Name, Pid) when is_atom(Name) ->
 wait_http2_client_app_up() ->
     case whereis(gun_sup) of
         undefined ->
-            timer:sleep(200),
+            timer:sleep(240),
             wait_http2_client_app_up();
         _ -> ok
+    end.
+
+check_leader(State) ->
+    case eetcd_maintenance:status(#'Etcd.StatusRequest'{}) of
+        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
+            error_logger:warning_msg("Leader(~p) already exist but request timeout~n", [?MODULE, Leader]),
+            ignore;
+        _ -> choose_ready_for_client(State, 1)
+    end.
+
+choose_ready_for_client(#state{cluster = Cluster}, N) when length(Cluster) > N -> ignore;
+choose_ready_for_client(State, N) ->
+    #state{cluster = Cluster, index = Index, transport = Transport, transport_opts = TransportOpts} = State,
+    case Index =/= N of
+        true ->
+            {IP, Port} = lists:nth(N, Cluster),
+            case gun:open(IP, Port,
+                #{
+                    protocols => [http2],
+                    http2_opts => #{keepalive => 45000},
+                    retry => 4,
+                    retry_timeout => 2500,
+                    transport => Transport,
+                    transport_opts => TransportOpts
+                }) of
+                {ok, Pid} ->
+                    case gun:await_up(Pid, 1000) of
+                        {ok, http2} ->
+                            Request = #'Etcd.StatusRequest'{},
+                            Path = <<"/etcdserverpb.Maintenance/Status">>,
+                            case eetcd_stream:unary(Pid, Request, Path, 'Etcd.StatusResponse') of
+                                #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
+                                    OldPid = erlang:whereis(?ETCD_HTTP2_CLIENT),
+                                    true = register(?ETCD_HTTP2_CLIENT, Pid),
+                                    gun:close(OldPid),
+                                    {ok, State#state{
+                                        pid = Pid,
+                                        cluster = Cluster,
+                                        index = N,
+                                        ref = erlang:monitor(process, Pid)
+                                    }};
+                                _ ->
+                                    gun:close(Pid),
+                                    choose_ready_for_client(State, N + 1)
+                            end;
+                        {error, _Reason} ->
+                            choose_ready_for_client(State, N + 1)
+                    end;
+                {error, _Reason} ->
+                    choose_ready_for_client(State, N + 1)
+            end;
+        false ->
+            choose_ready_for_client(State, N + 1)
     end.

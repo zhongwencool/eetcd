@@ -25,8 +25,8 @@ start_link(Request, Callback, Options) ->
 %%% gen_server callbacks
 %%%===================================================================
 init([Request, Callback, Options]) ->
-    StreamRef = eetcd_watch:watch(Request),
     erlang:process_flag(trap_exit, true),
+    StreamRef = eetcd_watch:watch(Request),
     {ok, #state{
         ref = StreamRef,
         callback = Callback,

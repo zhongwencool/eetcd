@@ -115,7 +115,7 @@ reconnect(N, _OldReason) ->
 wait_http2_client_up() ->
     case eetcd_http2_keeper:get_http2_client_pid() of
         undefined ->
-            timer:sleep(200),
+            timer:sleep(210),
             wait_http2_client_up();
         _ -> ok
     end.

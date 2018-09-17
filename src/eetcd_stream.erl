@@ -1,12 +1,14 @@
 -module(eetcd_stream).
 
 %% API
--export([unary/3]).
+-export([unary/3, unary/4]).
 -export([new/1]).
 -export([data/2, data/3, data/4]).
 
 -define(TIMEOUT, 5000).
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
+
+-include("eetcd.hrl").
 
 -spec new(Path) -> {ok, GunPid, Http2Ref} when
     Path :: iodata(),
@@ -49,8 +51,17 @@ data(Pid, Ref, Request, IsFin) ->
     EtcdResponseType :: atom(),
     EtcdResponse :: tuple().
 unary(Request, Path, ResponseType) ->
-    EncodeBody = eetcd_grpc:encode(identity, Request),
     Pid = eetcd_http2_keeper:get_http2_client_pid(),
+    unary(Pid, Request, Path, ResponseType).
+
+-spec unary(Http2Pid, EtcdRequest, Http2Path, EtcdResponseType) -> EtcdResponse when
+    Http2Pid :: pid(),
+    EtcdRequest :: tuple(),
+    Http2Path :: iodata(),
+    EtcdResponseType :: atom(),
+    EtcdResponse :: tuple().
+unary(Pid, Request, Path, ResponseType) ->
+    EncodeBody = eetcd_grpc:encode(identity, Request),
     StreamRef = gun:request(Pid, <<"POST">>, Path, ?HEADERS, EncodeBody),
     MRef = erlang:monitor(process, Pid),
     Res =
@@ -63,9 +74,14 @@ unary(Request, Path, ResponseType) ->
                         Error1
                 end;
             {response, fin, 200, Headers} ->
-                GrpcStatus = proplists:get_value(<<"grpc-status">>, Headers, <<"0">>),
+                GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, Headers, <<"0">>)),
                 GrpcMessage = proplists:get_value(<<"grpc-message">>, Headers, <<"">>),
-                {error, {'grpc_error', binary_to_integer(GrpcStatus), GrpcMessage}};
+                case GrpcStatus of
+                    ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
+                        eetcd_http2_keeper:check_leader();
+                    _ -> ignore
+                end,
+                {error, {'grpc_error', GrpcStatus, GrpcMessage}};
             {error, _} = Error2 ->
                 Error2
         end,

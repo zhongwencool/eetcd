@@ -1,9 +1,12 @@
+[![GitHub tag](https://img.shields.io/github/tag/zhongwencool/eetcd.svg)](https://github.com/zhongwencool/eetcd)
+[![Hex.pm Version](https://img.shields.io/hexpm/v/eetcd.svg)](https://hex.pm/packages/eetcd)
+
 eetcd
 =====
 
-etcd v3 client for erlang.
+[etcd](https://github.com/etcd-io/etcd) v3 client for erlang.
 
-Quick Start Example
+Quick Start
 -----
 #### 1. Setup
 ```erlang

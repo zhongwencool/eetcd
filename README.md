@@ -16,8 +16,7 @@ Prepare configuration.
 ```erlang
 ## sys.config
 [{eetcd,
-    {etcd_host, "127.0.0.1"},
-    {etcd_port, 2379},
+    {etcd_cluster, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]},
 
     {http2_transport, tcp},  %% tcp | ssl
     %% ssl:connect_option() see all options in ssl_api.hrl such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]

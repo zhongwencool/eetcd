@@ -1,10 +1,38 @@
+[![Build Status](https://travis-ci.org/zhongwencool/eetcd.svg?branch=master)](https://travis-ci.org/zhongwencool/eetcd)
 [![GitHub tag](https://img.shields.io/github/tag/zhongwencool/eetcd.svg)](https://github.com/zhongwencool/eetcd)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/eetcd.svg)](https://hex.pm/packages/eetcd)
 
 eetcd
 =====
 
-[etcd](https://github.com/etcd-io/etcd) v3 client for erlang.
+Erlang client for the [etcd](https://github.com/etcd-io/etcd) API v3.
+`eetcd` aims to be a high-quality, production-ready client for the Protocol Buffer-based etcd v3 API.
+All core features are supported.
+It includes reconnection, transaction, software transactional memory, high-level query builders and lease management, watchers.
+
+See [the full API documentation](https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md) for more.
+
+1. Adding, Fetching and Deleting Keys;
+2. Transaction;
+3. Lease -- as well as a few convenience features like continuous keep alive;
+4. Watch;
+5. Maintenance -- User, Role, Authentication, Cluster, Alarms.
+
+
+#### Retry
+Create a new etcd client for a clustered etcd setup.
+Client will connect to servers in sequence.
+On failure it will try the next server.
+When all servers have failed it will callback with error.
+If it suspects the cluster is in leader election mode it will retry up to 4 times with exp backoff.
+
+#### Automatic failover
+1. If a request fails, client will try to get cluster configuration from all given seed URIs until first valid response.
+The original request failed.
+2. Watches are a special case, they will stop watching by run callback with argument `{gun_error, WatchId, Reason}` when the leader goes down.
+After a failover reestablish your should manual watch again.
+3. Due to the tcp connection is broken, All keep alive lease will lose after failover.
+
 
 Quick Start
 -----
@@ -172,7 +200,7 @@ rebar3 ct
 Architecture
 -----
 
-<img src="https://user-images.githubusercontent.com/3116225/45582339-569b3f00-b8e0-11e8-84a2-f53863b04ee8.png" width="90%" height = "85%" alt="Home"></img>
+<img src="https://user-images.githubusercontent.com/3116225/45798910-356e9000-bcde-11e8-876b-eca70894de94.jpg" width="95%" height = "85%" alt="Home"></img>
 
 * `eetcd_http2_keeper` make sure http2 connection always work.
 * `eetcd_lease_server` handle all lease keep alive event, and auto renew lease.

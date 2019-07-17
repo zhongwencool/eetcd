@@ -16,7 +16,7 @@
     Http2Ref :: reference().
 new(Path) ->
     Pid = eetcd_http2_keeper:get_http2_client_pid(),
-    {ok, Pid, gun:request(Pid, <<"POST">>, Path, ?HEADERS)}.
+    {ok, Pid, gun:request(Pid, <<"POST">>, Path, ?HEADERS, <<>>)}.
 
 -spec data(EtcdRequest, Http2Path) -> Http2Ref when
     EtcdRequest :: tuple(),

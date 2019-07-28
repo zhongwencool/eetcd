@@ -29,7 +29,7 @@ start_link() ->
 %%%===================================================================
 
 init([]) ->
-    {ok, Pid, Ref} = eetcd_stream:new(<<"/etcdserverpb.Lease/LeaseKeepAlive">>),
+    {ok, Pid, Ref} = eetcd_stream:new(<<"/etcdserverpb.Lease/LeaseKeepAlive">>, []),
     erlang:process_flag(trap_exit, true),
     MonitorRef = erlang:monitor(process, Pid),
     {ok, #state{pid = Pid, stream_ref = Ref, monitor_ref= MonitorRef}}.

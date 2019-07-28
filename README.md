@@ -189,13 +189,25 @@ timer:sleep(10000),
 ```
 More detailed examples see [eetcd_kv_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_kv_SUITE.erl)  [eetcd_watch_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_watch_SUITE.erl)  [eetcd_lease_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_lease_SUITE.erl).
 
-
+##### Authentication  
+```erlang
+AuthRequest = #'Etcd.AuthenticateRequest'{name = <<"youruser">>, password = <<"yourpassword">>},
+{ok, #'Etcd.AuthenticateResponse'{token = Token}} = eetcd_auth:authenticate(AuthRequest),
+{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, Token]).
+%% or 
+{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, [{<<"Authorization">>, Token}]).
+```
 Test
 -----
 
 ```erlang
 rebar3 ct
 ```
+Gen proto and client file
+-----
+```erlang
+rebar3 etcd gen
+``` 
 
 Architecture
 -----

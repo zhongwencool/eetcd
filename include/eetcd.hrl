@@ -6,7 +6,7 @@
 -include("gogo_pb.hrl").
 -include("kv_pb.hrl").
 
-
+-define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(ETCD_HTTP2_CLIENT, etcd_http2_client).
 
 %% Grpc status code

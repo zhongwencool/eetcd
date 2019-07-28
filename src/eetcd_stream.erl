@@ -2,28 +2,28 @@
 
 %% API
 -export([unary/3, unary/4]).
--export([new/1]).
--export([data/2, data/3, data/4]).
+-export([new/2, new/3]).
+-export([data/3, data/4]).
 
 -define(TIMEOUT, 5000).
--define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
-
 -include("eetcd.hrl").
 
--spec new(Path) -> {ok, GunPid, Http2Ref} when
+-spec new(Path, Headers) -> {ok, GunPid, Http2Ref} when
     Path :: iodata(),
+    Headers :: [{binary(), binary()}],
     GunPid :: pid(),
     Http2Ref :: reference().
-new(Path) ->
+new(Path, Headers) ->
     Pid = eetcd_http2_keeper:get_http2_client_pid(),
-    {ok, Pid, gun:request(Pid, <<"POST">>, Path, ?HEADERS, <<>>)}.
+    {ok, Pid, gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>)}.
 
--spec data(EtcdRequest, Http2Path) -> Http2Ref when
+-spec new(EtcdRequest, Http2Path, Http2Headers) -> Http2Ref when
     EtcdRequest :: tuple(),
     Http2Path :: iodata(),
+    Http2Headers :: [{binary(), binary()}],
     Http2Ref :: reference().
-data(Request, Path) ->
-    {ok, Pid, Ref} = new(Path),
+new(Request, Path, Http2Headers) ->
+    {ok, Pid, Ref} = new(Path, Http2Headers),
     data(Pid, Ref, Request, nofin),
     Ref.
 
@@ -52,17 +52,20 @@ data(Pid, Ref, Request, IsFin) ->
     EtcdResponse :: tuple().
 unary(Request, Path, ResponseType) ->
     Pid = eetcd_http2_keeper:get_http2_client_pid(),
-    unary(Pid, Request, Path, ResponseType).
-
--spec unary(Http2Pid, EtcdRequest, Http2Path, EtcdResponseType) -> EtcdResponse when
-    Http2Pid :: pid(),
+    unary(Pid, Request, Path, ResponseType, ?HEADERS).
+-spec unary(EtcdRequest, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
     EtcdRequest :: tuple(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
+    Http2Headers :: list(),
     EtcdResponse :: tuple().
-unary(Pid, Request, Path, ResponseType) ->
+unary(Request, Path, ResponseType, Headers) ->
+    Pid = eetcd_http2_keeper:get_http2_client_pid(),
+    unary(Pid, Request, Path, ResponseType, Headers ++ ?HEADERS).
+
+unary(Pid, Request, Path, ResponseType, Headers) ->
     EncodeBody = eetcd_grpc:encode(identity, Request),
-    StreamRef = gun:request(Pid, <<"POST">>, Path, ?HEADERS, EncodeBody),
+    StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
     MRef = erlang:monitor(process, Pid),
     Res =
         case gun:await(Pid, StreamRef, ?TIMEOUT + 10000, MRef) of
@@ -73,9 +76,9 @@ unary(Pid, Request, Path, ResponseType) ->
                     {error, _} = Error1 ->
                         Error1
                 end;
-            {response, fin, 200, Headers} ->
-                GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, Headers, <<"0">>)),
-                GrpcMessage = proplists:get_value(<<"grpc-message">>, Headers, <<"">>),
+            {response, fin, 200, RespHeaders} ->
+                GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),
+                GrpcMessage = proplists:get_value(<<"grpc-message">>, RespHeaders, <<"">>),
                 case GrpcStatus of
                     ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
                         eetcd_http2_keeper:check_leader();

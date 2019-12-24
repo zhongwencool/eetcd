@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2019-07-28T07:13:13+00:00 and should not be modified manually
+%% This module was generated on 2019-12-24T00:52:00+00:00 and should not be modified manually
 
 -module(eetcd_maintenance).
 
@@ -26,7 +26,7 @@ alarm(Request) when is_record(Request, 'Etcd.AlarmRequest') ->
 -spec alarm(#'Etcd.AlarmRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AlarmResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 alarm(Request, Token) when is_record(Request, 'Etcd.AlarmRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse', [{<<"authorization">>, Token}]);
 alarm(Request, Http2Headers) when is_record(Request, 'Etcd.AlarmRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse', Http2Headers).
 
@@ -38,7 +38,7 @@ status(Request) when is_record(Request, 'Etcd.StatusRequest') ->
 -spec status(#'Etcd.StatusRequest'{}, Http2Headers) ->
     {ok, #'Etcd.StatusResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 status(Request, Token) when is_record(Request, 'Etcd.StatusRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse', [{<<"authorization">>, Token}]);
 status(Request, Http2Headers) when is_record(Request, 'Etcd.StatusRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse', Http2Headers).
 
@@ -50,7 +50,7 @@ defragment(Request) when is_record(Request, 'Etcd.DefragmentRequest') ->
 -spec defragment(#'Etcd.DefragmentRequest'{}, Http2Headers) ->
     {ok, #'Etcd.DefragmentResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 defragment(Request, Token) when is_record(Request, 'Etcd.DefragmentRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse', [{<<"authorization">>, Token}]);
 defragment(Request, Http2Headers) when is_record(Request, 'Etcd.DefragmentRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse', Http2Headers).
 
@@ -62,7 +62,7 @@ hash(Request) when is_record(Request, 'Etcd.HashRequest') ->
 -spec hash(#'Etcd.HashRequest'{}, Http2Headers) ->
     {ok, #'Etcd.HashResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 hash(Request, Token) when is_record(Request, 'Etcd.HashRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse', [{<<"authorization">>, Token}]);
 hash(Request, Http2Headers) when is_record(Request, 'Etcd.HashRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse', Http2Headers).
 
@@ -74,7 +74,7 @@ hash_kv(Request) when is_record(Request, 'Etcd.HashKVRequest') ->
 -spec hash_kv(#'Etcd.HashKVRequest'{}, Http2Headers) ->
     {ok, #'Etcd.HashKVResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 hash_kv(Request, Token) when is_record(Request, 'Etcd.HashKVRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', [{<<"authorization">>, Token}]);
 hash_kv(Request, Http2Headers) when is_record(Request, 'Etcd.HashKVRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', Http2Headers).
 
@@ -86,7 +86,7 @@ snapshot(Request) when is_record(Request, 'Etcd.SnapshotRequest') ->
 -spec snapshot(#'Etcd.SnapshotRequest'{}, Http2Headers) ->
     {ok, #'Etcd.SnapshotResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 snapshot(Request, Token) when is_record(Request, 'Etcd.SnapshotRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', [{<<"authorization">>, Token}]);
 snapshot(Request, Http2Headers) when is_record(Request, 'Etcd.SnapshotRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', Http2Headers).
 
@@ -98,7 +98,7 @@ move_leader(Request) when is_record(Request, 'Etcd.MoveLeaderRequest') ->
 -spec move_leader(#'Etcd.MoveLeaderRequest'{}, Http2Headers) ->
     {ok, #'Etcd.MoveLeaderResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 move_leader(Request, Token) when is_record(Request, 'Etcd.MoveLeaderRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse', [{<<"authorization">>, Token}]);
 move_leader(Request, Http2Headers) when is_record(Request, 'Etcd.MoveLeaderRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse', Http2Headers).
 

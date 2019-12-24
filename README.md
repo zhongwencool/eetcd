@@ -195,7 +195,7 @@ AuthRequest = #'Etcd.AuthenticateRequest'{name = <<"youruser">>, password = <<"y
 {ok, #'Etcd.AuthenticateResponse'{token = Token}} = eetcd_auth:authenticate(AuthRequest),
 {ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, Token]).
 %% or 
-{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, [{<<"Authorization">>, Token}]).
+{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, [{<<"authorization">>, Token}]).
 ```
 Test
 -----

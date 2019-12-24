@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2019-07-28T07:13:13+00:00 and should not be modified manually
+%% This module was generated on 2019-12-24T00:52:00+00:00 and should not be modified manually
 
 -module(eetcd_auth).
 
@@ -35,7 +35,7 @@ auth_enable(Request) when is_record(Request, 'Etcd.AuthEnableRequest') ->
 -spec auth_enable(#'Etcd.AuthEnableRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthEnableResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 auth_enable(Request, Token) when is_record(Request, 'Etcd.AuthEnableRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthEnable">>, 'Etcd.AuthEnableResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthEnable">>, 'Etcd.AuthEnableResponse', [{<<"authorization">>, Token}]);
 auth_enable(Request, Http2Headers) when is_record(Request, 'Etcd.AuthEnableRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthEnable">>, 'Etcd.AuthEnableResponse', Http2Headers).
 
@@ -47,7 +47,7 @@ auth_disable(Request) when is_record(Request, 'Etcd.AuthDisableRequest') ->
 -spec auth_disable(#'Etcd.AuthDisableRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthDisableResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 auth_disable(Request, Token) when is_record(Request, 'Etcd.AuthDisableRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthDisable">>, 'Etcd.AuthDisableResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthDisable">>, 'Etcd.AuthDisableResponse', [{<<"authorization">>, Token}]);
 auth_disable(Request, Http2Headers) when is_record(Request, 'Etcd.AuthDisableRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/AuthDisable">>, 'Etcd.AuthDisableResponse', Http2Headers).
 
@@ -59,7 +59,7 @@ authenticate(Request) when is_record(Request, 'Etcd.AuthenticateRequest') ->
 -spec authenticate(#'Etcd.AuthenticateRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthenticateResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 authenticate(Request, Token) when is_record(Request, 'Etcd.AuthenticateRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/Authenticate">>, 'Etcd.AuthenticateResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/Authenticate">>, 'Etcd.AuthenticateResponse', [{<<"authorization">>, Token}]);
 authenticate(Request, Http2Headers) when is_record(Request, 'Etcd.AuthenticateRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/Authenticate">>, 'Etcd.AuthenticateResponse', Http2Headers).
 
@@ -71,7 +71,7 @@ user_add(Request) when is_record(Request, 'Etcd.AuthUserAddRequest') ->
 -spec user_add(#'Etcd.AuthUserAddRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserAddResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_add(Request, Token) when is_record(Request, 'Etcd.AuthUserAddRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserAdd">>, 'Etcd.AuthUserAddResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserAdd">>, 'Etcd.AuthUserAddResponse', [{<<"authorization">>, Token}]);
 user_add(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserAddRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserAdd">>, 'Etcd.AuthUserAddResponse', Http2Headers).
 
@@ -83,7 +83,7 @@ user_get(Request) when is_record(Request, 'Etcd.AuthUserGetRequest') ->
 -spec user_get(#'Etcd.AuthUserGetRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserGetResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_get(Request, Token) when is_record(Request, 'Etcd.AuthUserGetRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGet">>, 'Etcd.AuthUserGetResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGet">>, 'Etcd.AuthUserGetResponse', [{<<"authorization">>, Token}]);
 user_get(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserGetRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGet">>, 'Etcd.AuthUserGetResponse', Http2Headers).
 
@@ -95,7 +95,7 @@ user_list(Request) when is_record(Request, 'Etcd.AuthUserListRequest') ->
 -spec user_list(#'Etcd.AuthUserListRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserListResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_list(Request, Token) when is_record(Request, 'Etcd.AuthUserListRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserList">>, 'Etcd.AuthUserListResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserList">>, 'Etcd.AuthUserListResponse', [{<<"authorization">>, Token}]);
 user_list(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserListRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserList">>, 'Etcd.AuthUserListResponse', Http2Headers).
 
@@ -107,7 +107,7 @@ user_delete(Request) when is_record(Request, 'Etcd.AuthUserDeleteRequest') ->
 -spec user_delete(#'Etcd.AuthUserDeleteRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserDeleteResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_delete(Request, Token) when is_record(Request, 'Etcd.AuthUserDeleteRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserDelete">>, 'Etcd.AuthUserDeleteResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserDelete">>, 'Etcd.AuthUserDeleteResponse', [{<<"authorization">>, Token}]);
 user_delete(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserDeleteRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserDelete">>, 'Etcd.AuthUserDeleteResponse', Http2Headers).
 
@@ -119,7 +119,7 @@ user_change_password(Request) when is_record(Request, 'Etcd.AuthUserChangePasswo
 -spec user_change_password(#'Etcd.AuthUserChangePasswordRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserChangePasswordResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_change_password(Request, Token) when is_record(Request, 'Etcd.AuthUserChangePasswordRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserChangePassword">>, 'Etcd.AuthUserChangePasswordResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserChangePassword">>, 'Etcd.AuthUserChangePasswordResponse', [{<<"authorization">>, Token}]);
 user_change_password(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserChangePasswordRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserChangePassword">>, 'Etcd.AuthUserChangePasswordResponse', Http2Headers).
 
@@ -131,7 +131,7 @@ user_grant_role(Request) when is_record(Request, 'Etcd.AuthUserGrantRoleRequest'
 -spec user_grant_role(#'Etcd.AuthUserGrantRoleRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserGrantRoleResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_grant_role(Request, Token) when is_record(Request, 'Etcd.AuthUserGrantRoleRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGrantRole">>, 'Etcd.AuthUserGrantRoleResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGrantRole">>, 'Etcd.AuthUserGrantRoleResponse', [{<<"authorization">>, Token}]);
 user_grant_role(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserGrantRoleRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserGrantRole">>, 'Etcd.AuthUserGrantRoleResponse', Http2Headers).
 
@@ -143,7 +143,7 @@ user_revoke_role(Request) when is_record(Request, 'Etcd.AuthUserRevokeRoleReques
 -spec user_revoke_role(#'Etcd.AuthUserRevokeRoleRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthUserRevokeRoleResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 user_revoke_role(Request, Token) when is_record(Request, 'Etcd.AuthUserRevokeRoleRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserRevokeRole">>, 'Etcd.AuthUserRevokeRoleResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserRevokeRole">>, 'Etcd.AuthUserRevokeRoleResponse', [{<<"authorization">>, Token}]);
 user_revoke_role(Request, Http2Headers) when is_record(Request, 'Etcd.AuthUserRevokeRoleRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/UserRevokeRole">>, 'Etcd.AuthUserRevokeRoleResponse', Http2Headers).
 
@@ -155,7 +155,7 @@ role_add(Request) when is_record(Request, 'Etcd.AuthRoleAddRequest') ->
 -spec role_add(#'Etcd.AuthRoleAddRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleAddResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_add(Request, Token) when is_record(Request, 'Etcd.AuthRoleAddRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleAdd">>, 'Etcd.AuthRoleAddResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleAdd">>, 'Etcd.AuthRoleAddResponse', [{<<"authorization">>, Token}]);
 role_add(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleAddRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleAdd">>, 'Etcd.AuthRoleAddResponse', Http2Headers).
 
@@ -167,7 +167,7 @@ role_get(Request) when is_record(Request, 'Etcd.AuthRoleGetRequest') ->
 -spec role_get(#'Etcd.AuthRoleGetRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleGetResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_get(Request, Token) when is_record(Request, 'Etcd.AuthRoleGetRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGet">>, 'Etcd.AuthRoleGetResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGet">>, 'Etcd.AuthRoleGetResponse', [{<<"authorization">>, Token}]);
 role_get(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleGetRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGet">>, 'Etcd.AuthRoleGetResponse', Http2Headers).
 
@@ -179,7 +179,7 @@ role_list(Request) when is_record(Request, 'Etcd.AuthRoleListRequest') ->
 -spec role_list(#'Etcd.AuthRoleListRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleListResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_list(Request, Token) when is_record(Request, 'Etcd.AuthRoleListRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleList">>, 'Etcd.AuthRoleListResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleList">>, 'Etcd.AuthRoleListResponse', [{<<"authorization">>, Token}]);
 role_list(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleListRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleList">>, 'Etcd.AuthRoleListResponse', Http2Headers).
 
@@ -191,7 +191,7 @@ role_delete(Request) when is_record(Request, 'Etcd.AuthRoleDeleteRequest') ->
 -spec role_delete(#'Etcd.AuthRoleDeleteRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleDeleteResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_delete(Request, Token) when is_record(Request, 'Etcd.AuthRoleDeleteRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleDelete">>, 'Etcd.AuthRoleDeleteResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleDelete">>, 'Etcd.AuthRoleDeleteResponse', [{<<"authorization">>, Token}]);
 role_delete(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleDeleteRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleDelete">>, 'Etcd.AuthRoleDeleteResponse', Http2Headers).
 
@@ -203,7 +203,7 @@ role_grant_permission(Request) when is_record(Request, 'Etcd.AuthRoleGrantPermis
 -spec role_grant_permission(#'Etcd.AuthRoleGrantPermissionRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleGrantPermissionResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_grant_permission(Request, Token) when is_record(Request, 'Etcd.AuthRoleGrantPermissionRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGrantPermission">>, 'Etcd.AuthRoleGrantPermissionResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGrantPermission">>, 'Etcd.AuthRoleGrantPermissionResponse', [{<<"authorization">>, Token}]);
 role_grant_permission(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleGrantPermissionRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleGrantPermission">>, 'Etcd.AuthRoleGrantPermissionResponse', Http2Headers).
 
@@ -215,7 +215,7 @@ role_revoke_permission(Request) when is_record(Request, 'Etcd.AuthRoleRevokePerm
 -spec role_revoke_permission(#'Etcd.AuthRoleRevokePermissionRequest'{}, Http2Headers) ->
     {ok, #'Etcd.AuthRoleRevokePermissionResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 role_revoke_permission(Request, Token) when is_record(Request, 'Etcd.AuthRoleRevokePermissionRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleRevokePermission">>, 'Etcd.AuthRoleRevokePermissionResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleRevokePermission">>, 'Etcd.AuthRoleRevokePermissionResponse', [{<<"authorization">>, Token}]);
 role_revoke_permission(Request, Http2Headers) when is_record(Request, 'Etcd.AuthRoleRevokePermissionRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.Auth/RoleRevokePermission">>, 'Etcd.AuthRoleRevokePermissionResponse', Http2Headers).
 

@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2019-07-28T07:13:13+00:00 and should not be modified manually
+%% This module was generated on 2019-12-24T00:51:59+00:00 and should not be modified manually
 
 -module(eetcd_kv).
 
@@ -24,7 +24,7 @@ range(Request) when is_record(Request, 'Etcd.RangeRequest') ->
 -spec range(#'Etcd.RangeRequest'{}, Http2Headers) ->
     {ok, #'Etcd.RangeResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 range(Request, Token) when is_record(Request, 'Etcd.RangeRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Range">>, 'Etcd.RangeResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Range">>, 'Etcd.RangeResponse', [{<<"authorization">>, Token}]);
 range(Request, Http2Headers) when is_record(Request, 'Etcd.RangeRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Range">>, 'Etcd.RangeResponse', Http2Headers).
 
@@ -36,7 +36,7 @@ put(Request) when is_record(Request, 'Etcd.PutRequest') ->
 -spec put(#'Etcd.PutRequest'{}, Http2Headers) ->
     {ok, #'Etcd.PutResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 put(Request, Token) when is_record(Request, 'Etcd.PutRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Put">>, 'Etcd.PutResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Put">>, 'Etcd.PutResponse', [{<<"authorization">>, Token}]);
 put(Request, Http2Headers) when is_record(Request, 'Etcd.PutRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Put">>, 'Etcd.PutResponse', Http2Headers).
 
@@ -48,7 +48,7 @@ delete_range(Request) when is_record(Request, 'Etcd.DeleteRangeRequest') ->
 -spec delete_range(#'Etcd.DeleteRangeRequest'{}, Http2Headers) ->
     {ok, #'Etcd.DeleteRangeResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 delete_range(Request, Token) when is_record(Request, 'Etcd.DeleteRangeRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/DeleteRange">>, 'Etcd.DeleteRangeResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/DeleteRange">>, 'Etcd.DeleteRangeResponse', [{<<"authorization">>, Token}]);
 delete_range(Request, Http2Headers) when is_record(Request, 'Etcd.DeleteRangeRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/DeleteRange">>, 'Etcd.DeleteRangeResponse', Http2Headers).
 
@@ -60,7 +60,7 @@ txn(Request) when is_record(Request, 'Etcd.TxnRequest') ->
 -spec txn(#'Etcd.TxnRequest'{}, Http2Headers) ->
     {ok, #'Etcd.TxnResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 txn(Request, Token) when is_record(Request, 'Etcd.TxnRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Txn">>, 'Etcd.TxnResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Txn">>, 'Etcd.TxnResponse', [{<<"authorization">>, Token}]);
 txn(Request, Http2Headers) when is_record(Request, 'Etcd.TxnRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Txn">>, 'Etcd.TxnResponse', Http2Headers).
 
@@ -72,7 +72,7 @@ compact(Request) when is_record(Request, 'Etcd.CompactionRequest') ->
 -spec compact(#'Etcd.CompactionRequest'{}, Http2Headers) ->
     {ok, #'Etcd.CompactionResponse'{}} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 compact(Request, Token) when is_record(Request, 'Etcd.CompactionRequest') andalso is_binary(Token) ->
-    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Compact">>, 'Etcd.CompactionResponse', [{<<"Authorization">>, Token}]);
+    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Compact">>, 'Etcd.CompactionResponse', [{<<"authorization">>, Token}]);
 compact(Request, Http2Headers) when is_record(Request, 'Etcd.CompactionRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:unary(Request, <<"/etcdserverpb.KV/Compact">>, 'Etcd.CompactionResponse', Http2Headers).
 

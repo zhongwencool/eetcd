@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2019-07-28T07:13:13+00:00 and should not be modified manually
+%% This module was generated on 2019-12-24T00:52:00+00:00 and should not be modified manually
 
 -module(eetcd_watch).
 
@@ -20,7 +20,7 @@ watch(Request) when is_record(Request, 'Etcd.WatchRequest') ->
 -spec watch(#'Etcd.WatchRequest'{}, Http2Headers) ->
     reference() | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
 watch(Request, Token) when is_record(Request, 'Etcd.WatchRequest') andalso is_binary(Token) ->
-    eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>, [{<<"Authorization">>, Token}]);
+    eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>, [{<<"authorization">>, Token}]);
 watch(Request, Http2Headers) when is_record(Request, 'Etcd.WatchRequest') andalso is_list(Http2Headers) ->
    eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>, Http2Headers).
 

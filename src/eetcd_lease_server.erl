@@ -63,12 +63,12 @@ handle_info({gun_error, Pid, StreamRef, Reason}, State = #state{pid = Pid}) ->
     error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
         [?MODULE, self(), {StreamRef, Reason}, State]),
     io:format("gun_error ~p~n", [eetcd_http2_keeper:get_http2_client_pid()]),
-    {noreply, State};
+    reconnect(State);
 handle_info({gun_error, Pid, Reason}, State = #state{pid = Pid}) ->
     error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
         [?MODULE, self(), Reason, State]),
     io:format("gun_error ~p~n", [eetcd_http2_keeper:get_http2_client_pid()]),
-    {noreply, State};
+    reconnect(State);
 
 handle_info(Info, State) ->
     error_logger:warning_msg("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",

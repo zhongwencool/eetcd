@@ -182,8 +182,8 @@ choose_ready_for_client(State, N) ->
                     case eetcd_stream:unary(Request, Path, 'Etcd.StatusResponse') of
                         #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
                             OldPid = erlang:whereis(?ETCD_HTTP2_CLIENT),
-                            true = register(?ETCD_HTTP2_CLIENT, Pid),
                             gun:close(OldPid),
+                            true = register(?ETCD_HTTP2_CLIENT, Pid),
                             {ok, State#state{
                                 pid = Pid,
                                 cluster = Cluster,

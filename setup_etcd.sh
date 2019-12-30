@@ -22,14 +22,15 @@ rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
   --advertise-client-urls http://127.0.0.1:2379 \
   --initial-cluster-token etcd-cluster-1 \
   --initial-cluster infra0=http://127.0.0.1:2380,infra1=http://127.0.0.1:2480,infra2=http://127.0.0.1:2580 \
-  --initial-cluster-state new &&
+  --initial-cluster-state new &
+
 /tmp/etcd/etcd --name infra1 --initial-advertise-peer-urls http://127.0.0.1:2480 \
   --listen-peer-urls http://127.0.0.1:2480 \
   --listen-client-urls http://127.0.0.1:2479 \
   --advertise-client-urls http://127.0.0.1:2479 \
   --initial-cluster-token etcd-cluster-1 \
   --initial-cluster infra0=http://127.0.0.1:2380,infra1=http://127.0.0.1:2480,infra2=http://127.0.0.1:2580 \
-  --initial-cluster-state new &&
+  --initial-cluster-state new &
 
 /tmp/etcd/etcd --name infra2 --initial-advertise-peer-urls http://127.0.0.1:2580 \
   --listen-peer-urls http://127.0.0.1:2580 \
@@ -37,4 +38,4 @@ rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
   --advertise-client-urls http://127.0.0.1:2579 \
   --initial-cluster-token etcd-cluster-1 \
   --initial-cluster infra0=http://127.0.0.1:2380,infra1=http://127.0.0.1:2480,infra2=http://127.0.0.1:2580 \
-  --initial-cluster-state new &&
+  --initial-cluster-state new &

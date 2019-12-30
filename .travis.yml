@@ -9,9 +9,8 @@ before_script:
   - curl -O -L https://s3.amazonaws.com/rebar3/rebar3
   - chmod +x rebar3
   - ./rebar3 update
+  - chmod +x ./setup_etcd.sh
+  - ./setup_etcd.sh
 
-script: "rm -rf deps ebin test/*.beam logs && ./rebar3 compile"
+script: "rm -rf deps ebin test/*.beam logs && ./rebar3 compile && ./rebar3 ct"
 
-branches:
-  only:
-    - master

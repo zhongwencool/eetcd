@@ -14,7 +14,7 @@ tar xzvf /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz -C /tmp/etcd --strip-component
 rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 
 /tmp/etcd/etcd --version
-/tmp/etcd/etcdctl version
+/tmp/etcd/etcdctl --version
 
 /tmp/etcd/etcd --name infra0 --initial-advertise-peer-urls http://127.0.0.1:2380 \
   --listen-peer-urls http://127.0.0.1:2380 \

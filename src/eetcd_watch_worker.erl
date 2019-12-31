@@ -10,7 +10,7 @@
 
 -include("eetcd.hrl").
 
--record(state, {ref, watch_id, callback, ignore_create = true, ignore_cancel = true}).
+-record(state, {stream_ref, client_ref, client_pid, watch_id, callback, ignore_create = true, ignore_cancel = true}).
 
 %%%===================================================================
 %%% API
@@ -26,15 +26,19 @@ start_link(Request, Callback, Options) ->
 %%%===================================================================
 init([Request, Callback, Options]) ->
     erlang:process_flag(trap_exit, true),
+    {ok, Pid} = eetcd_http2_keeper:safe_get_http2_client_pid([240, 480, 960]),
+    ClientRef = erlang:monitor(process, Pid),
     StreamRef = eetcd_watch:watch(Request),
     {ok, #state{
-        ref = StreamRef,
+        stream_ref = StreamRef,
+        client_ref = ClientRef,
+        client_pid = Pid,
         callback = Callback,
         ignore_create = proplists:get_value(ignore_create, Options, true),
         ignore_cancel = proplists:get_value(ignore_cancel, Options, true)
     }}.
 
-handle_call(unwatch, _From, State = #state{ref = Ref, watch_id = WatchId}) ->
+handle_call(unwatch, _From, State = #state{stream_ref = Ref, watch_id = WatchId}) ->
     Request = #'Etcd.WatchRequest'{
         request_union = {cancel_request, #'Etcd.WatchCancelRequest'{
             watch_id = WatchId
@@ -49,10 +53,10 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Request, State) ->
     {noreply, State}.
 
-handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{ref = Ref}) ->
+handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{stream_ref = Ref}) ->
     {noreply, State};
 
-handle_info({gun_data, _Pid, Ref, nofin, Data}, State = #state{ref = Ref}) ->
+handle_info({gun_data, _Pid, Ref, nofin, Data}, State = #state{stream_ref = Ref}) ->
     handle_change_event(State, Data);
 
 handle_info({gun_error, Pid, StreamRef, Reason}, State =
@@ -69,14 +73,23 @@ handle_info({gun_error, Pid, Reason}, State =
     Reps = {gun_error, WatchId, Reason},
     run_callback(Callback, Reps),
     {stop, Reason, State};
+handle_info({'DOWN', Ref, process, Pid, Reason}, State = #state{client_ref = Ref, client_pid = Pid}) ->
+    error_logger:warning_msg("~p ~p stop for gun(~p) process stop ~p~n", [?MODULE, self(), Pid, Reason]),
+    {stop, eetcd_client_exit, State};
 
 handle_info(Info, State) ->
     error_logger:error_msg("Watcher({~p,~p}) receive unknow msg ~p~n state~p~n",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 
-terminate(_Reason, #state{ref = Ref}) ->
-    Pid = eetcd_http2_keeper:get_http2_client_pid(),
+terminate(normal, #state{stream_ref = Ref, client_pid = Pid}) ->
+    ok = gun:cancel(Pid, Ref),
+    ok;
+terminate(Reason=eetcd_client_exit, State) ->
+    info_watcher_owner_terminate(State, Reason),
+    ok;
+terminate(Reason, State = #state{stream_ref = Ref, client_pid = Pid}) ->
+    info_watcher_owner_terminate(State, Reason),
     ok = gun:cancel(Pid, Ref),
     ok.
 
@@ -116,3 +129,6 @@ run_callback(Callback, Resp) ->
         error_logger:error_msg("Watcher(~p) run callback crash ~p~n Event~p~n",
             [self(), {E, R}, Resp])
     end.
+
+info_watcher_owner_terminate(#state{callback = Callback}, Reason) ->
+    run_callback(Callback, {eetcd_watcher_exit, self(), Reason}).

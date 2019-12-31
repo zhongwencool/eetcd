@@ -5,6 +5,7 @@
 %% API
 -export([start_link/0]).
 -export([get_http2_client_pid/0]).
+-export([safe_get_http2_client_pid/1]).
 -export([check_leader/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -24,6 +25,18 @@ start_link() ->
 get_http2_client_pid() ->
     erlang:whereis(?ETCD_HTTP2_CLIENT).
 
+-spec safe_get_http2_client_pid(list()) -> {ok, pid()} | {error, retry_over_limit}.
+safe_get_http2_client_pid([]) ->
+    {error, retry_over_limit};
+safe_get_http2_client_pid([H | Tail]) ->
+    case erlang:whereis(?ETCD_HTTP2_CLIENT) of
+        Pid when is_pid(Pid) ->
+            {ok, Pid};
+        _ ->
+            timer:sleep(H),
+            safe_get_http2_client_pid(Tail)
+    end.
+
 -spec check_leader() -> ok.
 check_leader() ->
     gen_server:cast(?MODULE, check_leader).
@@ -41,19 +54,18 @@ init([]) ->
              [IP, Port] = string:tokens(Host, ":"),
              {IP, list_to_integer(Port)}
          end|| Host <- Hosts],
-    case connect(Cluster, Transport, TransportOpts) of
-        {ok, Pid, N} ->
-            Ref = erlang:monitor(process, Pid),
-            {ok, #state{
-                pid = Pid,
-                cluster = Cluster,
-                index = N,
-                ref = Ref,
-                transport = Transport,
-                transport_opts = TransportOpts}
-            };
+    State = #state{pid = nil,
+        cluster = Cluster,
+        index = nil,
+        ref = nil,
+        transport = Transport,
+        transport_opts = TransportOpts
+    },
+    case connect(State) of
+        {ok, State1} -> {ok, State1};
         {error, Reason} -> {stop, Reason}
     end.
+
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -68,7 +80,7 @@ handle_cast(_Request, State) ->
 
 handle_info({'DOWN', Ref, process, Pid, Reason}, State = #state{pid = Pid, ref = Ref}) ->
     error_logger:warning_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
-    case reconnect(16, "") of
+    case connect(State) of
         {ok, NewState} -> {noreply, NewState};
         {error, Reason} -> {stop, Reason, State}
     end;
@@ -108,63 +120,45 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-connect(Cluster, Transport, TransportOpts) ->
-    connect(Cluster, Transport, TransportOpts, 1, []).
+connect(State) ->
+    connect(State, 0, []).
 
-connect(Cluster, Transport, TransportOpts, N, Errors) when N =< length(Cluster) ->
-    {IP, Port} = lists:nth(N, Cluster),
-    {ok, Pid} = gun:open(IP, Port,
-        #{
-            protocols => [http2],
-            http2_opts => #{keepalive => 45000},
-            retry => 4,
-            retry_timeout => 2500,
-            transport => Transport,
-            transport_opts => TransportOpts
-        }),
+connect(#state{cluster = Cluster}, RetryN, Errors) when RetryN >= 2 * length(Cluster) ->
+    error_logger:warning_msg("~p connect error (~p) ~n", [?MODULE, Errors]),
+    {error, Errors};
+
+connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
+    CurIndex =
+        case State#state.index of
+            LastIndex when is_integer(LastIndex) ->
+                % select next etcd server on reconnect or LastIndex not available
+                (LastIndex + 1) rem length(Cluster) + 1;
+            _ ->
+                % random select first etcd server
+                rand:uniform(length(Cluster))
+        end,
+    {IP, Port} = lists:nth(CurIndex, Cluster),
+    logger:info("(~p) connecting to etcd_server (~p)~n", [?MODULE, {IP, Port}]),
+    {ok, Pid} = gun:open(IP, Port, get_default_gun_opts(State)),
     case gun:await_up(Pid, 1000) of
         {ok, http2} ->
-            case register_name(?ETCD_HTTP2_CLIENT, Pid) of
-                true -> {ok, Pid, N};
-                {false, NewPid} -> {error, {already_started, NewPid}}
-            end;
-        %The only apparent timeout for gun:open is the connection timeout of the
-        %underlying transport. So, a timeout message here comes from gun:await_up.
-        {error, timeout} ->
-            NewErrors = [{IP, Port, timeout} | Errors],
-            connect(Cluster, Transport, TransportOpts, N + 1, NewErrors);
-        %gun currently terminates with reason normal if gun:open fails to open
-        %the requested connection. This bubbles up through gun:await_up.
-        {error, normal} ->
-            NewErrors = [{IP, Port, open_failed} | Errors],
-            connect(Cluster, Transport, TransportOpts, N + 1, NewErrors)
-    end;
-connect(_Cluster, _Transport, _TransportOpts, _N, Errors) ->
-    {error, Errors}.
-
-reconnect(0, Errors) -> {error, Errors};
-reconnect(N, _Errors) ->
-    wait_http2_client_app_up(),
-    case init([]) of
-        {ok, State} -> {ok, State};
-        {stop, Reason} -> reconnect(N - 1, Reason)
+            case whereis(?ETCD_HTTP2_CLIENT) of
+                % sync close old conn if it exist
+                Pid when is_pid(Pid) ->
+                    gun:close(Pid);
+                _ -> ok
+            end,
+            true = register(?ETCD_HTTP2_CLIENT, Pid),
+            Ref = erlang:monitor(process, Pid),
+            logger:info("(~p) connect to etcd_server (~p) successed~n",
+                [?MODULE, {IP, Port, CurIndex, Pid, Ref}]),
+            {ok, State#state{pid = Pid, index = CurIndex, ref = Ref}};
+        {error, Error} ->
+            gun:close(Pid),
+            NewErrors = [{IP, Port, Error} | Errors],
+            connect(State#state{index = CurIndex}, RetryN + 1, NewErrors)
     end.
 
-register_name(Name, Pid) when is_atom(Name) ->
-    try register(Name, Pid) of
-        true -> true
-    catch
-        error:_ ->
-            {false, whereis(Name)}
-    end.
-
-wait_http2_client_app_up() ->
-    case whereis(gun_sup) of
-        undefined ->
-            timer:sleep(240),
-            wait_http2_client_app_up();
-        _ -> ok
-    end.
 
 check_leader(State) ->
     case eetcd_maintenance:status(#'Etcd.StatusRequest'{}) of
@@ -176,19 +170,11 @@ check_leader(State) ->
 
 choose_ready_for_client(#state{cluster = Cluster}, N) when length(Cluster) > N -> ignore;
 choose_ready_for_client(State, N) ->
-    #state{cluster = Cluster, index = Index, transport = Transport, transport_opts = TransportOpts} = State,
+    #state{cluster = Cluster, index = Index} = State,
     case Index =/= N of
         true ->
             {IP, Port} = lists:nth(N, Cluster),
-            {ok, Pid} = gun:open(IP, Port,
-                #{
-                    protocols => [http2],
-                    http2_opts => #{keepalive => 45000},
-                    retry => 4,
-                    retry_timeout => 2500,
-                    transport => Transport,
-                    transport_opts => TransportOpts
-                }),
+            {ok, Pid} = gun:open(IP, Port, get_default_gun_opts(State)),
             case gun:await_up(Pid, 1000) of
                 {ok, http2} ->
                     Request = #'Etcd.StatusRequest'{},
@@ -196,8 +182,8 @@ choose_ready_for_client(State, N) ->
                     case eetcd_stream:unary(Request, Path, 'Etcd.StatusResponse') of
                         #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
                             OldPid = erlang:whereis(?ETCD_HTTP2_CLIENT),
-                            true = register(?ETCD_HTTP2_CLIENT, Pid),
                             gun:close(OldPid),
+                            true = register(?ETCD_HTTP2_CLIENT, Pid),
                             {ok, State#state{
                                 pid = Pid,
                                 cluster = Cluster,
@@ -214,3 +200,12 @@ choose_ready_for_client(State, N) ->
         false ->
             choose_ready_for_client(State, N + 1)
     end.
+
+get_default_gun_opts(#state{transport = Transport, transport_opts = TransportOpts}) ->
+    #{
+        protocols => [http2],
+        http2_opts => #{keepalive => 45000},
+        retry => 0,
+        transport => Transport,
+        transport_opts => TransportOpts
+    }.

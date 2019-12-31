@@ -26,7 +26,7 @@ start_link() ->
 %%====================================================================
 
 init([]) ->
-    SupFlags = #{strategy => one_for_one, intensity => 100, period => 10},
+    SupFlags = #{strategy => one_for_one, intensity => 1000, period => 10},
     Http2Work = eetcd_http2_keeper,
     WatcherSup = eetcd_watch_sup,
     LeaserWork = eetcd_lease_server,

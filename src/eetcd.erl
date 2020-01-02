@@ -122,7 +122,7 @@ await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, Acc) ->
         {error, Reason} -> {error, Reason, lists:reverse(Acc)}
     end.
 
-watch_stream(Conn = #{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
+watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
     Resp = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
-    {ok, Conn, Resp};
+    {ok, Resp};
 watch_stream(_Conn, _UnKnow) -> unknown.

@@ -1,13 +1,12 @@
 -module(eetcd_grpc).
+-include("eetcd.hrl").
 
 -export([decode/3, encode/2]).
+-export([grpc_status/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
--define(GRPC_ERROR(Status, Message), {grpc_error, {Status, Message}}).
--define(GRPC_STATUS_UNIMPLEMENTED, <<"12">>).
--define(GRPC_STATUS_INTERNAL, <<"13">>).
 
 -spec encode(identity | gzip, tuple()) -> binary().
 encode(GrpcType, Msg) ->
@@ -18,6 +17,16 @@ encode(GrpcType, Msg) ->
 decode(Encoding, Frame, PbType) ->
     PbBin = decode_(Frame, Encoding),
     router_pb:decode_msg(PbBin, PbType).
+
+grpc_status(RespHeaders) ->
+    GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),
+    GrpcMessage = proplists:get_value(<<"grpc-message">>, RespHeaders, <<"">>),
+    case GrpcStatus of
+        ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
+            eetcd_http2_keeper:check_leader();
+        _ -> ignore
+    end,
+    {GrpcStatus, GrpcMessage}.
 
 %%====================================================================
 %% Internal functions

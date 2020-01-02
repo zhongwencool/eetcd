@@ -1,8 +1,8 @@
 {application, eetcd,
     [
         {description, "ETCD V3 client"},
-        {vsn, "0.2.3"},
-        {registered, [eetcd_sup, eetcd_http2_client, eetcd_lease_server, eetcd_watch_sup]},
+        {vsn, "0.3.0"},
+        {registered, [eetcd_sup, eetcd_http2_client]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},
         {env, [

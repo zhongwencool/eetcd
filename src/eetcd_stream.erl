@@ -25,7 +25,7 @@ new(Path, Headers) ->
 new(Request, Path, Http2Headers) ->
     {ok, Pid, Ref} = new(Path, Http2Headers),
     data(Pid, Ref, Request, nofin),
-    Ref.
+    {Pid, Ref}.
 
 -spec data(Http2Ref, EtcdRequest, Http2Path) -> ok when
     Http2Ref :: reference(),
@@ -65,28 +65,20 @@ unary(Request, Path, ResponseType, Headers) ->
 
 unary(Pid, Request, Path, ResponseType, Headers) ->
     EncodeBody = eetcd_grpc:encode(identity, Request),
-    StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
     MRef = erlang:monitor(process, Pid),
+    StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
     Res =
         case gun:await(Pid, StreamRef, ?TIMEOUT + 10000, MRef) of
             {response, nofin, 200, _Headers} ->
                 case gun:await_body(Pid, StreamRef, ?TIMEOUT, MRef) of
                     {ok, ResBody, _Trailers} ->
                         {ok, eetcd_grpc:decode(identity, ResBody, ResponseType)};
-                    {error, _} = Error1 ->
-                        Error1
+                    {error, _} = Error1 -> Error1
                 end;
             {response, fin, 200, RespHeaders} ->
-                GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),
-                GrpcMessage = proplists:get_value(<<"grpc-message">>, RespHeaders, <<"">>),
-                case GrpcStatus of
-                    ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
-                        eetcd_http2_keeper:check_leader();
-                    _ -> ignore
-                end,
-                {error, {'grpc_error', GrpcStatus, GrpcMessage}};
-            {error, _} = Error2 ->
-                Error2
+                {GrpcStatus, GrpcMessage} = eetcd_grpc:grpc_status(RespHeaders),
+                {error, ?GRPC_ERROR(GrpcStatus, GrpcMessage)};
+            {error, _} = Error2 -> Error2
         end,
     erlang:demonitor(MRef, [flush]),
     Res.

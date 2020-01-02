@@ -8,6 +8,7 @@
 
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(ETCD_HTTP2_CLIENT, etcd_http2_client).
+-define(GRPC_ERROR(Status, Message), {'grpc_error', {Status, Message}}).
 
 %% Grpc status code
 -define(GRPC_STATUS_OK, 0).

@@ -44,6 +44,7 @@ watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.Wa
     MRef = erlang:monitor(process, self()),
     {Pid, StreamRef} = eetcd_watch:watch(Request, Http2HeaderOrToken),
     %% TODO: Requests the a watch stream progress status be sent in the watch response stream as soon as possible.
+    %% progress_request api has not been document.
     %% PRequest = #'Etcd.WatchRequest'{request_union = {progress_request, #'Etcd.WatchProgressRequest'{}}},
     %% eetcd_stream:data(Pid, StreamRef, PRequest, fin),
     case gun:await(Pid, StreamRef, Timeout, MRef) of
@@ -61,13 +62,35 @@ watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.Wa
                             response => Response
                         }
                     };
-                {error, _} = Err1 -> Err1
+                {error, _} = Err1 ->
+                    erlang:demonitor(MRef, [flush]),
+                    Err1
             end;
         {response, fin, 200, RespHeaders} ->
+            erlang:demonitor(MRef, [flush]),
             {GrpcStatus, GrpcMessage} = eetcd_grpc:grpc_status(RespHeaders),
             {error, ?GRPC_ERROR(GrpcStatus, GrpcMessage)};
-        {error, _} = Err2 -> Err2
+        {error, _} = Err2 ->
+            erlang:demonitor(MRef, [flush]),
+            Err2
     end.
+%% @doc Streams the next batch of events from the given message.
+%%This function processes a "message" which can be any term, but should be a message received by the process that owns the stream_ref.
+%%Processing a message means that this function will parse it and check if it's a message that is directed to this connection,
+%%that is, a gun_* message received on the gun connection.
+%%If it is, then this function will parse the message, turn it into  watch responses, and possibly take action given the responses.
+%%If there's no error, this function returns {ok, #'Etcd.WatchResponse'{}}
+%%If there's an error, {error, reason} is returned.
+%%If the given message is not from the gun connection, this function returns unknown.
+watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
+    {ok, eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse')};
+watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error
+    {error, Reason};
+watch_stream(#{http2_pid := Pid}, {gun_error, Pid, Reason}) -> %% gun connection process state error
+    {error, Reason};
+watch_stream(#{monitor_ref := MRef, http2_pid := Pid}, {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
+    {error, Reason};
+watch_stream(_Conn, _UnKnow) -> unknown.
 
 %% @doc  Cancel watching so that no more events are transmitted.
 %% This is a synchronous operation.
@@ -115,13 +138,10 @@ await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, Acc) ->
             case Reps of
                 #'Etcd.WatchResponse'{created = false, watch_id = WatchId, canceled = true} ->
                     gun:cancel(Pid, StreamRef),
+                    erlang:demonitor(MRef, [flush]),
                     {ok, Reps, lists:reverse(Acc)};
                 OtherEvent ->
                     await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, [OtherEvent | Acc])
             end;
         {error, Reason} -> {error, Reason, lists:reverse(Acc)}
     end.
-
-watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
-    {ok, eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse')};
-watch_stream(_Conn, _UnKnow) -> unknown.

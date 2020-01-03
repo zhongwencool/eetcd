@@ -34,7 +34,8 @@ watch(CreateReq, Timeout) -> watch(CreateReq, [], Timeout).
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
 %% The entire event history can be watched starting from the last compaction revision.
--spec watch(#'Etcd.WatchCreateRequest'{}, Http2Header | Token, Timeout) -> {ok, WatchConn} | {error, term()} when
+-spec watch(#'Etcd.WatchCreateRequest'{}, Http2Header | Token, Timeout) -> {ok, WatchConn}
+| {error, {stream_error | connection_error | down, term()} | timeout} when
     Http2Header :: [{binary(), binary()}],
     Token :: binary(),
     Timeout :: pos_integer(),
@@ -47,9 +48,9 @@ watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.Wa
     %% progress_request api has not been document.
     %% PRequest = #'Etcd.WatchRequest'{request_union = {progress_request, #'Etcd.WatchProgressRequest'{}}},
     %% eetcd_stream:data(Pid, StreamRef, PRequest, fin),
-    case gun:await(Pid, StreamRef, Timeout, MRef) of
+    case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
         {response, nofin, 200, _Headers} ->
-            case gun:await(Pid, StreamRef, Timeout, MRef) of
+            case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
                 {data, nofin, Body} ->
                     Response =
                         #'Etcd.WatchResponse'{created = true, canceled = false}
@@ -80,26 +81,27 @@ watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.Wa
 %%that is, a gun_* message received on the gun connection.
 %%If it is, then this function will parse the message, turn it into  watch responses, and possibly take action given the responses.
 %%If there's no error, this function returns {ok, #'Etcd.WatchResponse'{}}
-%%If there's an error, {error, reason} is returned.
+%%If there's an error, {error, {stream_error | connection_error | down, term()} | timeout} is returned.
 %%If the given message is not from the gun connection, this function returns unknown.
+
 watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
     {ok, eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse')};
 watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error
-    {error, Reason};
+    {error, {stream_error, Reason}};
 watch_stream(#{http2_pid := Pid}, {gun_error, Pid, Reason}) -> %% gun connection process state error
-    {error, Reason};
+    {error, {connection_error, Reason}};
 watch_stream(#{monitor_ref := MRef, http2_pid := Pid}, {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
-    {error, Reason};
+    {error, {down, Reason}};
 watch_stream(_Conn, _UnKnow) -> unknown.
 
 %% @doc  Cancel watching so that no more events are transmitted.
 %% This is a synchronous operation.
 %% Other change events will be returned in OtherEvents when these events arrive between the request and the response.
 -spec unwatch('WatchConn'(), Timeout) ->
-    {ok, #'Etcd.WatchResponse'{}, OtherEvents} | {error, Reason, OtherEvents} when
+    {ok, #'Etcd.WatchResponse'{}, OtherEvents}
+    | {error, {stream_error | connection_error | down, term()} | timeout, OtherEvents} when
     Timeout :: pos_integer(),
-    OtherEvents :: [#'Etcd.WatchResponse'{}],
-    Reason :: term().
+    OtherEvents :: [#'Etcd.WatchResponse'{}].
 unwatch(WatchConn, Timeout) ->
     #{
         http2_pid := Pid,
@@ -132,7 +134,7 @@ member_list() ->
 %%====================================================================
 
 await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, Acc) ->
-    case gun:await(Pid, StreamRef, Timeout, MRef) of
+    case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
         {data, nofin, Data} ->
             Reps = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
             case Reps of

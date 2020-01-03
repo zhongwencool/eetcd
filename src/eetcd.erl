@@ -34,8 +34,9 @@ watch(CreateReq, Timeout) -> watch(CreateReq, [], Timeout).
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
 %% The entire event history can be watched starting from the last compaction revision.
--spec watch(#'Etcd.WatchCreateRequest'{}, Http2Header | Token, Timeout) -> {ok, WatchConn}
-| {error, {stream_error | connection_error | down, term()} | timeout} when
+-spec watch(#'Etcd.WatchCreateRequest'{}, Http2Header | Token, Timeout) ->
+    {ok, WatchConn}
+    | {error, {stream_error | connection_error | down, term()} | timeout} when
     Http2Header :: [{binary(), binary()}],
     Token :: binary(),
     Timeout :: pos_integer(),
@@ -83,7 +84,11 @@ watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.Wa
 %%If there's no error, this function returns {ok, #'Etcd.WatchResponse'{}}
 %%If there's an error, {error, {stream_error | connection_error | down, term()} | timeout} is returned.
 %%If the given message is not from the gun connection, this function returns unknown.
-
+-spec watch_stream('WatchConn'(), Message) ->
+    {ok, #'Etcd.WatchResponse'{}}
+    | unknown
+    | {error, {stream_error | connection_error | down, term()} | timeout} when
+    Message :: term().
 watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
     {ok, eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse')};
 watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error

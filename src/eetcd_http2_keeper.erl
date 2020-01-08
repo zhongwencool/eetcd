@@ -144,8 +144,8 @@ connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
         {ok, http2} ->
             case whereis(?ETCD_HTTP2_CLIENT) of
                 % sync close old conn if it exist
-                Pid when is_pid(Pid) ->
-                    gun:close(Pid);
+                OldPid when is_pid(OldPid) ->
+                    gun:close(OldPid);
                 _ -> ok
             end,
             true = register(?ETCD_HTTP2_CLIENT, Pid),

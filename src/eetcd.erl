@@ -1,154 +1,216 @@
 -module(eetcd).
 
 %% API
--export([watch/2, watch/3]).
--export([watch_stream/2]).
--export([unwatch/2]).
--export([lease_keep_alive/1]).
--export([member_list/0]).
+-compile(export_all).
+-export([with_key/2]).
 
--include("eetcd.hrl").
+test() ->
+    logger:set_primary_config(level, info),
+    {ok, _Pid} = eetcd_conn_sup:open(test, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"], tcp, []),
+    R = eetcd_kv:put("test", "test_value"),
+    io:format("~p~n", [R]),
+    R1 = eetcd_kv:get("test"),
+    io:format("~p~n", [R1]),
+    eetcd_conn_sup:close(test),
+    ok.
 
--type 'Grpc.Status'() ::
-?GRPC_STATUS_OK | ?GRPC_STATUS_CANCELLED |
-?GRPC_STATUS_UNKNOWN | ?GRPC_STATUS_INVALID_ARGUMENT |
-?GRPC_STATUS_DEADLINE_EXCEEDED | ?GRPC_STATUS_NOT_FOUND |
-?GRPC_STATUS_ALREADY_EXISTS | ?GRPC_STATUS_PERMISSION_DENIED |
-?GRPC_STATUS_RESOURCE_EXHAUSTED | ?GRPC_STATUS_RESOURCE_EXHAUSTED |
-?GRPC_STATUS_FAILED_PRECONDITION | ?GRPC_STATUS_ABORTED |
-?GRPC_STATUS_OUT_OF_RANGE | ?GRPC_STATUS_UNIMPLEMENTED |
-?GRPC_STATUS_INTERNAL | ?GRPC_STATUS_UNAVAILABLE |
-?GRPC_STATUS_DATA_LOSS | ?GRPC_STATUS_UNAUTHENTICATED.
+new() -> #{}.
 
--type 'WatchConn'() :: #{http2_pid => pid(), monitor_ref => reference(), stream_ref => reference(), response => #'Etcd.WatchResponse'{}}.
+with_timeout(Request, Timeout) when is_integer(Timeout) ->
+    maps:put(timeout, Timeout, Request).
 
--export_type(['Grpc.Status'/0, 'WatchConn'/0]).
+%%% @doc WithKeyBytes sets the byte slice for the Op's key.
+with_key(Request, Key) ->
+    maps:put(key, Key, Request).
 
-%% @equiv watch(CreateReq, [], Timeout).
--spec watch(#'Etcd.WatchCreateRequest'{}, Timeout) -> {ok, WatchConn} when
-    Timeout :: pos_integer(),
-    WatchConn :: 'WatchConn'().
-watch(CreateReq, Timeout) -> watch(CreateReq, [], Timeout).
+%% WithValueBytes sets the byte slice for the Op's value.
+with_value(Request, Key) ->
+    maps:put(value, Key, Request).
 
-%% @doc Watch watches for events happening or that have happened. Both input and output are streams;
-%% the input stream is for creating watchers and the output stream sends events.
-%% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
-%% The entire event history can be watched starting from the last compaction revision.
--spec watch(#'Etcd.WatchCreateRequest'{}, Http2Header | Token, Timeout) ->
-    {ok, WatchConn}
-    | {error, {stream_error | connection_error | down, term()} | timeout} when
-    Http2Header :: [{binary(), binary()}],
-    Token :: binary(),
-    Timeout :: pos_integer(),
-    WatchConn :: 'WatchConn'().
-watch(CreateReq, Http2HeaderOrToken, Timeout) when is_record(CreateReq, 'Etcd.WatchCreateRequest') ->
-    Request = #'Etcd.WatchRequest'{request_union = {create_request, CreateReq}},
-    MRef = erlang:monitor(process, self()),
-    {Pid, StreamRef} = eetcd_watch:watch(Request, Http2HeaderOrToken),
-    %% TODO: Requests the a watch stream progress status be sent in the watch response stream as soon as possible.
-    %% progress_request api has not been document.
-    %% PRequest = #'Etcd.WatchRequest'{request_union = {progress_request, #'Etcd.WatchProgressRequest'{}}},
-    %% eetcd_stream:data(Pid, StreamRef, PRequest, fin),
-    case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
-        {response, nofin, 200, _Headers} ->
-            case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
-                {data, nofin, Body} ->
-                    Response =
-                        #'Etcd.WatchResponse'{created = true, canceled = false}
-                        = eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse'),
-                    {ok,
-                        #{
-                            http2_pid => Pid,
-                            monitor_ref => MRef,
-                            stream_ref => StreamRef,
-                            response => Response
-                        }
-                    };
-                {error, _} = Err1 ->
-                    erlang:demonitor(MRef, [flush]),
-                    Err1
-            end;
-        {response, fin, 200, RespHeaders} ->
-            erlang:demonitor(MRef, [flush]),
-            {GrpcStatus, GrpcMessage} = eetcd_grpc:grpc_status(RespHeaders),
-            {error, ?GRPC_ERROR(GrpcStatus, GrpcMessage)};
-        {error, _} = Err2 ->
-            erlang:demonitor(MRef, [flush]),
-            Err2
+%% WithPrefix enables 'Get', 'Delete', or 'Watch' requests to operate
+%% on the keys with matching prefix. For example, 'Get(foo, WithPrefix())'
+%% can return 'foo1', 'foo2', and so on.
+with_prefix(Request) ->
+    with_range_end(Request, "\0").
+
+%%  WithFromKey specifies the range of 'Get', 'Delete', 'Watch' requests
+%% to be equal or greater than the key in the argument.
+with_from_key(Request) ->
+    with_range_end(Request, "\x00").
+
+%% Range
+
+%% WithRangeBytes sets the byte slice for the Op's range end.
+with_range_end(Request, End) ->
+    maps:put(range_end, End, Request).
+
+%% WithLimit limits the number of results to return from 'Get' request.
+%% If WithLimit is given a 0 limit, it is treated as no limit.
+with_limit(Request, End) ->
+    maps:put(limit, End, Request).
+
+%% WithRev specifies the store revision for 'Get' request.
+%% Or the start revision of 'Watch' request.
+with_revision(Request, Rev) ->
+    maps:put(revision, Rev, Request).
+
+%% WithSort specifies the ordering in 'Get' request. It requires
+%% 'WithRange' and/or 'WithPrefix' to be specified too.
+%% 'target' specifies the target to sort by: 'KEY', 'VERSION', 'VALUE', 'CREATE', 'MOD'.
+%% 'order' can be either 'NONE', 'ASCEND', 'DESCEND'.
+with_sort(Request, Target, Order) ->
+    Targets = router_pb:find_enum_def('Etcd.RangeRequest.SortTarget'),
+    Orders = router_pb:find_enum_def('Etcd.RangeRequest.SortOrder'),
+    (not lists:keymember(Target, 1, Targets)) andalso throw({sort_target, Target}),
+    (not lists:keymember(Order, 1, Orders)) andalso throw({sort_order, Order}),
+    R1 = maps:put(sort_order, Order, Request),
+    maps:put(sort_target, Target, R1).
+
+%% WithSerializable makes 'Get' request serializable. By default,
+%% it's linearizable. Serializable requests are better for lower latency
+%% requirement.
+with_serializable(Request) ->
+    maps:put(serializable, true, Request).
+
+%% WithKeysOnly makes the 'Get' request return only the keys and the corresponding
+%% values will be omitted.
+with_keys_only(Request) ->
+    maps:put(keys_only, true, Request).
+
+%% WithCountOnly makes the 'Get' request return only the count of keys.
+with_count_only(Request) ->
+    maps:put(count_only, true, Request).
+
+%% WithMinModRev filters out keys for Get with modification revisions less than the given revision.
+with_min_mod_revision(Request, Rev) ->
+    maps:put(min_mod_revision, Rev, Request).
+
+%% WithMaxModRev filters out keys for Get with modification revisions greater than the given revision.
+with_max_mod_revision(Request, Rev) ->
+    maps:put(max_mod_revision, Rev, Request).
+
+with_min_create_revision(Request, Rev) ->
+    maps:put(min_create_revision, Rev, Request).
+
+with_max_create_revision(Request, Rev) ->
+    maps:put(max_create_revision, Rev, Request).
+
+%% WithFirstCreate gets the key with the oldest creation revision in the request range.
+with_first_create(Request) ->
+    with_top(Request, 'CREATE', 'ASCEND').
+
+%% WithLastKey gets the lexically last key in the request range.
+with_last_create(Request) ->
+    with_top(Request, 'CREATE', 'DESCEND').
+
+%% WithFirstRev gets the key with the oldest modification revision in the request range.
+with_first_revision(Request) ->
+    with_top(Request, 'MOD', 'ASCEND').
+
+%%  WithLastRev gets the key with the latest modification revision in the request range.
+with_last_revision(Request) ->
+    with_top(Request, 'MOD', 'DESCEND').
+
+%% WithFirstKey gets the lexically first key in the request range.
+with_first_key(Request) ->
+    with_top(Request, 'KEY', 'ASCEND').
+
+%% WithLastKey gets the lexically last key in the request range.
+with_last_key(Request) ->
+    with_top(Request, 'KEY', 'DESCEND').
+
+%% withTop gets the first key over the get's prefix given a sort order
+with_top(Request, SortTarget, SortOrder) ->
+    R1 = with_sort(Request, SortTarget, SortOrder),
+    with_limit(R1, 1).
+
+%% KV
+with_prev_kv(Request, Bool) when is_boolean(Bool) ->
+    maps:put(prev_kv, Bool, Request).
+
+with_lease(Request, Bool) when is_boolean(Bool) ->
+    maps:put(lease, Bool, Request).
+
+with_ignore_value(Request, Bool) when is_boolean(Bool) ->
+    maps:put(ignore_value, Bool, Request).
+
+with_ignore_lease(Request, Bool) when is_boolean(Bool) ->
+    maps:put(ignore_lease, Bool, Request).
+
+%%
+
+%% WithCompactPhysical makes Compact wait until all compacted entries are
+%% removed from the etcd server's storage.
+with_compact_physical(Request) ->
+    maps:put(physical, true, Request).
+
+get_prev_kv(Opts) ->
+    take_with_default(withPreKV, Opts, undefined).
+
+get_lease(Opts) ->
+    take_with_default(withLease, Opts, undefined).
+
+get_ignore_value(Opts) ->
+    take_with_default(withIgnoreValue, Opts, undefined).
+
+get_ignore_lease(Opts) ->
+    take_with_default(withIgnoreLease, Opts, undefined).
+
+
+take_with_default(Key, Opts, Default) ->
+    case maps:take(Key, Opts) of
+        error -> {Default, Opts};
+        Res -> Res
     end.
-%% @doc Streams the next batch of events from the given message.
-%%This function processes a "message" which can be any term, but should be a message received by the process that owns the stream_ref.
-%%Processing a message means that this function will parse it and check if it's a message that is directed to this connection,
-%%that is, a gun_* message received on the gun connection.
-%%If it is, then this function will parse the message, turn it into  watch responses, and possibly take action given the responses.
-%%If there's no error, this function returns {ok, #'Etcd.WatchResponse'{}}
-%%If there's an error, {error, {stream_error | connection_error | down, term()} | timeout} is returned.
-%%If the given message is not from the gun connection, this function returns unknown.
--spec watch_stream('WatchConn'(), Message) ->
-    {ok, #'Etcd.WatchResponse'{}}
-    | unknown
-    | {error, {stream_error | connection_error | down, term()} | timeout} when
-    Message :: term().
-watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_data, Pid, Ref, nofin, Data}) ->
-    {ok, eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse')};
-watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error
-    {error, {stream_error, Reason}};
-watch_stream(#{http2_pid := Pid}, {gun_error, Pid, Reason}) -> %% gun connection process state error
-    {error, {connection_error, Reason}};
-watch_stream(#{monitor_ref := MRef, http2_pid := Pid}, {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
-    {error, {down, Reason}};
-watch_stream(_Conn, _UnKnow) -> unknown.
 
-%% @doc  Cancel watching so that no more events are transmitted.
-%% This is a synchronous operation.
-%% Other change events will be returned in OtherEvents when these events arrive between the request and the response.
--spec unwatch('WatchConn'(), Timeout) ->
-    {ok, #'Etcd.WatchResponse'{}, OtherEvents}
-    | {error, {stream_error | connection_error | down, term()} | timeout, OtherEvents} when
-    Timeout :: pos_integer(),
-    OtherEvents :: [#'Etcd.WatchResponse'{}].
-unwatch(WatchConn, Timeout) ->
-    #{
-        http2_pid := Pid,
-        monitor_ref := MRef,
-        stream_ref := StreamRef,
-        response := #'Etcd.WatchResponse'{watch_id = WatchId}
-    } = WatchConn,
-    Request = #'Etcd.WatchRequest'{
-        request_union = {cancel_request, #'Etcd.WatchCancelRequest'{
-            watch_id = WatchId
-        }}},
-    eetcd_stream:data(Pid, StreamRef, Request, fin),
-    await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, []).
-
-%% @doc Keeps the lease alive by streaming keep alive requests from the client to the server and
-%% streaming keep alive responses from the server to the client.
--spec lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{}|integer()) -> ok.
-lease_keep_alive(Id) when is_integer(Id) ->
-    lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{'ID' = Id});
-lease_keep_alive(Request) when is_record(Request, 'Etcd.LeaseKeepAliveRequest') ->
-    eetcd_lease_server:keep_alive(Request).
-
-%% @doc members is a list of all members associated with the cluster.
--spec member_list() -> {ok, #'Etcd.MemberListResponse'{}} | {error, term()}.
-member_list() ->
-    eetcd_cluster:member_list(#'Etcd.MemberListRequest'{}).
-
-%%====================================================================
-%% Internal functions
-%%====================================================================
-
-await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, Acc) ->
-    case eetcd_stream:await(Pid, StreamRef, Timeout, MRef) of
-        {data, nofin, Data} ->
-            Reps = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
-            case Reps of
-                #'Etcd.WatchResponse'{created = false, watch_id = WatchId, canceled = true} ->
-                    gun:cancel(Pid, StreamRef),
-                    erlang:demonitor(MRef, [flush]),
-                    {ok, Reps, lists:reverse(Acc)};
-                OtherEvent ->
-                    await_unwatch_resp(Pid, StreamRef, WatchId, Timeout, MRef, [OtherEvent | Acc])
-            end;
-        {error, Reason} -> {error, Reason, lists:reverse(Acc)}
-    end.
+%%isWithPrefix(Opts) ->
+%%    Opts.'WithPrefix'
+%%#{
+%%t    => opType
+%%key  =>
+%%end []byte
+%%
+%%// for range
+%%limit        int64
+%%sort         *SortOption
+%%serializable bool
+%%keysOnly     bool
+%%countOnly    bool
+%%minModRev    int64
+%%maxModRev    int64
+%%minCreateRev int64
+%%maxCreateRev int64
+%%
+%%// for range, watch
+%%rev int64
+%%
+%%// for watch, put, delete
+%%prevKV bool
+%%
+%%// for watch
+%%// fragmentation should be disabled by default
+%%// if true, split watch events when total exceeds
+%%// "--max-request-bytes" flag value + 512-byte
+%%fragment bool
+%%
+%%// for put
+%%ignoreValue bool
+%%ignoreLease bool
+%%
+%%// progressNotify is for progress updates.
+%%progressNotify bool
+%%// createdNotify is for created event
+%%createdNotify bool
+%%// filters for watchers
+%%filterPut    bool
+%%filterDelete bool
+%%
+%%// for put
+%%val     []byte
+%%leaseID LeaseID
+%%
+%%// txn
+%%cmps    []Cmp
+%%thenOps []Op
+%%elseOps []Op
+%%}

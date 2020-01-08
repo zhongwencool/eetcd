@@ -1,11 +1,6 @@
 -ifndef(etcd_hrl).
 -define(etcd_hrl, true).
 
--include("auth_pb.hrl").
--include("router_pb.hrl").
--include("gogo_pb.hrl").
--include("kv_pb.hrl").
-
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(ETCD_HTTP2_CLIENT, etcd_http2_client).
 -define(GRPC_ERROR(Status, Message), {'grpc_error', Status, Message}).
@@ -30,5 +25,7 @@
 -define(GRPC_STATUS_UNAUTHENTICATED, 16).
 
 -define(ALL, "\0").
+
+-define(ETCD_CONNS, eetcd_conns).
 
 -endif.

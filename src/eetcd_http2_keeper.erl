@@ -70,11 +70,11 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast(check_leader, State) ->
-    case check_leader(State) of
-        ignore -> {noreply, State};
-        {ok, NewState} -> {noreply, NewState}
-    end;
+%%handle_cast(check_leader, State) ->
+%%    case check_leader(State) of
+%%        ignore -> {noreply, State};
+%%        {ok, NewState} -> {noreply, NewState}
+%%    end;
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -160,46 +160,47 @@ connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
     end.
 
 
-check_leader(State) ->
-    case eetcd_maintenance:status(#'Etcd.StatusRequest'{}) of
-        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
-            error_logger:warning_msg("Leader(~p) already exist but request timeout~n", [?MODULE, Leader]),
-            ignore;
-        _ -> choose_ready_for_client(State, 1)
-    end.
-
-choose_ready_for_client(#state{cluster = Cluster}, N) when length(Cluster) > N -> ignore;
-choose_ready_for_client(State, N) ->
-    #state{cluster = Cluster, index = Index} = State,
-    case Index =/= N of
-        true ->
-            {IP, Port} = lists:nth(N, Cluster),
-            {ok, Pid} = gun:open(IP, Port, get_default_gun_opts(State)),
-            case gun:await_up(Pid, 1000) of
-                {ok, http2} ->
-                    Request = #'Etcd.StatusRequest'{},
-                    Path = <<"/etcdserverpb.Maintenance/Status">>,
-                    case eetcd_stream:unary(Request, Path, 'Etcd.StatusResponse') of
-                        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
-                            OldPid = erlang:whereis(?ETCD_HTTP2_CLIENT),
-                            gun:close(OldPid),
-                            true = register(?ETCD_HTTP2_CLIENT, Pid),
-                            {ok, State#state{
-                                pid = Pid,
-                                cluster = Cluster,
-                                index = N,
-                                ref = erlang:monitor(process, Pid)
-                            }};
-                        _ ->
-                            gun:close(Pid),
-                            choose_ready_for_client(State, N + 1)
-                    end;
-                {error, _Reason} ->
-                    choose_ready_for_client(State, N + 1)
-            end;
-        false ->
-            choose_ready_for_client(State, N + 1)
-    end.
+%%check_leader(State) ->
+%%    case eetcd_maintenance:status(#'Etcd.StatusRequest'{}) of
+%%        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
+%%            error_logger:warning_msg("Leader(~p) already exist but request timeout~n", [?MODULE, Leader]),
+%%            ignore;
+%%        _ -> choose_ready_for_client(State, 1)
+%%    end.
+%%
+%%choose_ready_for_client(#state{cluster = Cluster}, N) when length(Cluster) > N -> ignore;
+%%choose_ready_for_client(State, N) ->
+%%    #state{cluster = Cluster, index = Index} = State,
+%%    case Index =/= N of
+%%        true ->
+%%            {IP, Port} = lists:nth(N, Cluster),
+%%            {ok, Pid} = gun:open(IP, Port, get_default_gun_opts(State)),
+%%            case gun:await_up(Pid, 1000) of
+%%                {ok, http2} ->
+%%                    Request = #'Etcd.StatusRequest'{},
+%%                    Path = <<"/etcdserverpb.Maintenance/Status">>,
+%%                    %% TODO status pid is wrong
+%%                    case eetcd_stream:unary(Request, Path, 'Etcd.StatusResponse') of
+%%                        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
+%%                            OldPid = erlang:whereis(?ETCD_HTTP2_CLIENT),
+%%                            gun:close(OldPid),
+%%                            true = register(?ETCD_HTTP2_CLIENT, Pid),
+%%                            {ok, State#state{
+%%                                pid = Pid,
+%%                                cluster = Cluster,
+%%                                index = N,
+%%                                ref = erlang:monitor(process, Pid)
+%%                            }};
+%%                        _ ->
+%%                            gun:close(Pid),
+%%                            choose_ready_for_client(State, N + 1)
+%%                    end;
+%%                {error, _Reason} ->
+%%                    choose_ready_for_client(State, N + 1)
+%%            end;
+%%        false ->
+%%            choose_ready_for_client(State, N + 1)
+%%    end.
 
 get_default_gun_opts(#state{transport = Transport, transport_opts = TransportOpts}) ->
     #{

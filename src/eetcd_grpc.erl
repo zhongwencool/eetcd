@@ -1,16 +1,16 @@
 -module(eetcd_grpc).
 -include("eetcd.hrl").
 
--export([decode/3, encode/2]).
+-export([decode/3, encode/3]).
 -export([grpc_status/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
--spec encode(identity | gzip, tuple()) -> binary().
-encode(GrpcType, Msg) ->
-    PbMsg = router_pb:encode_msg(Msg, [{verify, true}]),
+-spec encode(identity | gzip, map(), atom()) -> binary().
+encode(GrpcType, Msg, MsgName) ->
+    PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
 -spec decode(identity | gzip, binary(), atom()) -> tuple().

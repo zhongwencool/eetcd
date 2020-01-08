@@ -1,9 +1,9 @@
 -module(eetcd_stream).
 
 %% API
--export([unary/3, unary/4]).
--export([new/2, new/3]).
--export([data/4]).
+-export([unary/4, unary/5]).
+-export([new/2, new/4]).
+-export([data/5]).
 -export([await/4]).
 
 -define(TIMEOUT, 5000).
@@ -15,49 +15,53 @@
     GunPid :: pid(),
     Http2Ref :: reference().
 new(Path, Headers) ->
-    Pid = eetcd_http2_keeper:get_http2_client_pid(),
+    {ok, Pid} = eetcd_conn:whereis(test),
     {ok, Pid, gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>)}.
 
--spec new(EtcdRequest, Http2Path, Http2Headers) -> Http2Ref when
-    EtcdRequest :: tuple(),
+-spec new(EtcdMsg, EtcdMsgName, Http2Path, Http2Headers) -> Http2Ref when
+    EtcdMsg :: map(),
+    EtcdMsgName :: atom(),
     Http2Path :: iodata(),
     Http2Headers :: [{binary(), binary()}],
     Http2Ref :: reference().
-new(Request, Path, Http2Headers) ->
+new(Msg, MsgName, Path, Http2Headers) ->
     {ok, Pid, Ref} = new(Path, Http2Headers),
-    data(Pid, Ref, Request, nofin),
+    data(Pid, Ref, Msg, MsgName, nofin),
     {Pid, Ref}.
 
--spec data(GunPid, Http2Ref, EtcdRequest, Http2Path) -> Http2Ref when
+-spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
     GunPid :: pid(),
     Http2Ref :: reference(),
-    EtcdRequest :: tuple(),
+    EtcdMsg :: map(),
+    EtcdMsgName :: atom(),
     Http2Path :: iodata().
-data(Pid, Ref, Request, IsFin) ->
-    EncodeBody = eetcd_grpc:encode(identity, Request),
+data(Pid, Ref, Msg, MsgName, IsFin) ->
+    EncodeBody = eetcd_grpc:encode(identity, Msg, MsgName),
     gun:data(Pid, Ref, IsFin, EncodeBody),
     Ref.
 
--spec unary(EtcdRequest, Http2Path, EtcdResponseType) -> EtcdResponse when
-    EtcdRequest :: tuple(),
+-spec unary(EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType) -> EtcdResponse when
+    EtcdRequest :: map(),
+    EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
     EtcdResponse :: tuple().
-unary(Request, Path, ResponseType) ->
-    Pid = eetcd_http2_keeper:get_http2_client_pid(),
-    unary(Pid, Request, Path, ResponseType, ?HEADERS).
--spec unary(EtcdRequest, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
-    EtcdRequest :: tuple(),
+unary(Request, RequestName, Path, ResponseType) ->
+    {ok, Pid} = eetcd_conn:whereis(test),
+    unary(Pid, Request, RequestName, Path, ResponseType, ?HEADERS).
+-spec unary(EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
+    EtcdRequest :: map(),
+    EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
     Http2Headers :: list(),
     EtcdResponse :: tuple().
-unary(Request, Path, ResponseType, Headers) ->
-    Pid = eetcd_http2_keeper:get_http2_client_pid(),
-    unary(Pid, Request, Path, ResponseType, Headers ++ ?HEADERS).
+unary(Request, RequestName, Path, ResponseType, Headers) ->
+    {ok, Pid} = eetcd_conn:whereis(test),
+    unary(Pid, Request, RequestName, Path, ResponseType, Headers ++ ?HEADERS).
 
-unary(Pid, Request, Path, ResponseType, Headers) ->
-    EncodeBody = eetcd_grpc:encode(identity, Request),
+unary(Pid, Request, RequestName, Path, ResponseType, Headers) ->
+    EncodeBody = eetcd_grpc:encode(identity, Request, RequestName),
     MRef = erlang:monitor(process, Pid),
     StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
     Res =

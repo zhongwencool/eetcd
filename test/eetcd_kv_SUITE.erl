@@ -4,9 +4,6 @@
 
 -export([put/1, range/1, delete_range/1, txn/1, compact/1]).
 
--include("router_pb.hrl").
-
-
 -define(KEY(K), <<"eetcd_kev", (list_to_binary(K))/binary>>).
 
 -define(VALUE(V), <<"eetcd_value", (list_to_binary(V))/binary>>).

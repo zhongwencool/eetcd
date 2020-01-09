@@ -10,7 +10,7 @@
 
 -include("eetcd.hrl").
 
--record(state, {stream_ref, client_ref, client_pid, watch_id, callback, ignore_create = true, ignore_cancel = true}).
+-record(state, {stream_ref, client_ref, client_pid, watch_id, callback, data, ignore_create = true, ignore_cancel = true}).
 
 %%%===================================================================
 %%% API
@@ -34,6 +34,7 @@ init([Request, Callback, Options]) ->
         client_ref = ClientRef,
         client_pid = Pid,
         callback = Callback,
+        data = <<>>,
         ignore_create = proplists:get_value(ignore_create, Options, true),
         ignore_cancel = proplists:get_value(ignore_cancel, Options, true)
     }}.
@@ -57,7 +58,7 @@ handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{stre
     {noreply, State};
 
 handle_info({gun_data, _Pid, Ref, nofin, Data}, State = #state{stream_ref = Ref}) ->
-    handle_change_event(State, Data);
+    handle_gun_data(State, Data);
 
 handle_info({gun_error, Pid, StreamRef, Reason}, State =
     #state{callback = Callback, watch_id = WatchId}) ->
@@ -132,3 +133,23 @@ run_callback(Callback, Resp) ->
 
 info_watcher_owner_terminate(#state{callback = Callback}, Reason) ->
     run_callback(Callback, {eetcd_watcher_exit, self(), Reason}).
+
+handle_gun_data(State = #state{data = OldData}, NewData) when byte_size(NewData) + byte_size(OldData) > 5 ->
+    CurrentData = <<OldData/binary, NewData/binary>>,
+    <<Compact:8, Length:32, Binary/binary>> = CurrentData,
+    if
+        byte_size(Binary) < Length ->
+            %% current data not completion, wait for next gun_data msg
+            {noreply, State#state{data = CurrentData}};
+        true ->
+            <<OnePacket:Length/binary, LeftBinary/binary>> = Binary,
+            NewState = State#state{data = LeftBinary},
+            case handle_change_event(NewState, <<Compact:8, Length:32, OnePacket/binary>>) of
+                {stop, _, _} = Resp ->
+                    Resp;
+                {noreply, NewState1} ->
+                    handle_gun_data(NewState1, <<>>)
+            end
+    end;
+handle_gun_data(State = #state{data = OldData}, NewData) ->
+    {noreply, State#state{data = <<OldData/binary, NewData/binary>>}}.

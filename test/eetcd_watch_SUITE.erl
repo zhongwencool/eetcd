@@ -6,7 +6,7 @@
 
 -export([watch_one_key/1, watch_multi_keys/1,
     watch_with_start_revision/1, watch_with_filters/1, watch_with_create_cancel_event/1,
-    watch_with_prev_kv/1, watch_with_watch_id/1]).
+    watch_with_prev_kv/1, watch_with_watch_id/1, watch_with_huge_value/1]).
 
 -include("router_pb.hrl").
 
@@ -16,7 +16,7 @@ suite() ->
 all() ->
     [
         watch_one_key, watch_multi_keys, watch_with_start_revision, watch_with_filters,
-        watch_with_prev_kv, watch_with_watch_id, watch_with_create_cancel_event
+        watch_with_prev_kv, watch_with_watch_id, watch_with_create_cancel_event, watch_with_huge_value
     ].
 
 groups() ->
@@ -210,6 +210,26 @@ watch_with_watch_id(_Config) ->
     ok = eetcd:unwatch(WatchPid1),
     ok = eetcd:unwatch(WatchPid2),
     ok.
+
+%% watch large value data
+watch_with_huge_value(_Config) ->
+    Key = <<"etcd_key">>,
+    Pid = self(),
+    Callback = fun(Res) -> erlang:send(Pid, Res) end,
+    {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback),
+    watch_loop([233333, 1, 13, 99, 122, 1222, 40000, 12345, 67890, 999999, 2, 3, 4, 5, 33, 57, 157, 999, 99999], Key),
+
+    ok = eetcd:unwatch(WatchPid),
+    ok.
+
+watch_loop([], _) ->
+    ok;
+watch_loop([Head | Tail], Key) ->
+    Value = list_to_binary([100 || _ <- lists:seq(1, Head)]),
+    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
+    #'Etcd.WatchResponse'{events = [#'mvccpb.Event'{type = 'PUT',
+            kv = #'mvccpb.KeyValue'{key = Key, value = Value}}]} = flush(),
+    watch_loop(Tail, Key).
 
 %% fragment enables splitting large revisions into multiple watch responses.
 %%watch_with_fragment(_Config) ->

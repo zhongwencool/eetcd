@@ -61,13 +61,14 @@ unary(Request, RequestName, Path, ResponseType, Headers) ->
     unary(Pid, Request, RequestName, Path, ResponseType, Headers ++ ?HEADERS).
 
 unary(Pid, Request, RequestName, Path, ResponseType, Headers) ->
-    EncodeBody = eetcd_grpc:encode(identity, Request, RequestName),
+    Timeout = maps:get(eetcd_reply_timeout, Request, ?TIMEOUT),
+    EncodeBody = eetcd_grpc:encode(identity, maps:remove(eetcd_reply_timeout, Request), RequestName),
     MRef = erlang:monitor(process, Pid),
     StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
     Res =
-        case await(Pid, StreamRef, ?TIMEOUT + 3000, MRef) of
+        case await(Pid, StreamRef, Timeout, MRef) of
             {response, nofin, 200, _Headers} ->
-                case await_body(Pid, StreamRef, ?TIMEOUT, MRef, <<>>) of
+                case await_body(Pid, StreamRef, Timeout, MRef, <<>>) of
                     {ok, ResBody, _Trailers} ->
                         {ok, eetcd_grpc:decode(identity, ResBody, ResponseType)};
                     {error, _} = Error1 -> Error1

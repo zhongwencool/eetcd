@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-06T08:17:27+00:00 and should not be modified manually
+%% This module was generated on 2020-01-13T08:36:28+00:00 and should not be modified manually
 
 -module(eetcd_lease_gen).
 
@@ -18,59 +18,29 @@
 -spec lease_grant(router_pb:'Etcd.LeaseGrantRequest'()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 lease_grant(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseGrantRequest', <<"/etcdserverpb.Lease/LeaseGrant">>, 'Etcd.LeaseGrantResponse', []).
--spec lease_grant(router_pb:'Etcd.LeaseGrantRequest'(), Http2Headers) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
-lease_grant(Request, Token)when is_binary(Token) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseGrantRequest', <<"/etcdserverpb.Lease/LeaseGrant">>, 'Etcd.LeaseGrantResponse', [{<<"authorization">>, Token}]);
-lease_grant(Request, Http2Headers) when is_list(Http2Headers) ->
-   eetcd_stream:unary(Request, 'Etcd.LeaseGrantRequest', <<"/etcdserverpb.Lease/LeaseGrant">>, 'Etcd.LeaseGrantResponse', Http2Headers).
+    eetcd_stream:unary(Request, 'Etcd.LeaseGrantRequest', <<"/etcdserverpb.Lease/LeaseGrant">>, 'Etcd.LeaseGrantResponse').
 
 %% @doc Unary RPC 
 -spec lease_revoke(router_pb:'Etcd.LeaseRevokeRequest'()) ->
     {ok, router_pb:'Etcd.LeaseRevokeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 lease_revoke(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse', []).
--spec lease_revoke(router_pb:'Etcd.LeaseRevokeRequest'(), Http2Headers) ->
-    {ok, router_pb:'Etcd.LeaseRevokeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
-lease_revoke(Request, Token)when is_binary(Token) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse', [{<<"authorization">>, Token}]);
-lease_revoke(Request, Http2Headers) when is_list(Http2Headers) ->
-   eetcd_stream:unary(Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse', Http2Headers).
+    eetcd_stream:unary(Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse').
 
 %% @doc Stream RPC 
 -spec lease_keep_alive(router_pb:'Etcd.LeaseKeepAliveRequest'()) ->
     reference() | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 lease_keep_alive(Request) ->
-    eetcd_stream:new(Request, <<"/etcdserverpb.Lease/LeaseKeepAlive">>, []).
--spec lease_keep_alive(router_pb:'Etcd.LeaseKeepAliveRequest'(), Http2Headers) ->
-    reference() | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
-lease_keep_alive(Request, Token)when is_binary(Token) ->
-    eetcd_stream:new(Request, <<"/etcdserverpb.Lease/LeaseKeepAlive">>, [{<<"authorization">>, Token}]);
-lease_keep_alive(Request, Http2Headers) when is_list(Http2Headers) ->
-   eetcd_stream:new(Request, <<"/etcdserverpb.Lease/LeaseKeepAlive">>, Http2Headers).
+    eetcd_stream:new(Request, <<"/etcdserverpb.Lease/LeaseKeepAlive">>).
 
 %% @doc Unary RPC 
 -spec lease_time_to_live(router_pb:'Etcd.LeaseTimeToLiveRequest'()) ->
     {ok, router_pb:'Etcd.LeaseTimeToLiveResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 lease_time_to_live(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseTimeToLiveRequest', <<"/etcdserverpb.Lease/LeaseTimeToLive">>, 'Etcd.LeaseTimeToLiveResponse', []).
--spec lease_time_to_live(router_pb:'Etcd.LeaseTimeToLiveRequest'(), Http2Headers) ->
-    {ok, router_pb:'Etcd.LeaseTimeToLiveResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
-lease_time_to_live(Request, Token)when is_binary(Token) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseTimeToLiveRequest', <<"/etcdserverpb.Lease/LeaseTimeToLive">>, 'Etcd.LeaseTimeToLiveResponse', [{<<"authorization">>, Token}]);
-lease_time_to_live(Request, Http2Headers) when is_list(Http2Headers) ->
-   eetcd_stream:unary(Request, 'Etcd.LeaseTimeToLiveRequest', <<"/etcdserverpb.Lease/LeaseTimeToLive">>, 'Etcd.LeaseTimeToLiveResponse', Http2Headers).
+    eetcd_stream:unary(Request, 'Etcd.LeaseTimeToLiveRequest', <<"/etcdserverpb.Lease/LeaseTimeToLive">>, 'Etcd.LeaseTimeToLiveResponse').
 
 %% @doc Unary RPC 
 -spec lease_leases(router_pb:'Etcd.LeaseLeasesRequest'()) ->
     {ok, router_pb:'Etcd.LeaseLeasesResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 lease_leases(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseLeasesRequest', <<"/etcdserverpb.Lease/LeaseLeases">>, 'Etcd.LeaseLeasesResponse', []).
--spec lease_leases(router_pb:'Etcd.LeaseLeasesRequest'(), Http2Headers) ->
-    {ok, router_pb:'Etcd.LeaseLeasesResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()} when Http2Headers :: [{binary(), binary()}] | binary().
-lease_leases(Request, Token)when is_binary(Token) ->
-    eetcd_stream:unary(Request, 'Etcd.LeaseLeasesRequest', <<"/etcdserverpb.Lease/LeaseLeases">>, 'Etcd.LeaseLeasesResponse', [{<<"authorization">>, Token}]);
-lease_leases(Request, Http2Headers) when is_list(Http2Headers) ->
-   eetcd_stream:unary(Request, 'Etcd.LeaseLeasesRequest', <<"/etcdserverpb.Lease/LeaseLeases">>, 'Etcd.LeaseLeasesResponse', Http2Headers).
+    eetcd_stream:unary(Request, 'Etcd.LeaseLeasesRequest', <<"/etcdserverpb.Lease/LeaseLeases">>, 'Etcd.LeaseLeasesResponse').
 

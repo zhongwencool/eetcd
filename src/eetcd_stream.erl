@@ -1,33 +1,39 @@
 -module(eetcd_stream).
 
 %% API
--export([unary/4, unary/5]).
+-export([unary/4, unary/6]).
 -export([new/2, new/4]).
 -export([data/5]).
 -export([await/4]).
 
--define(TIMEOUT, 5000).
 -include("eetcd.hrl").
 
--spec new(Path, Headers) -> {ok, GunPid, Http2Ref} when
+-spec new(Name, Path) -> {ok, GunPid, Http2Ref} when
+    Name :: eetcd_conn:name(),
     Path :: iodata(),
-    Headers :: [{binary(), binary()}],
     GunPid :: pid(),
     Http2Ref :: reference().
-new(Path, Headers) ->
-    {ok, Pid} = eetcd_conn:whereis(test),
-    {ok, Pid, gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>)}.
+new(Name, Path) ->
+    case eetcd_conn:whereis(Name) of
+        {ok, Pid, Headers} ->
+            Ref = gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>),
+            {ok, Pid, Ref};
+        Err -> Err
+    end.
 
--spec new(EtcdMsg, EtcdMsgName, Http2Path, Http2Headers) -> Http2Ref when
+-spec new(Name, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
+    Name :: eetcd_conn:name(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
-    Http2Headers :: [{binary(), binary()}],
     Http2Ref :: reference().
-new(Msg, MsgName, Path, Http2Headers) ->
-    {ok, Pid, Ref} = new(Path, Http2Headers),
-    data(Pid, Ref, Msg, MsgName, nofin),
-    {Pid, Ref}.
+new(Name, Msg, MsgName, Path) ->
+    case new(Name, Path) of
+        {ok, Pid, Ref} ->
+            data(Pid, Ref, Msg, MsgName, nofin),
+            {Pid, Ref};
+        Err -> Err
+    end.
 
 -spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
     GunPid :: pid(),
@@ -47,21 +53,26 @@ data(Pid, Ref, Msg, MsgName, IsFin) ->
     EtcdResponseType :: atom(),
     EtcdResponse :: tuple().
 unary(Request, RequestName, Path, ResponseType) ->
-    {ok, Pid} = eetcd_conn:whereis(test),
-    unary(Pid, Request, RequestName, Path, ResponseType, ?HEADERS).
--spec unary(EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
+    case maps:find(eetcd_conn_name, Request) of
+        {ok, Name} ->
+            case eetcd_conn:whereis(Name) of
+                {ok, Pid, HttpHeader} ->
+                    NewRequest = maps:remove(eetcd_conn_name, Request),
+                    unary(Pid, NewRequest, RequestName, Path, ResponseType, HttpHeader ++ ?HEADERS);
+                Err -> Err
+            end;
+        error -> {error, "eetcd connection name not found"}
+    end.
+-spec unary(Pid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
+    Pid :: pid(),
     EtcdRequest :: map(),
     EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
     Http2Headers :: list(),
     EtcdResponse :: tuple().
-unary(Request, RequestName, Path, ResponseType, Headers) ->
-    {ok, Pid} = eetcd_conn:whereis(test),
-    unary(Pid, Request, RequestName, Path, ResponseType, Headers ++ ?HEADERS).
-
-unary(Pid, Request, RequestName, Path, ResponseType, Headers) ->
-    Timeout = maps:get(eetcd_reply_timeout, Request, ?TIMEOUT),
+unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) ->
+    Timeout = maps:get(eetcd_reply_timeout, Request, 5000),
     EncodeBody = eetcd_grpc:encode(identity, maps:remove(eetcd_reply_timeout, Request), RequestName),
     MRef = erlang:monitor(process, Pid),
     StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),
@@ -105,9 +116,9 @@ await_body(ServerPid, StreamRef, Timeout, MRef, Acc) ->
     receive
         {gun_data, ServerPid, StreamRef, nofin, Data} ->
             await_body(ServerPid, StreamRef, Timeout, MRef,
-                << Acc/binary, Data/binary >>);
+                <<Acc/binary, Data/binary>>);
         {gun_data, ServerPid, StreamRef, fin, Data} ->
-            {ok, << Acc/binary, Data/binary >>};
+            {ok, <<Acc/binary, Data/binary>>};
     %% It's OK to return trailers here because the client specifically requested them
         {gun_trailers, ServerPid, StreamRef, Trailers} ->
             {ok, Acc, Trailers};

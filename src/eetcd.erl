@@ -4,7 +4,7 @@
 -export([test/0]).
 
 -export([
-    new/0, with_timeout/2, with_key/2,
+    new/1, with_timeout/2, with_key/2,
     with_value/2, with_prefix/1, with_range_end/2,
     with_from_key/1, with_limit/2, with_rev/2,
     with_serializable/1, with_keys_only/1, with_count_only/1,
@@ -12,23 +12,23 @@
     with_max_create_rev/2, with_min_create_rev/2,
     with_first_create/1, with_last_create/1,
     with_first_rev/1, with_last_rev/1, with_first_key/1,
-    with_last_key/1, with_top/3, with_prev_kv/2,
-    with_lease/2, with_ignore_value/2, with_ignore_lease/2,
-    with_compact_physical/1
-]).
+    with_last_key/1, with_top/3, with_prev_kv/1,
+    with_lease/2, with_ignore_value/1, with_ignore_lease/1,
+    with_compact_physical/1,
+    with_progress_notify/1, with_fragment/1, with_filter_put/1, with_filter_delete/1]).
 
 test() ->
     logger:set_primary_config(level, info),
     {ok, _Pid} = eetcd_conn:open(test, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"], tcp, []),
-    R = eetcd_kv:put("test", "test_value"),
+    R = eetcd_kv:put(test, "test", "test_value"),
     io:format("~p~n", [R]),
-    R1 = eetcd_kv:get("test"),
+    R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),
     eetcd_conn:close(test),
     ok.
 
 %%% @doc Create options for request.
-new() -> #{}.
+new(Name) -> #{eetcd_conn_name => Name}.
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely. Default value is 5000.
@@ -143,78 +143,56 @@ with_top(Request, SortTarget, SortOrder) ->
 
 %% @doc Get the previous key-value pair before the event happens.
 %% If the previous KV is already compacted, nothing will be returned.
-with_prev_kv(Request, Bool) when is_boolean(Bool) ->
-    maps:put(prev_kv, Bool, Request).
+with_prev_kv(Request) ->
+    maps:put(prev_kv, true, Request).
+
+%% @doc WithFragment to receive raw watch response with fragmentation.
+%%Fragmentation is disabled by default. If fragmentation is enabled,
+%%etcd watch server will split watch response before sending to clients
+%%when the total size of watch events exceed server-side request limit.
+%%The default server-side request limit is 1.5 MiB, which can be configured
+%%as "--max-request-bytes" flag value + gRPC-overhead 512 bytes.
+%%See "watch.erl" for more details.
+with_fragment(Request) ->
+    maps:put(fragment, true, Request).
 
 %% @doc Attache a lease ID to a key in `put' request.
-with_lease(Request, Bool) when is_boolean(Bool) ->
-    maps:put(lease, Bool, Request).
+with_lease(Request, Id) when is_integer(Id) ->
+    maps:put(lease, Id, Request).
 
 %% @doc Update the key using its current value.
 %% This option can not be combined with non-empty values.
 %% Returns an error if the key does not exist.
-with_ignore_value(Request, Bool) when is_boolean(Bool) ->
-    maps:put(ignore_value, Bool, Request).
+with_ignore_value(Request) ->
+    maps:put(ignore_value, true, Request).
 
 %% @doc Update the key using its current lease.
 %% This option can not be combined with WithLease.
 %% Returns an error if the key does not exist.
-with_ignore_lease(Request, Bool) when is_boolean(Bool) ->
-    maps:put(ignore_lease, Bool, Request).
+with_ignore_lease(Request) ->
+    maps:put(ignore_lease, true, Request).
 
 %% @doc Make Compact wait until all compacted entries are
 %% removed from the etcd server's storage.
 with_compact_physical(Request) ->
     maps:put(physical, true, Request).
 
-%%isWithPrefix(Opts) ->
-%%    Opts.'WithPrefix'
-%%#{
-%%t    => opType
-%%key  =>
-%%end []byte
-%%
-%%// for range
-%%limit        int64
-%%sort         *SortOption
-%%serializable bool
-%%keysOnly     bool
-%%countOnly    bool
-%%minModRev    int64
-%%maxModRev    int64
-%%minCreateRev int64
-%%maxCreateRev int64
-%%
-%%// for range, watch
-%%rev int64
-%%
-%%// for watch, put, delete
-%%prevKV bool
-%%
-%%// for watch
-%%// fragmentation should be disabled by default
-%%// if true, split watch events when total exceeds
-%%// "--max-request-bytes" flag value + 512-byte
-%%fragment bool
-%%
-%%// for put
-%%ignoreValue bool
-%%ignoreLease bool
-%%
-%%// progressNotify is for progress updates.
-%%progressNotify bool
-%%// createdNotify is for created event
-%%createdNotify bool
-%%// filters for watchers
-%%filterPut    bool
-%%filterDelete bool
-%%
-%%// for put
-%%val     []byte
-%%leaseID LeaseID
-%%
-%%// txn
-%%cmps    []Cmp
-%%thenOps []Op
-%%elseOps []Op
-%%}
+%% @doc Make watch server send periodic progress updates
+%% every 10 minutes when there is no incoming events.
+%% Progress updates have zero events in WatchResponse.
+with_progress_notify(Request) ->
+    maps:put(progress_notify, true, Request).
+
+%% @doc discards PUT events from the watcher.
+with_filter_put(Request) ->
+    maps:update_with(filters,
+        fun(V) -> lists:usort(['NOPUT'|V]) end,
+        ['NOPUT'],
+        Request).
+
+%% @doc discards DELETE events from the watcher.
+with_filter_delete(Request) ->
+    maps:update_with(filters,
+        fun(V) -> lists:usort(['NODELETE'|V]) end,
+        ['NODELETE'],
+        Request).

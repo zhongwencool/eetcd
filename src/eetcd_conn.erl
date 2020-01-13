@@ -20,13 +20,13 @@ open(Name, Hosts, Transport, TransportOpts) ->
 
 whereis(Name) ->
     case ets:lookup(?ETCD_CONNS, Name) of
-        [{_, Gun, _Pid}] -> {ok, Gun};
+        [#eetcd_conn{gun = Gun, http_header = HttpHeader}] -> {ok, Gun, HttpHeader};
         _ -> {error, unavailable}
     end.
 
 close(Name) ->
     case ets:lookup(?ETCD_CONNS, Name) of
-        [{_, _Gun, Pid}] -> erlang:send(Pid, stop);
+        [#eetcd_conn{conn = Pid}] -> erlang:send(Pid, stop);
         _ -> ok
     end,
     ok.
@@ -45,7 +45,8 @@ init([Name, Hosts, Transport, TransportOpts]) ->
         reconnect_ms => 0,
         gun => undefined,
         index => undefined,
-        gun_ref => undefined
+        gun_ref => undefined,
+        http_header = []
     },
     case connect(State) of
         {ok, NewState} -> {ok, NewState};
@@ -66,8 +67,8 @@ handle_cast(_Request, State) ->
 handle_info(stop, State) -> {stop, normal, State};
 
 handle_info({'DOWN', GunRef, process, Gun, Reason},
-    State = #{name := Name, gun := Gun, gun_ref := GunRef}) ->
-    clean(Name, Gun),
+    State = #{name := Name, gun := Gun, gun_ref := GunRef, http_header := HttpHeader}) ->
+    clean(Name, HttpHeader, Gun),
     logger:warning("~p gun(~p) process 'DOWN' ~p~n", [{Name, self()}, Gun, Reason]),
     case connect(State) of
         {ok, NewState} -> {noreply, NewState};
@@ -76,13 +77,13 @@ handle_info({'DOWN', GunRef, process, Gun, Reason},
             {noreply, NewState}
     end;
 handle_info({'DOWN', _Ref, process, OldGun, Reason},
-    State = #{name := Name, gun := NewGun}) ->
-    clean(Name, OldGun),
+    State = #{name := Name, gun := NewGun, http_header := HttpHeader}) ->
+    clean(Name, HttpHeader, OldGun),
     logger:info("~p gun(~p) process 'DOWN' ~p~n", [{Name, self()}, {OldGun, NewGun}, Reason]),
     {noreply, State};
 handle_info({gun_down, Gun, http2, Error, KilledStreams, UnprocessedStreams},
-    State = #{gun := Gun, name := Name}) ->
-    clean(Name, Gun),
+    State = #{gun := Gun, name := Name, http_header := HttpHeader}) ->
+    clean(Name, HttpHeader, Gun),
     logger:warning("~p connection gun_down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
         [{Name, self()}, Gun, Error, KilledStreams, UnprocessedStreams]),
     case connect(State) of
@@ -99,8 +100,8 @@ handle_info(Info, State = #{name := Name}) ->
     logger:warning("~p Handle info unknown message ~p ~p ~n", [{Name, self()}, Info, State]),
     {noreply, State}.
 
-terminate(_Reason, #{name := Name, gun := Gun}) ->
-    clean(Name, Gun),
+terminate(_Reason, #{name := Name, http_header := HttpHeader, gun := Gun}) ->
+    clean(Name, HttpHeader, Gun),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -109,8 +110,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-clean(Name, Gun) ->
-    ets:delete_object(?ETCD_CONNS, {Name, Gun, self()}),
+clean(Name, HttpHeader, Gun) ->
+    Rec = #eetcd_conn{name = Name, gun = Gun, http_header = HttpHeader, conn = self()},
+    ets:delete_object(?ETCD_CONNS, Rec),
     gun:close(Gun),
     ok.
 
@@ -141,7 +143,8 @@ connect(State, RetryN, Errors) ->
     {ok, Pid} = gun:open(IP, Port, gun_opts(State)),
     case gun:await_up(Pid, 1000) of
         {ok, http2} ->
-            case ets:insert_new(?ETCD_CONNS, {Name, Pid, self()}) of
+            Conn = #eetcd_conn{name = Name, gun = Pid, http_header = [], conn = self()},
+            case ets:insert_new(?ETCD_CONNS, Conn) of
                 false ->
                     gun:close(Pid),
                     {error, already_started, State};

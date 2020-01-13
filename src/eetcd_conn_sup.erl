@@ -11,7 +11,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public]),
+    ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.name}]),
     MaxRestarts = 1000,
     MaxSecondsBetweenRestarts = 1200,
     SupFlags = #{strategy => simple_one_for_one,

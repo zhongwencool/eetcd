@@ -4,14 +4,15 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:29+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:28+00:00 and should not be modified manually
 
 -module(eetcd_cluster_gen).
 
--export([member_add/1, member_add/2]).
--export([member_remove/1, member_remove/2]).
--export([member_update/1, member_update/2]).
--export([member_list/1, member_list/2]).
+-export([member_add/1]).
+-export([member_remove/1]).
+-export([member_update/1]).
+-export([member_list/1]).
+-export([member_promote/1]).
 
 %% @doc Unary RPC 
 -spec member_add(router_pb:'Etcd.MemberAddRequest'()) ->
@@ -36,4 +37,10 @@ member_update(Request) ->
     {ok, router_pb:'Etcd.MemberListResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 member_list(Request) ->
     eetcd_stream:unary(Request, 'Etcd.MemberListRequest', <<"/etcdserverpb.Cluster/MemberList">>, 'Etcd.MemberListResponse').
+
+%% @doc Unary RPC 
+-spec member_promote(router_pb:'Etcd.MemberPromoteRequest'()) ->
+    {ok, router_pb:'Etcd.MemberPromoteResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+member_promote(Request) ->
+    eetcd_stream:unary(Request, 'Etcd.MemberPromoteRequest', <<"/etcdserverpb.Cluster/MemberPromote">>, 'Etcd.MemberPromoteResponse').
 

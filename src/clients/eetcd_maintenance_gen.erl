@@ -4,17 +4,17 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:29+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:29+00:00 and should not be modified manually
 
 -module(eetcd_maintenance_gen).
 
--export([alarm/1, alarm/2]).
--export([status/1, status/2]).
--export([defragment/1, defragment/2]).
--export([hash/1, hash/2]).
--export([hash_kv/1, hash_kv/2]).
--export([snapshot/1, snapshot/2]).
--export([move_leader/1, move_leader/2]).
+-export([alarm/1]).
+-export([status/1]).
+-export([defragment/1]).
+-export([hash/1]).
+-export([hash_kv/1]).
+-export([snapshot/1]).
+-export([move_leader/1]).
 
 %% @doc Unary RPC 
 -spec alarm(router_pb:'Etcd.AlarmRequest'()) ->

@@ -4,11 +4,11 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:28+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:26+00:00 and should not be modified manually
 
 -module(eetcd_watch_gen).
 
--export([watch/1, watch/2]).
+-export([watch/1]).
 
 %% @doc Stream RPC 
 -spec watch(router_pb:'Etcd.WatchRequest'()) ->

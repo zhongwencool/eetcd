@@ -61,10 +61,15 @@
 -export_type(['authpb.Permission.Type'/0, 'google.protobuf.FieldDescriptorProto.Type'/0, 'google.protobuf.FieldDescriptorProto.Label'/0, 'google.protobuf.FileOptions.OptimizeMode'/0, 'google.protobuf.FieldOptions.CType'/0, 'google.protobuf.FieldOptions.JSType'/0]).
 
 %% message types
+-type 'authpb.UserAddOptions'() ::
+      #{no_password             => boolean() | 0 | 1 % = 1
+       }.
+
 -type 'authpb.User'() ::
       #{name                    => iodata(),        % = 1
         password                => iodata(),        % = 2
-        roles                   => [iodata()]       % = 3
+        roles                   => [iodata()],      % = 3
+        options                 => 'authpb.UserAddOptions'() % = 4
        }.
 
 -type 'authpb.Permission'() ::
@@ -324,13 +329,13 @@
       #{annotation              => ['google.protobuf.GeneratedCodeInfo.Annotation'()] % = 1
        }.
 
--export_type(['authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0]).
+-export_type(['authpb.UserAddOptions'/0, 'authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0]).
 
--spec encode_msg('authpb.User'() | 'authpb.Permission'() | 'authpb.Role'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'(), atom()) -> binary().
+-spec encode_msg('authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'(), atom()) -> binary().
 encode_msg(Msg, MsgName) when is_atom(MsgName) ->
     encode_msg(Msg, MsgName, []).
 
--spec encode_msg('authpb.User'() | 'authpb.Permission'() | 'authpb.Role'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'(), atom(), list()) -> binary().
+-spec encode_msg('authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'(), atom(), list()) -> binary().
 encode_msg(Msg, MsgName, Opts) ->
     case proplists:get_bool(verify, Opts) of
       true -> verify_msg(Msg, MsgName, Opts);
@@ -338,6 +343,9 @@ encode_msg(Msg, MsgName, Opts) ->
     end,
     TrUserData = proplists:get_value(user_data, Opts),
     case MsgName of
+      'authpb.UserAddOptions' ->
+	  'encode_msg_authpb.UserAddOptions'(id(Msg, TrUserData),
+					     TrUserData);
       'authpb.User' ->
 	  'encode_msg_authpb.User'(id(Msg, TrUserData),
 				   TrUserData);
@@ -446,6 +454,24 @@ encode_msg(Msg, MsgName, Opts) ->
     end.
 
 
+'encode_msg_authpb.UserAddOptions'(Msg, TrUserData) ->
+    'encode_msg_authpb.UserAddOptions'(Msg, <<>>,
+				       TrUserData).
+
+
+'encode_msg_authpb.UserAddOptions'(#{} = M, Bin,
+				   TrUserData) ->
+    case M of
+      #{no_password := F1} ->
+	  begin
+	    TrF1 = id(F1, TrUserData),
+	    if TrF1 =:= false -> Bin;
+	       true -> e_type_bool(TrF1, <<Bin/binary, 8>>, TrUserData)
+	    end
+	  end;
+      _ -> Bin
+    end.
+
 'encode_msg_authpb.User'(Msg, TrUserData) ->
     'encode_msg_authpb.User'(Msg, <<>>, TrUserData).
 
@@ -473,14 +499,26 @@ encode_msg(Msg, MsgName, Opts) ->
 	       end;
 	   _ -> B1
 	 end,
+    B3 = case M of
+	   #{roles := F3} ->
+	       TrF3 = id(F3, TrUserData),
+	       if TrF3 == [] -> B2;
+		  true ->
+		      'e_field_authpb.User_roles'(TrF3, B2, TrUserData)
+	       end;
+	   _ -> B2
+	 end,
     case M of
-      #{roles := F3} ->
-	  TrF3 = id(F3, TrUserData),
-	  if TrF3 == [] -> B2;
-	     true ->
-		 'e_field_authpb.User_roles'(TrF3, B2, TrUserData)
+      #{options := F4} ->
+	  begin
+	    TrF4 = id(F4, TrUserData),
+	    if TrF4 =:= undefined -> B3;
+	       true ->
+		   'e_mfield_authpb.User_options'(TrF4, <<B3/binary, 34>>,
+						  TrUserData)
+	    end
 	  end;
-      _ -> B2
+      _ -> B3
     end.
 
 'encode_msg_authpb.Permission'(Msg, TrUserData) ->
@@ -2373,6 +2411,12 @@ encode_msg(Msg, MsgName, Opts) ->
 'e_field_authpb.User_roles'([], Bin, _TrUserData) ->
     Bin.
 
+'e_mfield_authpb.User_options'(Msg, Bin, TrUserData) ->
+    SubBin = 'encode_msg_authpb.UserAddOptions'(Msg, <<>>,
+						TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
 'e_mfield_authpb.Role_keyPermission'(Msg, Bin,
 				     TrUserData) ->
     SubBin = 'encode_msg_authpb.Permission'(Msg, <<>>,
@@ -3402,6 +3446,10 @@ decode_msg_1_catch(Bin, MsgName, TrUserData) ->
     end.
 -endif.
 
+decode_msg_2_doit('authpb.UserAddOptions', Bin,
+		  TrUserData) ->
+    id('decode_msg_authpb.UserAddOptions'(Bin, TrUserData),
+       TrUserData);
 decode_msg_2_doit('authpb.User', Bin, TrUserData) ->
     id('decode_msg_authpb.User'(Bin, TrUserData),
        TrUserData);
@@ -3535,116 +3583,246 @@ decode_msg_2_doit('google.protobuf.GeneratedCodeInfo',
 
 
 
+'decode_msg_authpb.UserAddOptions'(Bin, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Bin, 0, 0,
+					       id(false, TrUserData),
+					       TrUserData).
+
+'dfp_read_field_def_authpb.UserAddOptions'(<<8,
+					     Rest/binary>>,
+					   Z1, Z2, F@_1, TrUserData) ->
+    'd_field_authpb.UserAddOptions_no_password'(Rest, Z1,
+						Z2, F@_1, TrUserData);
+'dfp_read_field_def_authpb.UserAddOptions'(<<>>, 0, 0,
+					   F@_1, _) ->
+    #{no_password => F@_1};
+'dfp_read_field_def_authpb.UserAddOptions'(Other, Z1,
+					   Z2, F@_1, TrUserData) ->
+    'dg_read_field_def_authpb.UserAddOptions'(Other, Z1, Z2,
+					      F@_1, TrUserData).
+
+'dg_read_field_def_authpb.UserAddOptions'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_authpb.UserAddOptions'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, TrUserData);
+'dg_read_field_def_authpb.UserAddOptions'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      8 ->
+	  'd_field_authpb.UserAddOptions_no_password'(Rest, 0, 0,
+						      F@_1, TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						    TrUserData);
+	    1 ->
+		'skip_64_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						TrUserData);
+	    2 ->
+		'skip_length_delimited_authpb.UserAddOptions'(Rest, 0,
+							      0, F@_1,
+							      TrUserData);
+	    3 ->
+		'skip_group_authpb.UserAddOptions'(Rest, Key bsr 3, 0,
+						   F@_1, TrUserData);
+	    5 ->
+		'skip_32_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						TrUserData)
+	  end
+    end;
+'dg_read_field_def_authpb.UserAddOptions'(<<>>, 0, 0,
+					  F@_1, _) ->
+    #{no_password => F@_1}.
+
+'d_field_authpb.UserAddOptions_no_password'(<<1:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'd_field_authpb.UserAddOptions_no_password'(Rest, N + 7,
+						X bsl N + Acc, F@_1,
+						TrUserData);
+'d_field_authpb.UserAddOptions_no_password'(<<0:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc =/= 0,
+			     TrUserData),
+			  Rest},
+    'dfp_read_field_def_authpb.UserAddOptions'(RestF, 0, 0,
+					       NewFValue, TrUserData).
+
+'skip_varint_authpb.UserAddOptions'(<<1:1, _:7,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'skip_varint_authpb.UserAddOptions'(Rest, Z1, Z2, F@_1,
+					TrUserData);
+'skip_varint_authpb.UserAddOptions'(<<0:1, _:7,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
+'skip_length_delimited_authpb.UserAddOptions'(<<1:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_authpb.UserAddOptions'(Rest,
+						  N + 7, X bsl N + Acc, F@_1,
+						  TrUserData);
+'skip_length_delimited_authpb.UserAddOptions'(<<0:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest2, 0, 0,
+					       F@_1, TrUserData).
+
+'skip_group_authpb.UserAddOptions'(Bin, FNum, Z2, F@_1,
+				   TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, 0, Z2,
+					       F@_1, TrUserData).
+
+'skip_32_authpb.UserAddOptions'(<<_:32, Rest/binary>>,
+				Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
+'skip_64_authpb.UserAddOptions'(<<_:64, Rest/binary>>,
+				Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
 'decode_msg_authpb.User'(Bin, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Bin, 0, 0,
 				     id(<<>>, TrUserData), id(<<>>, TrUserData),
-				     id([], TrUserData), TrUserData).
+				     id([], TrUserData),
+				     id('$undef', TrUserData), TrUserData).
 
 'dfp_read_field_def_authpb.User'(<<10, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_name'(Rest, Z1, Z2, F@_1, F@_2,
-			       F@_3, TrUserData);
+			       F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<18, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_password'(Rest, Z1, Z2, F@_1, F@_2,
-				   F@_3, TrUserData);
+				   F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<26, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_roles'(Rest, Z1, Z2, F@_1, F@_2,
-				F@_3, TrUserData);
+				F@_3, F@_4, TrUserData);
+'dfp_read_field_def_authpb.User'(<<34, Rest/binary>>,
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    'd_field_authpb.User_options'(Rest, Z1, Z2, F@_1, F@_2,
+				  F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<>>, 0, 0, F@_1, F@_2,
-				 R1, TrUserData) ->
-    #{name => F@_1, password => F@_2,
-      roles => lists_reverse(R1, TrUserData)};
+				 R1, F@_4, TrUserData) ->
+    S1 = #{name => F@_1, password => F@_2,
+	   roles => lists_reverse(R1, TrUserData)},
+    if F@_4 == '$undef' -> S1;
+       true -> S1#{options => F@_4}
+    end;
 'dfp_read_field_def_authpb.User'(Other, Z1, Z2, F@_1,
-				 F@_2, F@_3, TrUserData) ->
+				 F@_2, F@_3, F@_4, TrUserData) ->
     'dg_read_field_def_authpb.User'(Other, Z1, Z2, F@_1,
-				    F@_2, F@_3, TrUserData).
+				    F@_2, F@_3, F@_4, TrUserData).
 
 'dg_read_field_def_authpb.User'(<<1:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, TrUserData)
+				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_authpb.User'(Rest, N + 7,
-				    X bsl N + Acc, F@_1, F@_2, F@_3,
+				    X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
 				    TrUserData);
 'dg_read_field_def_authpb.User'(<<0:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
+				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       10 ->
 	  'd_field_authpb.User_name'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				     TrUserData);
+				     F@_4, TrUserData);
       18 ->
 	  'd_field_authpb.User_password'(Rest, 0, 0, F@_1, F@_2,
-					 F@_3, TrUserData);
+					 F@_3, F@_4, TrUserData);
       26 ->
 	  'd_field_authpb.User_roles'(Rest, 0, 0, F@_1, F@_2,
-				      F@_3, TrUserData);
+				      F@_3, F@_4, TrUserData);
+      34 ->
+	  'd_field_authpb.User_options'(Rest, 0, 0, F@_1, F@_2,
+					F@_3, F@_4, TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-					  TrUserData);
+					  F@_4, TrUserData);
 	    1 ->
 		'skip_64_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      TrUserData);
+				      F@_4, TrUserData);
 	    2 ->
 		'skip_length_delimited_authpb.User'(Rest, 0, 0, F@_1,
-						    F@_2, F@_3, TrUserData);
+						    F@_2, F@_3, F@_4,
+						    TrUserData);
 	    3 ->
 		'skip_group_authpb.User'(Rest, Key bsr 3, 0, F@_1, F@_2,
-					 F@_3, TrUserData);
+					 F@_3, F@_4, TrUserData);
 	    5 ->
 		'skip_32_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      TrUserData)
+				      F@_4, TrUserData)
 	  end
     end;
 'dg_read_field_def_authpb.User'(<<>>, 0, 0, F@_1, F@_2,
-				R1, TrUserData) ->
-    #{name => F@_1, password => F@_2,
-      roles => lists_reverse(R1, TrUserData)}.
+				R1, F@_4, TrUserData) ->
+    S1 = #{name => F@_1, password => F@_2,
+	   roles => lists_reverse(R1, TrUserData)},
+    if F@_4 == '$undef' -> S1;
+       true -> S1#{options => F@_4}
+    end.
 
 'd_field_authpb.User_name'(<<1:1, X:7, Rest/binary>>, N,
-			   Acc, F@_1, F@_2, F@_3, TrUserData)
+			   Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_name'(Rest, N + 7, X bsl N + Acc,
-			       F@_1, F@_2, F@_3, TrUserData);
+			       F@_1, F@_2, F@_3, F@_4, TrUserData);
 'd_field_authpb.User_name'(<<0:1, X:7, Rest/binary>>, N,
-			   Acc, _, F@_2, F@_3, TrUserData) ->
+			   Acc, _, F@_2, F@_3, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, NewFValue,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'd_field_authpb.User_password'(<<1:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, F@_2, F@_3, TrUserData)
+			       N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_password'(Rest, N + 7,
-				   X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+				   X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				   TrUserData);
 'd_field_authpb.User_password'(<<0:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, _, F@_3, TrUserData) ->
+			       N, Acc, F@_1, _, F@_3, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
-				     NewFValue, F@_3, TrUserData).
+				     NewFValue, F@_3, F@_4, TrUserData).
 
 'd_field_authpb.User_roles'(<<1:1, X:7, Rest/binary>>,
-			    N, Acc, F@_1, F@_2, F@_3, TrUserData)
+			    N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_roles'(Rest, N + 7, X bsl N + Acc,
-				F@_1, F@_2, F@_3, TrUserData);
+				F@_1, F@_2, F@_3, F@_4, TrUserData);
 'd_field_authpb.User_roles'(<<0:1, X:7, Rest/binary>>,
-			    N, Acc, F@_1, F@_2, Prev, TrUserData) ->
+			    N, Acc, F@_1, F@_2, Prev, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -3652,47 +3830,74 @@ decode_msg_2_doit('google.protobuf.GeneratedCodeInfo',
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
 				     F@_2, cons(NewFValue, Prev, TrUserData),
+				     F@_4, TrUserData).
+
+'d_field_authpb.User_options'(<<1:1, X:7, Rest/binary>>,
+			      N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+    when N < 57 ->
+    'd_field_authpb.User_options'(Rest, N + 7,
+				  X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				  TrUserData);
+'d_field_authpb.User_options'(<<0:1, X:7, Rest/binary>>,
+			      N, Acc, F@_1, F@_2, F@_3, Prev, TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bs:Len/binary, Rest2/binary>> = Rest,
+			   {id('decode_msg_authpb.UserAddOptions'(Bs,
+								  TrUserData),
+			       TrUserData),
+			    Rest2}
+			 end,
+    'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
+				     F@_2, F@_3,
+				     if Prev == '$undef' -> NewFValue;
+					true ->
+					    'merge_msg_authpb.UserAddOptions'(Prev,
+									      NewFValue,
+									      TrUserData)
+				     end,
 				     TrUserData).
 
 'skip_varint_authpb.User'(<<1:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'skip_varint_authpb.User'(Rest, Z1, Z2, F@_1, F@_2,
-			      F@_3, TrUserData);
+			      F@_3, F@_4, TrUserData);
 'skip_varint_authpb.User'(<<0:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_length_delimited_authpb.User'(<<1:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, TrUserData)
+				    N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'skip_length_delimited_authpb.User'(Rest, N + 7,
-					X bsl N + Acc, F@_1, F@_2, F@_3,
+					X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
 					TrUserData);
 'skip_length_delimited_authpb.User'(<<0:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
+				    N, Acc, F@_1, F@_2, F@_3, F@_4,
+				    TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_authpb.User'(Rest2, 0, 0, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_group_authpb.User'(Bin, FNum, Z2, F@_1, F@_2,
-			 F@_3, TrUserData) ->
+			 F@_3, F@_4, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_authpb.User'(Rest, 0, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_32_authpb.User'(<<_:32, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_64_authpb.User'(<<_:64, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'decode_msg_authpb.Permission'(Bin, TrUserData) ->
     'dfp_read_field_def_authpb.Permission'(Bin, 0, 0,
@@ -23952,6 +24157,9 @@ merge_msgs(Prev, New, MsgName) when is_atom(MsgName) ->
 merge_msgs(Prev, New, MsgName, Opts) ->
     TrUserData = proplists:get_value(user_data, Opts),
     case MsgName of
+      'authpb.UserAddOptions' ->
+	  'merge_msg_authpb.UserAddOptions'(Prev, New,
+					    TrUserData);
       'authpb.User' ->
 	  'merge_msg_authpb.User'(Prev, New, TrUserData);
       'authpb.Permission' ->
@@ -24036,6 +24244,17 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 							TrUserData)
     end.
 
+-compile({nowarn_unused_function,'merge_msg_authpb.UserAddOptions'/3}).
+'merge_msg_authpb.UserAddOptions'(PMsg, NMsg, _) ->
+    S1 = #{},
+    case {PMsg, NMsg} of
+      {_, #{no_password := NFno_password}} ->
+	  S1#{no_password => NFno_password};
+      {#{no_password := PFno_password}, _} ->
+	  S1#{no_password => PFno_password};
+      _ -> S1
+    end.
+
 -compile({nowarn_unused_function,'merge_msg_authpb.User'/3}).
 'merge_msg_authpb.User'(PMsg, NMsg, TrUserData) ->
     S1 = #{},
@@ -24051,12 +24270,23 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 	       S2#{password => PFpassword};
 	   _ -> S2
 	 end,
+    S4 = case {PMsg, NMsg} of
+	   {#{roles := PFroles}, #{roles := NFroles}} ->
+	       S3#{roles => 'erlang_++'(PFroles, NFroles, TrUserData)};
+	   {_, #{roles := NFroles}} -> S3#{roles => NFroles};
+	   {#{roles := PFroles}, _} -> S3#{roles => PFroles};
+	   {_, _} -> S3
+	 end,
     case {PMsg, NMsg} of
-      {#{roles := PFroles}, #{roles := NFroles}} ->
-	  S3#{roles => 'erlang_++'(PFroles, NFroles, TrUserData)};
-      {_, #{roles := NFroles}} -> S3#{roles => NFroles};
-      {#{roles := PFroles}, _} -> S3#{roles => PFroles};
-      {_, _} -> S3
+      {#{options := PFoptions}, #{options := NFoptions}} ->
+	  S4#{options =>
+		  'merge_msg_authpb.UserAddOptions'(PFoptions, NFoptions,
+						    TrUserData)};
+      {_, #{options := NFoptions}} ->
+	  S4#{options => NFoptions};
+      {#{options := PFoptions}, _} ->
+	  S4#{options => PFoptions};
+      {_, _} -> S4
     end.
 
 -compile({nowarn_unused_function,'merge_msg_authpb.Permission'/3}).
@@ -25633,6 +25863,9 @@ verify_msg(Msg, MsgName) when is_atom(MsgName) ->
 verify_msg(Msg, MsgName, Opts) ->
     TrUserData = proplists:get_value(user_data, Opts),
     case MsgName of
+      'authpb.UserAddOptions' ->
+	  'v_msg_authpb.UserAddOptions'(Msg, [MsgName],
+					TrUserData);
       'authpb.User' ->
 	  'v_msg_authpb.User'(Msg, [MsgName], TrUserData);
       'authpb.Permission' ->
@@ -25721,6 +25954,30 @@ verify_msg(Msg, MsgName, Opts) ->
     end.
 
 
+-compile({nowarn_unused_function,'v_msg_authpb.UserAddOptions'/3}).
+-dialyzer({nowarn_function,'v_msg_authpb.UserAddOptions'/3}).
+'v_msg_authpb.UserAddOptions'(#{} = M, Path,
+			      TrUserData) ->
+    case M of
+      #{no_password := F1} ->
+	  v_type_bool(F1, [no_password | Path], TrUserData);
+      _ -> ok
+    end,
+    lists:foreach(fun (no_password) -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_authpb.UserAddOptions'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'authpb.UserAddOptions'},
+		  M, Path);
+'v_msg_authpb.UserAddOptions'(X, Path, _TrUserData) ->
+    mk_type_error({expected_msg, 'authpb.UserAddOptions'},
+		  X, Path).
+
 -compile({nowarn_unused_function,'v_msg_authpb.User'/3}).
 -dialyzer({nowarn_function,'v_msg_authpb.User'/3}).
 'v_msg_authpb.User'(#{} = M, Path, TrUserData) ->
@@ -25746,9 +26003,16 @@ verify_msg(Msg, MsgName, Opts) ->
 	  end;
       _ -> ok
     end,
+    case M of
+      #{options := F4} ->
+	  'v_msg_authpb.UserAddOptions'(F4, [options | Path],
+					TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun (name) -> ok;
 		      (password) -> ok;
 		      (roles) -> ok;
+		      (options) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -28107,13 +28371,19 @@ get_msg_defs() ->
       [{'STRING', 0}, {'CORD', 1}, {'STRING_PIECE', 2}]},
      {{enum, 'google.protobuf.FieldOptions.JSType'},
       [{'JS_NORMAL', 0}, {'JS_STRING', 1}, {'JS_NUMBER', 2}]},
+     {{msg, 'authpb.UserAddOptions'},
+      [#{name => no_password, fnum => 1, rnum => 2,
+	 type => bool, occurrence => optional, opts => []}]},
      {{msg, 'authpb.User'},
       [#{name => name, fnum => 1, rnum => 2, type => bytes,
 	 occurrence => optional, opts => []},
        #{name => password, fnum => 2, rnum => 3, type => bytes,
 	 occurrence => optional, opts => []},
        #{name => roles, fnum => 3, rnum => 4, type => string,
-	 occurrence => repeated, opts => []}]},
+	 occurrence => repeated, opts => []},
+       #{name => options, fnum => 4, rnum => 5,
+	 type => {msg, 'authpb.UserAddOptions'},
+	 occurrence => optional, opts => []}]},
      {{msg, 'authpb.Permission'},
       [#{name => permType, fnum => 1, rnum => 2,
 	 type => {enum, 'authpb.Permission.Type'},
@@ -28584,7 +28854,8 @@ get_msg_defs() ->
 
 
 get_msg_names() ->
-    ['authpb.User', 'authpb.Permission', 'authpb.Role',
+    ['authpb.UserAddOptions', 'authpb.User',
+     'authpb.Permission', 'authpb.Role',
      'google.protobuf.FileDescriptorSet',
      'google.protobuf.FileDescriptorProto',
      'google.protobuf.DescriptorProto.ExtensionRange',
@@ -28615,7 +28886,8 @@ get_group_names() -> [].
 
 
 get_msg_or_group_names() ->
-    ['authpb.User', 'authpb.Permission', 'authpb.Role',
+    ['authpb.UserAddOptions', 'authpb.User',
+     'authpb.Permission', 'authpb.Role',
      'google.protobuf.FileDescriptorSet',
      'google.protobuf.FileDescriptorProto',
      'google.protobuf.DescriptorProto.ExtensionRange',
@@ -28665,13 +28937,19 @@ fetch_enum_def(EnumName) ->
     end.
 
 
+find_msg_def('authpb.UserAddOptions') ->
+    [#{name => no_password, fnum => 1, rnum => 2,
+       type => bool, occurrence => optional, opts => []}];
 find_msg_def('authpb.User') ->
     [#{name => name, fnum => 1, rnum => 2, type => bytes,
        occurrence => optional, opts => []},
      #{name => password, fnum => 2, rnum => 3, type => bytes,
        occurrence => optional, opts => []},
      #{name => roles, fnum => 3, rnum => 4, type => string,
-       occurrence => repeated, opts => []}];
+       occurrence => repeated, opts => []},
+     #{name => options, fnum => 4, rnum => 5,
+       type => {msg, 'authpb.UserAddOptions'},
+       occurrence => optional, opts => []}];
 find_msg_def('authpb.Permission') ->
     [#{name => permType, fnum => 1, rnum => 2,
        type => {enum, 'authpb.Permission.Type'},
@@ -29402,6 +29680,7 @@ service_and_rpc_name_to_fqbins(S, R) ->
     error({gpb_error, {badservice_or_rpc, {S, R}}}).
 
 
+fqbin_to_msg_name(<<"authpb.UserAddOptions">>) -> 'authpb.UserAddOptions';
 fqbin_to_msg_name(<<"authpb.User">>) -> 'authpb.User';
 fqbin_to_msg_name(<<"authpb.Permission">>) -> 'authpb.Permission';
 fqbin_to_msg_name(<<"authpb.Role">>) -> 'authpb.Role';
@@ -29456,6 +29735,7 @@ fqbin_to_msg_name(<<"google.protobuf.GeneratedCodeInfo">>) ->
 fqbin_to_msg_name(E) -> error({gpb_error, {badmsg, E}}).
 
 
+msg_name_to_fqbin('authpb.UserAddOptions') -> <<"authpb.UserAddOptions">>;
 msg_name_to_fqbin('authpb.User') -> <<"authpb.User">>;
 msg_name_to_fqbin('authpb.Permission') -> <<"authpb.Permission">>;
 msg_name_to_fqbin('authpb.Role') -> <<"authpb.Role">>;
@@ -29569,7 +29849,8 @@ get_all_proto_names() -> ["auth", "gogo", "descriptor"].
 
 
 get_msg_containment("auth") ->
-    ['authpb.Permission', 'authpb.Role', 'authpb.User'];
+    ['authpb.Permission', 'authpb.Role', 'authpb.User',
+     'authpb.UserAddOptions'];
 get_msg_containment("gogo") -> [];
 get_msg_containment("descriptor") ->
     ['google.protobuf.DescriptorProto',
@@ -29642,6 +29923,7 @@ get_proto_by_msg_name_as_fqbin(<<"google.protobuf.FileOptions">>) -> "descriptor
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.FieldOptions">>) -> "descriptor";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.EnumValueOptions">>) -> "descriptor";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.EnumOptions">>) -> "descriptor";
+get_proto_by_msg_name_as_fqbin(<<"authpb.UserAddOptions">>) -> "auth";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.UninterpretedOption.NamePart">>) -> "descriptor";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.FileDescriptorSet">>) -> "descriptor";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.DescriptorProto.ReservedRange">>) -> "descriptor";

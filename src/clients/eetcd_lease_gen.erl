@@ -4,15 +4,15 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:28+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:26+00:00 and should not be modified manually
 
 -module(eetcd_lease_gen).
 
--export([lease_grant/1, lease_grant/2]).
--export([lease_revoke/1, lease_revoke/2]).
--export([lease_keep_alive/1, lease_keep_alive/2]).
--export([lease_time_to_live/1, lease_time_to_live/2]).
--export([lease_leases/1, lease_leases/2]).
+-export([lease_grant/1]).
+-export([lease_revoke/1]).
+-export([lease_keep_alive/1]).
+-export([lease_time_to_live/1]).
+-export([lease_leases/1]).
 
 %% @doc Unary RPC 
 -spec lease_grant(router_pb:'Etcd.LeaseGrantRequest'()) ->

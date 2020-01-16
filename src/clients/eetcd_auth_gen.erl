@@ -4,26 +4,26 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:29+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:29+00:00 and should not be modified manually
 
 -module(eetcd_auth_gen).
 
--export([auth_enable/1, auth_enable/2]).
--export([auth_disable/1, auth_disable/2]).
--export([authenticate/1, authenticate/2]).
--export([user_add/1, user_add/2]).
--export([user_get/1, user_get/2]).
--export([user_list/1, user_list/2]).
--export([user_delete/1, user_delete/2]).
--export([user_change_password/1, user_change_password/2]).
--export([user_grant_role/1, user_grant_role/2]).
--export([user_revoke_role/1, user_revoke_role/2]).
--export([role_add/1, role_add/2]).
--export([role_get/1, role_get/2]).
--export([role_list/1, role_list/2]).
--export([role_delete/1, role_delete/2]).
--export([role_grant_permission/1, role_grant_permission/2]).
--export([role_revoke_permission/1, role_revoke_permission/2]).
+-export([auth_enable/1]).
+-export([auth_disable/1]).
+-export([authenticate/1]).
+-export([user_add/1]).
+-export([user_get/1]).
+-export([user_list/1]).
+-export([user_delete/1]).
+-export([user_change_password/1]).
+-export([user_grant_role/1]).
+-export([user_revoke_role/1]).
+-export([role_add/1]).
+-export([role_get/1]).
+-export([role_list/1]).
+-export([role_delete/1]).
+-export([role_grant_permission/1]).
+-export([role_revoke_permission/1]).
 
 %% @doc Unary RPC 
 -spec auth_enable(router_pb:'Etcd.AuthEnableRequest'()) ->

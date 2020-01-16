@@ -4,15 +4,15 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-13T08:36:28+00:00 and should not be modified manually
+%% This module was generated on 2020-01-14T03:14:25+00:00 and should not be modified manually
 
 -module(eetcd_kv_gen).
 
--export([range/1, range/2]).
--export([put/1, put/2]).
--export([delete_range/1, delete_range/2]).
--export([txn/1, txn/2]).
--export([compact/1, compact/2]).
+-export([range/1]).
+-export([put/1]).
+-export([delete_range/1]).
+-export([txn/1]).
+-export([compact/1]).
 
 %% @doc Unary RPC 
 -spec range(router_pb:'Etcd.RangeRequest'()) ->

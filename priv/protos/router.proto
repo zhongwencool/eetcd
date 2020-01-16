@@ -1,6 +1,7 @@
 syntax = "proto3";
 package Etcd;
 
+
 import "gogo.proto";
 import "kv.proto";
 import "auth.proto";
@@ -10,7 +11,8 @@ option (gogoproto.unmarshaler_all) = true;
 
 service KV {
   // Range gets the keys in the range from the key-value store.
-  rpc Range(RangeRequest) returns (RangeResponse) {}
+  rpc Range(RangeRequest) returns (RangeResponse) {
+  }
 
   // Put puts the given key into the key-value store.
   // A put request increments the revision of the key-value store
@@ -22,7 +24,6 @@ service KV {
   // A delete request increments the revision of the key-value store
   // and generates a delete event in the event history for every deleted key.
   rpc DeleteRange(DeleteRangeRequest) returns (DeleteRangeResponse) {
-
   }
 
   // Txn processes multiple requests in a single transaction.
@@ -30,14 +31,12 @@ service KV {
   // and generates events with the same revision for every completed request.
   // It is not allowed to modify the same key several times within one txn.
   rpc Txn(TxnRequest) returns (TxnResponse) {
-
   }
 
   // Compact compacts the event history in the etcd key-value store. The key-value
   // store should be periodically compacted or the event history will continue to grow
   // indefinitely.
   rpc Compact(CompactionRequest) returns (CompactionResponse) {
-
   }
 }
 
@@ -48,7 +47,6 @@ service Watch {
   // for several watches at once. The entire event history can be watched starting from the
   // last compaction revision.
   rpc Watch(stream WatchRequest) returns (stream WatchResponse) {
-
   }
 }
 
@@ -56,58 +54,52 @@ service Lease {
   // LeaseGrant creates a lease which expires if the server does not receive a keepAlive
   // within a given time to live period. All keys attached to the lease will be expired and
   // deleted if the lease expires. Each expired key generates a delete event in the event history.
-  rpc LeaseGrant(LeaseGrantRequest) returns (LeaseGrantResponse) {
-
+  rpc LeaseGrant (LeaseGrantRequest) returns (LeaseGrantResponse) {
   }
 
   // LeaseRevoke revokes a lease. All keys attached to the lease will expire and be deleted.
-  rpc LeaseRevoke(LeaseRevokeRequest) returns (LeaseRevokeResponse) {
-
+  rpc LeaseRevoke (LeaseRevokeRequest) returns (LeaseRevokeResponse) {
   }
 
   // LeaseKeepAlive keeps the lease alive by streaming keep alive requests from the client
   // to the server and streaming keep alive responses from the server to the client.
-  rpc LeaseKeepAlive(stream LeaseKeepAliveRequest) returns (stream LeaseKeepAliveResponse) {
-
+  rpc LeaseKeepAlive (stream LeaseKeepAliveRequest) returns (stream LeaseKeepAliveResponse) {
   }
 
   // LeaseTimeToLive retrieves lease information.
-  rpc LeaseTimeToLive(LeaseTimeToLiveRequest) returns (LeaseTimeToLiveResponse) {
-
+  rpc LeaseTimeToLive (LeaseTimeToLiveRequest) returns (LeaseTimeToLiveResponse) {
   }
 
   // LeaseLeases lists all existing leases.
-  rpc LeaseLeases(LeaseLeasesRequest) returns (LeaseLeasesResponse) {
-
+  rpc LeaseLeases (LeaseLeasesRequest) returns (LeaseLeasesResponse) {
   }
 }
 
 service Cluster {
   // MemberAdd adds a member into the cluster.
   rpc MemberAdd(MemberAddRequest) returns (MemberAddResponse) {
-
   }
 
   // MemberRemove removes an existing member from the cluster.
   rpc MemberRemove(MemberRemoveRequest) returns (MemberRemoveResponse) {
-
   }
 
   // MemberUpdate updates the member configuration.
   rpc MemberUpdate(MemberUpdateRequest) returns (MemberUpdateResponse) {
-
   }
 
   // MemberList lists all the members in the cluster.
   rpc MemberList(MemberListRequest) returns (MemberListResponse) {
+  }
 
+  // MemberPromote promotes a member from raft learner (non-voting) to raft voting member.
+  rpc MemberPromote(MemberPromoteRequest) returns (MemberPromoteResponse) {
   }
 }
 
 service Maintenance {
   // Alarm activates, deactivates, and queries alarms regarding cluster health.
   rpc Alarm(AlarmRequest) returns (AlarmResponse) {
-
   }
 
   // Status gets the status of the member.
@@ -116,7 +108,6 @@ service Maintenance {
 
   // Defragment defragments a member's backend database to recover storage space.
   rpc Defragment(DefragmentRequest) returns (DefragmentResponse) {
-
   }
 
   // Hash computes the hash of whole backend keyspace,
@@ -126,105 +117,85 @@ service Maintenance {
   // since Hash operation does not hold MVCC locks.
   // Use "HashKV" API instead for "key" bucket consistency checks.
   rpc Hash(HashRequest) returns (HashResponse) {
-
   }
 
   // HashKV computes the hash of all MVCC keys up to a given revision.
   // It only iterates "key" bucket in backend storage.
   rpc HashKV(HashKVRequest) returns (HashKVResponse) {
-
   }
 
   // Snapshot sends a snapshot of the entire backend from a member over a stream to a client.
   rpc Snapshot(SnapshotRequest) returns (stream SnapshotResponse) {
-
   }
 
   // MoveLeader requests current leader node to transfer its leadership to transferee.
   rpc MoveLeader(MoveLeaderRequest) returns (MoveLeaderResponse) {
-
   }
 }
 
 service Auth {
   // AuthEnable enables authentication.
   rpc AuthEnable(AuthEnableRequest) returns (AuthEnableResponse) {
-
   }
 
   // AuthDisable disables authentication.
   rpc AuthDisable(AuthDisableRequest) returns (AuthDisableResponse) {
-
   }
 
   // Authenticate processes an authenticate request.
   rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse) {
-
   }
 
-  // UserAdd adds a new user.
+  // UserAdd adds a new user. User name cannot be empty.
   rpc UserAdd(AuthUserAddRequest) returns (AuthUserAddResponse) {
-
   }
 
   // UserGet gets detailed user information.
   rpc UserGet(AuthUserGetRequest) returns (AuthUserGetResponse) {
-
   }
 
   // UserList gets a list of all users.
   rpc UserList(AuthUserListRequest) returns (AuthUserListResponse) {
-
   }
 
   // UserDelete deletes a specified user.
   rpc UserDelete(AuthUserDeleteRequest) returns (AuthUserDeleteResponse) {
-
   }
 
   // UserChangePassword changes the password of a specified user.
   rpc UserChangePassword(AuthUserChangePasswordRequest) returns (AuthUserChangePasswordResponse) {
-
   }
 
   // UserGrant grants a role to a specified user.
   rpc UserGrantRole(AuthUserGrantRoleRequest) returns (AuthUserGrantRoleResponse) {
-
   }
 
   // UserRevokeRole revokes a role of specified user.
   rpc UserRevokeRole(AuthUserRevokeRoleRequest) returns (AuthUserRevokeRoleResponse) {
-
   }
 
-  // RoleAdd adds a new role.
+  // RoleAdd adds a new role. Role name cannot be empty.
   rpc RoleAdd(AuthRoleAddRequest) returns (AuthRoleAddResponse) {
-
   }
 
   // RoleGet gets detailed role information.
   rpc RoleGet(AuthRoleGetRequest) returns (AuthRoleGetResponse) {
-
   }
 
   // RoleList gets lists of all roles.
   rpc RoleList(AuthRoleListRequest) returns (AuthRoleListResponse) {
-
   }
 
   // RoleDelete deletes a specified role.
   rpc RoleDelete(AuthRoleDeleteRequest) returns (AuthRoleDeleteResponse) {
-
   }
 
   // RoleGrantPermission grants a permission of a specified key or range to a specified role.
   rpc RoleGrantPermission(AuthRoleGrantPermissionRequest) returns (AuthRoleGrantPermissionResponse) {
-
   }
 
   // RoleRevokePermission revokes a key or range permission of a specified role.
   rpc RoleRevokePermission(AuthRoleRevokePermissionRequest) returns (AuthRoleRevokePermissionResponse) {
-
   }
 }
 
@@ -244,16 +215,16 @@ message ResponseHeader {
 
 message RangeRequest {
   enum SortOrder {
-	NONE = 0; // default, no sorting
-	ASCEND = 1; // lowest target value first
-	DESCEND = 2; // highest target value first
+    NONE = 0; // default, no sorting
+    ASCEND = 1; // lowest target value first
+    DESCEND = 2; // highest target value first
   }
   enum SortTarget {
-	KEY = 0;
-	VERSION = 1;
-	CREATE = 2;
-	MOD = 3;
-	VALUE = 4;
+    KEY = 0;
+    VERSION = 1;
+    CREATE = 2;
+    MOD = 3;
+    VALUE = 4;
   }
 
   // key is the first key for the range. If range_end is not given, the request only looks up key.
@@ -644,7 +615,7 @@ message LeaseRevokeResponse {
 }
 
 message LeaseCheckpoint {
-    // ID is the lease ID to checkpoint.
+  // ID is the lease ID to checkpoint.
   int64 ID = 1;
 
   // Remaining_TTL is the remaining time until expiry of the lease.
@@ -713,11 +684,15 @@ message Member {
   repeated string peerURLs = 3;
   // clientURLs is the list of URLs the member exposes to clients for communication. If the member is not started, clientURLs will be empty.
   repeated string clientURLs = 4;
+  // isLearner indicates if the member is raft learner.
+  bool isLearner = 5;
 }
 
 message MemberAddRequest {
   // peerURLs is the list of URLs the added member will use to communicate with the cluster.
   repeated string peerURLs = 1;
+  // isLearner indicates if the added member is raft learner.
+  bool isLearner = 2;
 }
 
 message MemberAddResponse {
@@ -761,6 +736,17 @@ message MemberListResponse {
   repeated Member members = 2;
 }
 
+message MemberPromoteRequest {
+  // ID is the member ID of the member to promote.
+  uint64 ID = 1;
+}
+
+message MemberPromoteResponse {
+  ResponseHeader header = 1;
+  // members is a list of all members after promoting the member.
+  repeated Member members = 2;
+}
+
 message DefragmentRequest {
 }
 
@@ -778,16 +764,16 @@ message MoveLeaderResponse {
 }
 
 enum AlarmType {
-	NONE = 0; // default, used to query if any alarm is active
-	NOSPACE = 1; // space quota is exhausted
-	CORRUPT = 2; // kv store corruption detected
+  NONE = 0; // default, used to query if any alarm is active
+  NOSPACE = 1; // space quota is exhausted
+  CORRUPT = 2; // kv store corruption detected
 }
 
 message AlarmRequest {
   enum AlarmAction {
-	GET = 0;
-	ACTIVATE = 1;
-	DEACTIVATE = 2;
+    GET = 0;
+    ACTIVATE = 1;
+    DEACTIVATE = 2;
   }
   // action is the kind of alarm request to issue. The action
   // may GET alarm statuses, ACTIVATE an alarm, or DEACTIVATE a
@@ -834,6 +820,8 @@ message StatusResponse {
   repeated string errors = 8;
   // dbSizeInUse is the size of the backend database logically in use, in bytes, of the responding member.
   int64 dbSizeInUse = 9;
+  // isLearner indicates if the member is raft learner.
+  bool isLearner = 10;
 }
 
 message AuthEnableRequest {
@@ -850,6 +838,7 @@ message AuthenticateRequest {
 message AuthUserAddRequest {
   string name = 1;
   string password = 2;
+  authpb.UserAddOptions options = 3;
 }
 
 message AuthUserGetRequest {

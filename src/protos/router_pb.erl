@@ -306,11 +306,13 @@
       #{'ID'                    => non_neg_integer(), % = 1, 32 bits
         name                    => iodata(),        % = 2
         peerURLs                => [iodata()],      % = 3
-        clientURLs              => [iodata()]       % = 4
+        clientURLs              => [iodata()],      % = 4
+        isLearner               => boolean() | 0 | 1 % = 5
        }.
 
 -type 'Etcd.MemberAddRequest'() ::
-      #{peerURLs                => [iodata()]       % = 1
+      #{peerURLs                => [iodata()],      % = 1
+        isLearner               => boolean() | 0 | 1 % = 2
        }.
 
 -type 'Etcd.MemberAddResponse'() ::
@@ -343,6 +345,15 @@
        }.
 
 -type 'Etcd.MemberListResponse'() ::
+      #{header                  => 'Etcd.ResponseHeader'(), % = 1
+        members                 => ['Etcd.Member'()] % = 2
+       }.
+
+-type 'Etcd.MemberPromoteRequest'() ::
+      #{'ID'                    => non_neg_integer() % = 1, 32 bits
+       }.
+
+-type 'Etcd.MemberPromoteResponse'() ::
       #{header                  => 'Etcd.ResponseHeader'(), % = 1
         members                 => ['Etcd.Member'()] % = 2
        }.
@@ -392,7 +403,8 @@
         raftTerm                => non_neg_integer(), % = 6, 32 bits
         raftAppliedIndex        => non_neg_integer(), % = 7, 32 bits
         errors                  => [iodata()],      % = 8
-        dbSizeInUse             => integer()        % = 9, 32 bits
+        dbSizeInUse             => integer(),       % = 9, 32 bits
+        isLearner               => boolean() | 0 | 1 % = 10
        }.
 
 -type 'Etcd.AuthEnableRequest'() ::
@@ -410,7 +422,8 @@
 
 -type 'Etcd.AuthUserAddRequest'() ::
       #{name                    => iodata(),        % = 1
-        password                => iodata()         % = 2
+        password                => iodata(),        % = 2
+        options                 => 'authpb.UserAddOptions'() % = 3
        }.
 
 -type 'Etcd.AuthUserGetRequest'() ::
@@ -797,10 +810,15 @@
         prev_kv                 => 'mvccpb.KeyValue'() % = 3
        }.
 
+-type 'authpb.UserAddOptions'() ::
+      #{no_password             => boolean() | 0 | 1 % = 1
+       }.
+
 -type 'authpb.User'() ::
       #{name                    => iodata(),        % = 1
         password                => iodata(),        % = 2
-        roles                   => [iodata()]       % = 3
+        roles                   => [iodata()],      % = 3
+        options                 => 'authpb.UserAddOptions'() % = 4
        }.
 
 -type 'authpb.Permission'() ::
@@ -814,13 +832,13 @@
         keyPermission           => ['authpb.Permission'()] % = 2
        }.
 
--export_type(['Etcd.ResponseHeader'/0, 'Etcd.RangeRequest'/0, 'Etcd.RangeResponse'/0, 'Etcd.PutRequest'/0, 'Etcd.PutResponse'/0, 'Etcd.DeleteRangeRequest'/0, 'Etcd.DeleteRangeResponse'/0, 'Etcd.RequestOp'/0, 'Etcd.ResponseOp'/0, 'Etcd.Compare'/0, 'Etcd.TxnRequest'/0, 'Etcd.TxnResponse'/0, 'Etcd.CompactionRequest'/0, 'Etcd.CompactionResponse'/0, 'Etcd.HashRequest'/0, 'Etcd.HashKVRequest'/0, 'Etcd.HashKVResponse'/0, 'Etcd.HashResponse'/0, 'Etcd.SnapshotRequest'/0, 'Etcd.SnapshotResponse'/0, 'Etcd.WatchRequest'/0, 'Etcd.WatchCreateRequest'/0, 'Etcd.WatchCancelRequest'/0, 'Etcd.WatchProgressRequest'/0, 'Etcd.WatchResponse'/0, 'Etcd.LeaseGrantRequest'/0, 'Etcd.LeaseGrantResponse'/0, 'Etcd.LeaseRevokeRequest'/0, 'Etcd.LeaseRevokeResponse'/0, 'Etcd.LeaseCheckpoint'/0, 'Etcd.LeaseCheckpointRequest'/0, 'Etcd.LeaseCheckpointResponse'/0, 'Etcd.LeaseKeepAliveRequest'/0, 'Etcd.LeaseKeepAliveResponse'/0, 'Etcd.LeaseTimeToLiveRequest'/0, 'Etcd.LeaseTimeToLiveResponse'/0, 'Etcd.LeaseLeasesRequest'/0, 'Etcd.LeaseStatus'/0, 'Etcd.LeaseLeasesResponse'/0, 'Etcd.Member'/0, 'Etcd.MemberAddRequest'/0, 'Etcd.MemberAddResponse'/0, 'Etcd.MemberRemoveRequest'/0, 'Etcd.MemberRemoveResponse'/0, 'Etcd.MemberUpdateRequest'/0, 'Etcd.MemberUpdateResponse'/0, 'Etcd.MemberListRequest'/0, 'Etcd.MemberListResponse'/0, 'Etcd.DefragmentRequest'/0, 'Etcd.DefragmentResponse'/0, 'Etcd.MoveLeaderRequest'/0, 'Etcd.MoveLeaderResponse'/0, 'Etcd.AlarmRequest'/0, 'Etcd.AlarmMember'/0, 'Etcd.AlarmResponse'/0, 'Etcd.StatusRequest'/0, 'Etcd.StatusResponse'/0, 'Etcd.AuthEnableRequest'/0, 'Etcd.AuthDisableRequest'/0, 'Etcd.AuthenticateRequest'/0, 'Etcd.AuthUserAddRequest'/0, 'Etcd.AuthUserGetRequest'/0, 'Etcd.AuthUserDeleteRequest'/0, 'Etcd.AuthUserChangePasswordRequest'/0, 'Etcd.AuthUserGrantRoleRequest'/0, 'Etcd.AuthUserRevokeRoleRequest'/0, 'Etcd.AuthRoleAddRequest'/0, 'Etcd.AuthRoleGetRequest'/0, 'Etcd.AuthUserListRequest'/0, 'Etcd.AuthRoleListRequest'/0, 'Etcd.AuthRoleDeleteRequest'/0, 'Etcd.AuthRoleGrantPermissionRequest'/0, 'Etcd.AuthRoleRevokePermissionRequest'/0, 'Etcd.AuthEnableResponse'/0, 'Etcd.AuthDisableResponse'/0, 'Etcd.AuthenticateResponse'/0, 'Etcd.AuthUserAddResponse'/0, 'Etcd.AuthUserGetResponse'/0, 'Etcd.AuthUserDeleteResponse'/0, 'Etcd.AuthUserChangePasswordResponse'/0, 'Etcd.AuthUserGrantRoleResponse'/0, 'Etcd.AuthUserRevokeRoleResponse'/0, 'Etcd.AuthRoleAddResponse'/0, 'Etcd.AuthRoleGetResponse'/0, 'Etcd.AuthRoleListResponse'/0, 'Etcd.AuthUserListResponse'/0, 'Etcd.AuthRoleDeleteResponse'/0, 'Etcd.AuthRoleGrantPermissionResponse'/0, 'Etcd.AuthRoleRevokePermissionResponse'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0, 'mvccpb.KeyValue'/0, 'mvccpb.Event'/0, 'authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0]).
+-export_type(['Etcd.ResponseHeader'/0, 'Etcd.RangeRequest'/0, 'Etcd.RangeResponse'/0, 'Etcd.PutRequest'/0, 'Etcd.PutResponse'/0, 'Etcd.DeleteRangeRequest'/0, 'Etcd.DeleteRangeResponse'/0, 'Etcd.RequestOp'/0, 'Etcd.ResponseOp'/0, 'Etcd.Compare'/0, 'Etcd.TxnRequest'/0, 'Etcd.TxnResponse'/0, 'Etcd.CompactionRequest'/0, 'Etcd.CompactionResponse'/0, 'Etcd.HashRequest'/0, 'Etcd.HashKVRequest'/0, 'Etcd.HashKVResponse'/0, 'Etcd.HashResponse'/0, 'Etcd.SnapshotRequest'/0, 'Etcd.SnapshotResponse'/0, 'Etcd.WatchRequest'/0, 'Etcd.WatchCreateRequest'/0, 'Etcd.WatchCancelRequest'/0, 'Etcd.WatchProgressRequest'/0, 'Etcd.WatchResponse'/0, 'Etcd.LeaseGrantRequest'/0, 'Etcd.LeaseGrantResponse'/0, 'Etcd.LeaseRevokeRequest'/0, 'Etcd.LeaseRevokeResponse'/0, 'Etcd.LeaseCheckpoint'/0, 'Etcd.LeaseCheckpointRequest'/0, 'Etcd.LeaseCheckpointResponse'/0, 'Etcd.LeaseKeepAliveRequest'/0, 'Etcd.LeaseKeepAliveResponse'/0, 'Etcd.LeaseTimeToLiveRequest'/0, 'Etcd.LeaseTimeToLiveResponse'/0, 'Etcd.LeaseLeasesRequest'/0, 'Etcd.LeaseStatus'/0, 'Etcd.LeaseLeasesResponse'/0, 'Etcd.Member'/0, 'Etcd.MemberAddRequest'/0, 'Etcd.MemberAddResponse'/0, 'Etcd.MemberRemoveRequest'/0, 'Etcd.MemberRemoveResponse'/0, 'Etcd.MemberUpdateRequest'/0, 'Etcd.MemberUpdateResponse'/0, 'Etcd.MemberListRequest'/0, 'Etcd.MemberListResponse'/0, 'Etcd.MemberPromoteRequest'/0, 'Etcd.MemberPromoteResponse'/0, 'Etcd.DefragmentRequest'/0, 'Etcd.DefragmentResponse'/0, 'Etcd.MoveLeaderRequest'/0, 'Etcd.MoveLeaderResponse'/0, 'Etcd.AlarmRequest'/0, 'Etcd.AlarmMember'/0, 'Etcd.AlarmResponse'/0, 'Etcd.StatusRequest'/0, 'Etcd.StatusResponse'/0, 'Etcd.AuthEnableRequest'/0, 'Etcd.AuthDisableRequest'/0, 'Etcd.AuthenticateRequest'/0, 'Etcd.AuthUserAddRequest'/0, 'Etcd.AuthUserGetRequest'/0, 'Etcd.AuthUserDeleteRequest'/0, 'Etcd.AuthUserChangePasswordRequest'/0, 'Etcd.AuthUserGrantRoleRequest'/0, 'Etcd.AuthUserRevokeRoleRequest'/0, 'Etcd.AuthRoleAddRequest'/0, 'Etcd.AuthRoleGetRequest'/0, 'Etcd.AuthUserListRequest'/0, 'Etcd.AuthRoleListRequest'/0, 'Etcd.AuthRoleDeleteRequest'/0, 'Etcd.AuthRoleGrantPermissionRequest'/0, 'Etcd.AuthRoleRevokePermissionRequest'/0, 'Etcd.AuthEnableResponse'/0, 'Etcd.AuthDisableResponse'/0, 'Etcd.AuthenticateResponse'/0, 'Etcd.AuthUserAddResponse'/0, 'Etcd.AuthUserGetResponse'/0, 'Etcd.AuthUserDeleteResponse'/0, 'Etcd.AuthUserChangePasswordResponse'/0, 'Etcd.AuthUserGrantRoleResponse'/0, 'Etcd.AuthUserRevokeRoleResponse'/0, 'Etcd.AuthRoleAddResponse'/0, 'Etcd.AuthRoleGetResponse'/0, 'Etcd.AuthRoleListResponse'/0, 'Etcd.AuthUserListResponse'/0, 'Etcd.AuthRoleDeleteResponse'/0, 'Etcd.AuthRoleGrantPermissionResponse'/0, 'Etcd.AuthRoleRevokePermissionResponse'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0, 'mvccpb.KeyValue'/0, 'mvccpb.Event'/0, 'authpb.UserAddOptions'/0, 'authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0]).
 
--spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom()) -> binary().
+-spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom()) -> binary().
 encode_msg(Msg, MsgName) when is_atom(MsgName) ->
     encode_msg(Msg, MsgName, []).
 
--spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom(), list()) -> binary().
+-spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom(), list()) -> binary().
 encode_msg(Msg, MsgName, Opts) ->
     case proplists:get_bool(verify, Opts) of
       true -> verify_msg(Msg, MsgName, Opts);
@@ -994,6 +1012,14 @@ encode_msg(Msg, MsgName, Opts) ->
 	  'encode_msg_Etcd.MemberListResponse'(id(Msg,
 						  TrUserData),
 					       TrUserData);
+      'Etcd.MemberPromoteRequest' ->
+	  'encode_msg_Etcd.MemberPromoteRequest'(id(Msg,
+						    TrUserData),
+						 TrUserData);
+      'Etcd.MemberPromoteResponse' ->
+	  'encode_msg_Etcd.MemberPromoteResponse'(id(Msg,
+						     TrUserData),
+						  TrUserData);
       'Etcd.DefragmentRequest' ->
 	  'encode_msg_Etcd.DefragmentRequest'(id(Msg, TrUserData),
 					      TrUserData);
@@ -1252,6 +1278,9 @@ encode_msg(Msg, MsgName, Opts) ->
       'mvccpb.Event' ->
 	  'encode_msg_mvccpb.Event'(id(Msg, TrUserData),
 				    TrUserData);
+      'authpb.UserAddOptions' ->
+	  'encode_msg_authpb.UserAddOptions'(id(Msg, TrUserData),
+					     TrUserData);
       'authpb.User' ->
 	  'encode_msg_authpb.User'(id(Msg, TrUserData),
 				   TrUserData);
@@ -2831,14 +2860,24 @@ encode_msg(Msg, MsgName, Opts) ->
 	       end;
 	   _ -> B2
 	 end,
+    B4 = case M of
+	   #{clientURLs := F4} ->
+	       TrF4 = id(F4, TrUserData),
+	       if TrF4 == [] -> B3;
+		  true ->
+		      'e_field_Etcd.Member_clientURLs'(TrF4, B3, TrUserData)
+	       end;
+	   _ -> B3
+	 end,
     case M of
-      #{clientURLs := F4} ->
-	  TrF4 = id(F4, TrUserData),
-	  if TrF4 == [] -> B3;
-	     true ->
-		 'e_field_Etcd.Member_clientURLs'(TrF4, B3, TrUserData)
+      #{isLearner := F5} ->
+	  begin
+	    TrF5 = id(F5, TrUserData),
+	    if TrF5 =:= false -> B4;
+	       true -> e_type_bool(TrF5, <<B4/binary, 40>>, TrUserData)
+	    end
 	  end;
-      _ -> B3
+      _ -> B4
     end.
 
 'encode_msg_Etcd.MemberAddRequest'(Msg, TrUserData) ->
@@ -2848,15 +2887,25 @@ encode_msg(Msg, MsgName, Opts) ->
 
 'encode_msg_Etcd.MemberAddRequest'(#{} = M, Bin,
 				   TrUserData) ->
+    B1 = case M of
+	   #{peerURLs := F1} ->
+	       TrF1 = id(F1, TrUserData),
+	       if TrF1 == [] -> Bin;
+		  true ->
+		      'e_field_Etcd.MemberAddRequest_peerURLs'(TrF1, Bin,
+							       TrUserData)
+	       end;
+	   _ -> Bin
+	 end,
     case M of
-      #{peerURLs := F1} ->
-	  TrF1 = id(F1, TrUserData),
-	  if TrF1 == [] -> Bin;
-	     true ->
-		 'e_field_Etcd.MemberAddRequest_peerURLs'(TrF1, Bin,
-							  TrUserData)
+      #{isLearner := F2} ->
+	  begin
+	    TrF2 = id(F2, TrUserData),
+	    if TrF2 =:= false -> B1;
+	       true -> e_type_bool(TrF2, <<B1/binary, 16>>, TrUserData)
+	    end
 	  end;
-      _ -> Bin
+      _ -> B1
     end.
 
 'encode_msg_Etcd.MemberAddResponse'(Msg, TrUserData) ->
@@ -3051,6 +3100,58 @@ encode_msg(Msg, MsgName, Opts) ->
 	     true ->
 		 'e_field_Etcd.MemberListResponse_members'(TrF2, B1,
 							   TrUserData)
+	  end;
+      _ -> B1
+    end.
+
+'encode_msg_Etcd.MemberPromoteRequest'(Msg,
+				       TrUserData) ->
+    'encode_msg_Etcd.MemberPromoteRequest'(Msg, <<>>,
+					   TrUserData).
+
+
+'encode_msg_Etcd.MemberPromoteRequest'(#{} = M, Bin,
+				       TrUserData) ->
+    case M of
+      #{'ID' := F1} ->
+	  begin
+	    TrF1 = id(F1, TrUserData),
+	    if TrF1 =:= 0 -> Bin;
+	       true -> e_varint(TrF1, <<Bin/binary, 8>>, TrUserData)
+	    end
+	  end;
+      _ -> Bin
+    end.
+
+'encode_msg_Etcd.MemberPromoteResponse'(Msg,
+					TrUserData) ->
+    'encode_msg_Etcd.MemberPromoteResponse'(Msg, <<>>,
+					    TrUserData).
+
+
+'encode_msg_Etcd.MemberPromoteResponse'(#{} = M, Bin,
+					TrUserData) ->
+    B1 = case M of
+	   #{header := F1} ->
+	       begin
+		 TrF1 = id(F1, TrUserData),
+		 if TrF1 =:= undefined -> Bin;
+		    true ->
+			'e_mfield_Etcd.MemberPromoteResponse_header'(TrF1,
+								     <<Bin/binary,
+								       10>>,
+								     TrUserData)
+		 end
+	       end;
+	   _ -> Bin
+	 end,
+    case M of
+      #{members := F2} ->
+	  TrF2 = id(F2, TrUserData),
+	  if TrF2 == [] -> B1;
+	     true ->
+		 'e_field_Etcd.MemberPromoteResponse_members'(TrF2, B1,
+							      TrUserData)
 	  end;
       _ -> B1
     end.
@@ -3317,16 +3418,27 @@ encode_msg(Msg, MsgName, Opts) ->
 	       end;
 	   _ -> B7
 	 end,
+    B9 = case M of
+	   #{dbSizeInUse := F9} ->
+	       begin
+		 TrF9 = id(F9, TrUserData),
+		 if TrF9 =:= 0 -> B8;
+		    true ->
+			e_type_int64(TrF9, <<B8/binary, 72>>, TrUserData)
+		 end
+	       end;
+	   _ -> B8
+	 end,
     case M of
-      #{dbSizeInUse := F9} ->
+      #{isLearner := F10} ->
 	  begin
-	    TrF9 = id(F9, TrUserData),
-	    if TrF9 =:= 0 -> B8;
+	    TrF10 = id(F10, TrUserData),
+	    if TrF10 =:= false -> B9;
 	       true ->
-		   e_type_int64(TrF9, <<B8/binary, 72>>, TrUserData)
+		   e_type_bool(TrF10, <<B9/binary, 80>>, TrUserData)
 	    end
 	  end;
-      _ -> B8
+      _ -> B9
     end.
 
 'encode_msg_Etcd.AuthEnableRequest'(_Msg,
@@ -3389,17 +3501,30 @@ encode_msg(Msg, MsgName, Opts) ->
 	       end;
 	   _ -> Bin
 	 end,
+    B2 = case M of
+	   #{password := F2} ->
+	       begin
+		 TrF2 = id(F2, TrUserData),
+		 case is_empty_string(TrF2) of
+		   true -> B1;
+		   false ->
+		       e_type_string(TrF2, <<B1/binary, 18>>, TrUserData)
+		 end
+	       end;
+	   _ -> B1
+	 end,
     case M of
-      #{password := F2} ->
+      #{options := F3} ->
 	  begin
-	    TrF2 = id(F2, TrUserData),
-	    case is_empty_string(TrF2) of
-	      true -> B1;
-	      false ->
-		  e_type_string(TrF2, <<B1/binary, 18>>, TrUserData)
+	    TrF3 = id(F3, TrUserData),
+	    if TrF3 =:= undefined -> B2;
+	       true ->
+		   'e_mfield_Etcd.AuthUserAddRequest_options'(TrF3,
+							      <<B2/binary, 26>>,
+							      TrUserData)
 	    end
 	  end;
-      _ -> B1
+      _ -> B2
     end.
 
 'encode_msg_Etcd.AuthUserGetRequest'(Msg, TrUserData) ->
@@ -6040,6 +6165,24 @@ encode_msg(Msg, MsgName, Opts) ->
       _ -> B2
     end.
 
+'encode_msg_authpb.UserAddOptions'(Msg, TrUserData) ->
+    'encode_msg_authpb.UserAddOptions'(Msg, <<>>,
+				       TrUserData).
+
+
+'encode_msg_authpb.UserAddOptions'(#{} = M, Bin,
+				   TrUserData) ->
+    case M of
+      #{no_password := F1} ->
+	  begin
+	    TrF1 = id(F1, TrUserData),
+	    if TrF1 =:= false -> Bin;
+	       true -> e_type_bool(TrF1, <<Bin/binary, 8>>, TrUserData)
+	    end
+	  end;
+      _ -> Bin
+    end.
+
 'encode_msg_authpb.User'(Msg, TrUserData) ->
     'encode_msg_authpb.User'(Msg, <<>>, TrUserData).
 
@@ -6067,14 +6210,26 @@ encode_msg(Msg, MsgName, Opts) ->
 	       end;
 	   _ -> B1
 	 end,
+    B3 = case M of
+	   #{roles := F3} ->
+	       TrF3 = id(F3, TrUserData),
+	       if TrF3 == [] -> B2;
+		  true ->
+		      'e_field_authpb.User_roles'(TrF3, B2, TrUserData)
+	       end;
+	   _ -> B2
+	 end,
     case M of
-      #{roles := F3} ->
-	  TrF3 = id(F3, TrUserData),
-	  if TrF3 == [] -> B2;
-	     true ->
-		 'e_field_authpb.User_roles'(TrF3, B2, TrUserData)
+      #{options := F4} ->
+	  begin
+	    TrF4 = id(F4, TrUserData),
+	    if TrF4 =:= undefined -> B3;
+	       true ->
+		   'e_mfield_authpb.User_options'(TrF4, <<B3/binary, 34>>,
+						  TrUserData)
+	    end
 	  end;
-      _ -> B2
+      _ -> B3
     end.
 
 'encode_msg_authpb.Permission'(Msg, TrUserData) ->
@@ -6705,6 +6860,34 @@ encode_msg(Msg, MsgName, Opts) ->
 					  _TrUserData) ->
     Bin.
 
+'e_mfield_Etcd.MemberPromoteResponse_header'(Msg, Bin,
+					     TrUserData) ->
+    SubBin = 'encode_msg_Etcd.ResponseHeader'(Msg, <<>>,
+					      TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
+'e_mfield_Etcd.MemberPromoteResponse_members'(Msg, Bin,
+					      TrUserData) ->
+    SubBin = 'encode_msg_Etcd.Member'(Msg, <<>>,
+				      TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
+'e_field_Etcd.MemberPromoteResponse_members'([Elem
+					      | Rest],
+					     Bin, TrUserData) ->
+    Bin2 = <<Bin/binary, 18>>,
+    Bin3 =
+	'e_mfield_Etcd.MemberPromoteResponse_members'(id(Elem,
+							 TrUserData),
+						      Bin2, TrUserData),
+    'e_field_Etcd.MemberPromoteResponse_members'(Rest, Bin3,
+						 TrUserData);
+'e_field_Etcd.MemberPromoteResponse_members'([], Bin,
+					     _TrUserData) ->
+    Bin.
+
 'e_mfield_Etcd.DefragmentResponse_header'(Msg, Bin,
 					  TrUserData) ->
     SubBin = 'encode_msg_Etcd.ResponseHeader'(Msg, <<>>,
@@ -6762,6 +6945,13 @@ encode_msg(Msg, MsgName, Opts) ->
 'e_field_Etcd.StatusResponse_errors'([], Bin,
 				     _TrUserData) ->
     Bin.
+
+'e_mfield_Etcd.AuthUserAddRequest_options'(Msg, Bin,
+					   TrUserData) ->
+    SubBin = 'encode_msg_authpb.UserAddOptions'(Msg, <<>>,
+						TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
 
 'e_mfield_Etcd.AuthRoleGrantPermissionRequest_perm'(Msg,
 						    Bin, TrUserData) ->
@@ -7729,6 +7919,12 @@ encode_msg(Msg, MsgName, Opts) ->
 'e_field_authpb.User_roles'([], Bin, _TrUserData) ->
     Bin.
 
+'e_mfield_authpb.User_options'(Msg, Bin, TrUserData) ->
+    SubBin = 'encode_msg_authpb.UserAddOptions'(Msg, <<>>,
+						TrUserData),
+    Bin2 = e_varint(byte_size(SubBin), Bin),
+    <<Bin2/binary, SubBin/binary>>.
+
 'e_mfield_authpb.Role_keyPermission'(Msg, Bin,
 				     TrUserData) ->
     SubBin = 'encode_msg_authpb.Permission'(Msg, <<>>,
@@ -8319,6 +8515,16 @@ decode_msg_2_doit('Etcd.MemberListResponse', Bin,
     id('decode_msg_Etcd.MemberListResponse'(Bin,
 					    TrUserData),
        TrUserData);
+decode_msg_2_doit('Etcd.MemberPromoteRequest', Bin,
+		  TrUserData) ->
+    id('decode_msg_Etcd.MemberPromoteRequest'(Bin,
+					      TrUserData),
+       TrUserData);
+decode_msg_2_doit('Etcd.MemberPromoteResponse', Bin,
+		  TrUserData) ->
+    id('decode_msg_Etcd.MemberPromoteResponse'(Bin,
+					       TrUserData),
+       TrUserData);
 decode_msg_2_doit('Etcd.DefragmentRequest', Bin,
 		  TrUserData) ->
     id('decode_msg_Etcd.DefragmentRequest'(Bin, TrUserData),
@@ -8641,6 +8847,10 @@ decode_msg_2_doit('mvccpb.KeyValue', Bin, TrUserData) ->
        TrUserData);
 decode_msg_2_doit('mvccpb.Event', Bin, TrUserData) ->
     id('decode_msg_mvccpb.Event'(Bin, TrUserData),
+       TrUserData);
+decode_msg_2_doit('authpb.UserAddOptions', Bin,
+		  TrUserData) ->
+    id('decode_msg_authpb.UserAddOptions'(Bin, TrUserData),
        TrUserData);
 decode_msg_2_doit('authpb.User', Bin, TrUserData) ->
     id('decode_msg_authpb.User'(Bin, TrUserData),
@@ -16639,121 +16849,138 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.Member'(Bin, 0, 0,
 				     id(0, TrUserData), id(<<>>, TrUserData),
 				     id([], TrUserData), id([], TrUserData),
-				     TrUserData).
+				     id(false, TrUserData), TrUserData).
 
 'dfp_read_field_def_Etcd.Member'(<<8, Rest/binary>>, Z1,
-				 Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+				 Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData) ->
     'd_field_Etcd.Member_ID'(Rest, Z1, Z2, F@_1, F@_2, F@_3,
-			     F@_4, TrUserData);
+			     F@_4, F@_5, TrUserData);
 'dfp_read_field_def_Etcd.Member'(<<18, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData) ->
     'd_field_Etcd.Member_name'(Rest, Z1, Z2, F@_1, F@_2,
-			       F@_3, F@_4, TrUserData);
+			       F@_3, F@_4, F@_5, TrUserData);
 'dfp_read_field_def_Etcd.Member'(<<26, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData) ->
     'd_field_Etcd.Member_peerURLs'(Rest, Z1, Z2, F@_1, F@_2,
-				   F@_3, F@_4, TrUserData);
+				   F@_3, F@_4, F@_5, TrUserData);
 'dfp_read_field_def_Etcd.Member'(<<34, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData) ->
     'd_field_Etcd.Member_clientURLs'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData);
+				     F@_2, F@_3, F@_4, F@_5, TrUserData);
+'dfp_read_field_def_Etcd.Member'(<<40, Rest/binary>>,
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData) ->
+    'd_field_Etcd.Member_isLearner'(Rest, Z1, Z2, F@_1,
+				    F@_2, F@_3, F@_4, F@_5, TrUserData);
 'dfp_read_field_def_Etcd.Member'(<<>>, 0, 0, F@_1, F@_2,
-				 R1, R2, TrUserData) ->
+				 R1, R2, F@_5, TrUserData) ->
     #{'ID' => F@_1, name => F@_2,
       peerURLs => lists_reverse(R1, TrUserData),
-      clientURLs => lists_reverse(R2, TrUserData)};
+      clientURLs => lists_reverse(R2, TrUserData),
+      isLearner => F@_5};
 'dfp_read_field_def_Etcd.Member'(Other, Z1, Z2, F@_1,
-				 F@_2, F@_3, F@_4, TrUserData) ->
+				 F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     'dg_read_field_def_Etcd.Member'(Other, Z1, Z2, F@_1,
-				    F@_2, F@_3, F@_4, TrUserData).
+				    F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'dg_read_field_def_Etcd.Member'(<<1:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+				N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_Etcd.Member'(Rest, N + 7,
-				    X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				    X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
 				    TrUserData);
 'dg_read_field_def_Etcd.Member'(<<0:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+				N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       8 ->
 	  'd_field_Etcd.Member_ID'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				   F@_4, TrUserData);
+				   F@_4, F@_5, TrUserData);
       18 ->
 	  'd_field_Etcd.Member_name'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				     F@_4, TrUserData);
+				     F@_4, F@_5, TrUserData);
       26 ->
 	  'd_field_Etcd.Member_peerURLs'(Rest, 0, 0, F@_1, F@_2,
-					 F@_3, F@_4, TrUserData);
+					 F@_3, F@_4, F@_5, TrUserData);
       34 ->
 	  'd_field_Etcd.Member_clientURLs'(Rest, 0, 0, F@_1, F@_2,
-					   F@_3, F@_4, TrUserData);
+					   F@_3, F@_4, F@_5, TrUserData);
+      40 ->
+	  'd_field_Etcd.Member_isLearner'(Rest, 0, 0, F@_1, F@_2,
+					  F@_3, F@_4, F@_5, TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_Etcd.Member'(Rest, 0, 0, F@_1, F@_2, F@_3,
-					  F@_4, TrUserData);
+					  F@_4, F@_5, TrUserData);
 	    1 ->
 		'skip_64_Etcd.Member'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      F@_4, TrUserData);
+				      F@_4, F@_5, TrUserData);
 	    2 ->
 		'skip_length_delimited_Etcd.Member'(Rest, 0, 0, F@_1,
-						    F@_2, F@_3, F@_4,
+						    F@_2, F@_3, F@_4, F@_5,
 						    TrUserData);
 	    3 ->
 		'skip_group_Etcd.Member'(Rest, Key bsr 3, 0, F@_1, F@_2,
-					 F@_3, F@_4, TrUserData);
+					 F@_3, F@_4, F@_5, TrUserData);
 	    5 ->
 		'skip_32_Etcd.Member'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      F@_4, TrUserData)
+				      F@_4, F@_5, TrUserData)
 	  end
     end;
 'dg_read_field_def_Etcd.Member'(<<>>, 0, 0, F@_1, F@_2,
-				R1, R2, TrUserData) ->
+				R1, R2, F@_5, TrUserData) ->
     #{'ID' => F@_1, name => F@_2,
       peerURLs => lists_reverse(R1, TrUserData),
-      clientURLs => lists_reverse(R2, TrUserData)}.
+      clientURLs => lists_reverse(R2, TrUserData),
+      isLearner => F@_5}.
 
 'd_field_Etcd.Member_ID'(<<1:1, X:7, Rest/binary>>, N,
-			 Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+			 Acc, F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData)
     when N < 57 ->
     'd_field_Etcd.Member_ID'(Rest, N + 7, X bsl N + Acc,
-			     F@_1, F@_2, F@_3, F@_4, TrUserData);
+			     F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData);
 'd_field_Etcd.Member_ID'(<<0:1, X:7, Rest/binary>>, N,
-			 Acc, _, F@_2, F@_3, F@_4, TrUserData) ->
+			 Acc, _, F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
 			  Rest},
     'dfp_read_field_def_Etcd.Member'(RestF, 0, 0, NewFValue,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'd_field_Etcd.Member_name'(<<1:1, X:7, Rest/binary>>, N,
-			   Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+			   Acc, F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData)
     when N < 57 ->
     'd_field_Etcd.Member_name'(Rest, N + 7, X bsl N + Acc,
-			       F@_1, F@_2, F@_3, F@_4, TrUserData);
+			       F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData);
 'd_field_Etcd.Member_name'(<<0:1, X:7, Rest/binary>>, N,
-			   Acc, F@_1, _, F@_3, F@_4, TrUserData) ->
+			   Acc, F@_1, _, F@_3, F@_4, F@_5, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_Etcd.Member'(RestF, 0, 0, F@_1,
-				     NewFValue, F@_3, F@_4, TrUserData).
+				     NewFValue, F@_3, F@_4, F@_5, TrUserData).
 
 'd_field_Etcd.Member_peerURLs'(<<1:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+			       N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData)
     when N < 57 ->
     'd_field_Etcd.Member_peerURLs'(Rest, N + 7,
-				   X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				   X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
 				   TrUserData);
 'd_field_Etcd.Member_peerURLs'(<<0:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, F@_2, Prev, F@_4, TrUserData) ->
+			       N, Acc, F@_1, F@_2, Prev, F@_4, F@_5,
+			       TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -16761,18 +16988,20 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			 end,
     'dfp_read_field_def_Etcd.Member'(RestF, 0, 0, F@_1,
 				     F@_2, cons(NewFValue, Prev, TrUserData),
-				     F@_4, TrUserData).
+				     F@_4, F@_5, TrUserData).
 
 'd_field_Etcd.Member_clientURLs'(<<1:1, X:7,
 				   Rest/binary>>,
-				 N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+				 N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				 TrUserData)
     when N < 57 ->
     'd_field_Etcd.Member_clientURLs'(Rest, N + 7,
 				     X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-				     TrUserData);
+				     F@_5, TrUserData);
 'd_field_Etcd.Member_clientURLs'(<<0:1, X:7,
 				   Rest/binary>>,
-				 N, Acc, F@_1, F@_2, F@_3, Prev, TrUserData) ->
+				 N, Acc, F@_1, F@_2, F@_3, Prev, F@_5,
+				 TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -16780,114 +17009,147 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			 end,
     'dfp_read_field_def_Etcd.Member'(RestF, 0, 0, F@_1,
 				     F@_2, F@_3,
-				     cons(NewFValue, Prev, TrUserData),
+				     cons(NewFValue, Prev, TrUserData), F@_5,
 				     TrUserData).
 
+'d_field_Etcd.Member_isLearner'(<<1:1, X:7,
+				  Rest/binary>>,
+				N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.Member_isLearner'(Rest, N + 7,
+				    X bsl N + Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				    TrUserData);
+'d_field_Etcd.Member_isLearner'(<<0:1, X:7,
+				  Rest/binary>>,
+				N, Acc, F@_1, F@_2, F@_3, F@_4, _,
+				TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc =/= 0,
+			     TrUserData),
+			  Rest},
+    'dfp_read_field_def_Etcd.Member'(RestF, 0, 0, F@_1,
+				     F@_2, F@_3, F@_4, NewFValue, TrUserData).
+
 'skip_varint_Etcd.Member'(<<1:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     'skip_varint_Etcd.Member'(Rest, Z1, Z2, F@_1, F@_2,
-			      F@_3, F@_4, TrUserData);
+			      F@_3, F@_4, F@_5, TrUserData);
 'skip_varint_Etcd.Member'(<<0:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     'dfp_read_field_def_Etcd.Member'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'skip_length_delimited_Etcd.Member'(<<1:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+				    N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+				    TrUserData)
     when N < 57 ->
     'skip_length_delimited_Etcd.Member'(Rest, N + 7,
 					X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					TrUserData);
+					F@_5, TrUserData);
 'skip_length_delimited_Etcd.Member'(<<0:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, F@_4,
+				    N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
 				    TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_Etcd.Member'(Rest2, 0, 0, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'skip_group_Etcd.Member'(Bin, FNum, Z2, F@_1, F@_2,
-			 F@_3, F@_4, TrUserData) ->
+			 F@_3, F@_4, F@_5, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_Etcd.Member'(Rest, 0, Z2, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'skip_32_Etcd.Member'(<<_:32, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     'dfp_read_field_def_Etcd.Member'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'skip_64_Etcd.Member'(<<_:64, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, F@_5, TrUserData) ->
     'dfp_read_field_def_Etcd.Member'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, F@_4, TrUserData).
+				     F@_2, F@_3, F@_4, F@_5, TrUserData).
 
 'decode_msg_Etcd.MemberAddRequest'(Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddRequest'(Bin, 0, 0,
-					       id([], TrUserData), TrUserData).
+					       id([], TrUserData),
+					       id(false, TrUserData),
+					       TrUserData).
 
 'dfp_read_field_def_Etcd.MemberAddRequest'(<<10,
 					     Rest/binary>>,
-					   Z1, Z2, F@_1, TrUserData) ->
+					   Z1, Z2, F@_1, F@_2, TrUserData) ->
     'd_field_Etcd.MemberAddRequest_peerURLs'(Rest, Z1, Z2,
-					     F@_1, TrUserData);
+					     F@_1, F@_2, TrUserData);
+'dfp_read_field_def_Etcd.MemberAddRequest'(<<16,
+					     Rest/binary>>,
+					   Z1, Z2, F@_1, F@_2, TrUserData) ->
+    'd_field_Etcd.MemberAddRequest_isLearner'(Rest, Z1, Z2,
+					      F@_1, F@_2, TrUserData);
 'dfp_read_field_def_Etcd.MemberAddRequest'(<<>>, 0, 0,
-					   R1, TrUserData) ->
-    #{peerURLs => lists_reverse(R1, TrUserData)};
+					   R1, F@_2, TrUserData) ->
+    #{peerURLs => lists_reverse(R1, TrUserData),
+      isLearner => F@_2};
 'dfp_read_field_def_Etcd.MemberAddRequest'(Other, Z1,
-					   Z2, F@_1, TrUserData) ->
+					   Z2, F@_1, F@_2, TrUserData) ->
     'dg_read_field_def_Etcd.MemberAddRequest'(Other, Z1, Z2,
-					      F@_1, TrUserData).
+					      F@_1, F@_2, TrUserData).
 
 'dg_read_field_def_Etcd.MemberAddRequest'(<<1:1, X:7,
 					    Rest/binary>>,
-					  N, Acc, F@_1, TrUserData)
+					  N, Acc, F@_1, F@_2, TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_Etcd.MemberAddRequest'(Rest, N + 7,
-					      X bsl N + Acc, F@_1, TrUserData);
+					      X bsl N + Acc, F@_1, F@_2,
+					      TrUserData);
 'dg_read_field_def_Etcd.MemberAddRequest'(<<0:1, X:7,
 					    Rest/binary>>,
-					  N, Acc, F@_1, TrUserData) ->
+					  N, Acc, F@_1, F@_2, TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       10 ->
 	  'd_field_Etcd.MemberAddRequest_peerURLs'(Rest, 0, 0,
-						   F@_1, TrUserData);
+						   F@_1, F@_2, TrUserData);
+      16 ->
+	  'd_field_Etcd.MemberAddRequest_isLearner'(Rest, 0, 0,
+						    F@_1, F@_2, TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_Etcd.MemberAddRequest'(Rest, 0, 0, F@_1,
-						    TrUserData);
+						    F@_2, TrUserData);
 	    1 ->
-		'skip_64_Etcd.MemberAddRequest'(Rest, 0, 0, F@_1,
+		'skip_64_Etcd.MemberAddRequest'(Rest, 0, 0, F@_1, F@_2,
 						TrUserData);
 	    2 ->
 		'skip_length_delimited_Etcd.MemberAddRequest'(Rest, 0,
-							      0, F@_1,
+							      0, F@_1, F@_2,
 							      TrUserData);
 	    3 ->
 		'skip_group_Etcd.MemberAddRequest'(Rest, Key bsr 3, 0,
-						   F@_1, TrUserData);
+						   F@_1, F@_2, TrUserData);
 	    5 ->
-		'skip_32_Etcd.MemberAddRequest'(Rest, 0, 0, F@_1,
+		'skip_32_Etcd.MemberAddRequest'(Rest, 0, 0, F@_1, F@_2,
 						TrUserData)
 	  end
     end;
 'dg_read_field_def_Etcd.MemberAddRequest'(<<>>, 0, 0,
-					  R1, TrUserData) ->
-    #{peerURLs => lists_reverse(R1, TrUserData)}.
+					  R1, F@_2, TrUserData) ->
+    #{peerURLs => lists_reverse(R1, TrUserData),
+      isLearner => F@_2}.
 
 'd_field_Etcd.MemberAddRequest_peerURLs'(<<1:1, X:7,
 					   Rest/binary>>,
-					 N, Acc, F@_1, TrUserData)
+					 N, Acc, F@_1, F@_2, TrUserData)
     when N < 57 ->
     'd_field_Etcd.MemberAddRequest_peerURLs'(Rest, N + 7,
-					     X bsl N + Acc, F@_1, TrUserData);
+					     X bsl N + Acc, F@_1, F@_2,
+					     TrUserData);
 'd_field_Etcd.MemberAddRequest_peerURLs'(<<0:1, X:7,
 					   Rest/binary>>,
-					 N, Acc, Prev, TrUserData) ->
+					 N, Acc, Prev, F@_2, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -16896,49 +17158,65 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddRequest'(RestF, 0, 0,
 					       cons(NewFValue, Prev,
 						    TrUserData),
-					       TrUserData).
+					       F@_2, TrUserData).
+
+'d_field_Etcd.MemberAddRequest_isLearner'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, F@_2, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.MemberAddRequest_isLearner'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, F@_2,
+					      TrUserData);
+'d_field_Etcd.MemberAddRequest_isLearner'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc =/= 0,
+			     TrUserData),
+			  Rest},
+    'dfp_read_field_def_Etcd.MemberAddRequest'(RestF, 0, 0,
+					       F@_1, NewFValue, TrUserData).
 
 'skip_varint_Etcd.MemberAddRequest'(<<1:1, _:7,
 				      Rest/binary>>,
-				    Z1, Z2, F@_1, TrUserData) ->
+				    Z1, Z2, F@_1, F@_2, TrUserData) ->
     'skip_varint_Etcd.MemberAddRequest'(Rest, Z1, Z2, F@_1,
-					TrUserData);
+					F@_2, TrUserData);
 'skip_varint_Etcd.MemberAddRequest'(<<0:1, _:7,
 				      Rest/binary>>,
-				    Z1, Z2, F@_1, TrUserData) ->
+				    Z1, Z2, F@_1, F@_2, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddRequest'(Rest, Z1, Z2,
-					       F@_1, TrUserData).
+					       F@_1, F@_2, TrUserData).
 
 'skip_length_delimited_Etcd.MemberAddRequest'(<<1:1,
 						X:7, Rest/binary>>,
-					      N, Acc, F@_1, TrUserData)
+					      N, Acc, F@_1, F@_2, TrUserData)
     when N < 57 ->
     'skip_length_delimited_Etcd.MemberAddRequest'(Rest,
 						  N + 7, X bsl N + Acc, F@_1,
-						  TrUserData);
+						  F@_2, TrUserData);
 'skip_length_delimited_Etcd.MemberAddRequest'(<<0:1,
 						X:7, Rest/binary>>,
-					      N, Acc, F@_1, TrUserData) ->
+					      N, Acc, F@_1, F@_2, TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_Etcd.MemberAddRequest'(Rest2, 0, 0,
-					       F@_1, TrUserData).
+					       F@_1, F@_2, TrUserData).
 
 'skip_group_Etcd.MemberAddRequest'(Bin, FNum, Z2, F@_1,
-				   TrUserData) ->
+				   F@_2, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_Etcd.MemberAddRequest'(Rest, 0, Z2,
-					       F@_1, TrUserData).
+					       F@_1, F@_2, TrUserData).
 
 'skip_32_Etcd.MemberAddRequest'(<<_:32, Rest/binary>>,
-				Z1, Z2, F@_1, TrUserData) ->
+				Z1, Z2, F@_1, F@_2, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddRequest'(Rest, Z1, Z2,
-					       F@_1, TrUserData).
+					       F@_1, F@_2, TrUserData).
 
 'skip_64_Etcd.MemberAddRequest'(<<_:64, Rest/binary>>,
-				Z1, Z2, F@_1, TrUserData) ->
+				Z1, Z2, F@_1, F@_2, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddRequest'(Rest, Z1, Z2,
-					       F@_1, TrUserData).
+					       F@_1, F@_2, TrUserData).
 
 'decode_msg_Etcd.MemberAddResponse'(Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberAddResponse'(Bin, 0, 0,
@@ -18053,6 +18331,310 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.MemberListResponse'(Rest, Z1,
 						 Z2, F@_1, F@_2, TrUserData).
 
+'decode_msg_Etcd.MemberPromoteRequest'(Bin,
+				       TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Bin, 0,
+						   0, id(0, TrUserData),
+						   TrUserData).
+
+'dfp_read_field_def_Etcd.MemberPromoteRequest'(<<8,
+						 Rest/binary>>,
+					       Z1, Z2, F@_1, TrUserData) ->
+    'd_field_Etcd.MemberPromoteRequest_ID'(Rest, Z1, Z2,
+					   F@_1, TrUserData);
+'dfp_read_field_def_Etcd.MemberPromoteRequest'(<<>>, 0,
+					       0, F@_1, _) ->
+    #{'ID' => F@_1};
+'dfp_read_field_def_Etcd.MemberPromoteRequest'(Other,
+					       Z1, Z2, F@_1, TrUserData) ->
+    'dg_read_field_def_Etcd.MemberPromoteRequest'(Other, Z1,
+						  Z2, F@_1, TrUserData).
+
+'dg_read_field_def_Etcd.MemberPromoteRequest'(<<1:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_Etcd.MemberPromoteRequest'(Rest,
+						  N + 7, X bsl N + Acc, F@_1,
+						  TrUserData);
+'dg_read_field_def_Etcd.MemberPromoteRequest'(<<0:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      8 ->
+	  'd_field_Etcd.MemberPromoteRequest_ID'(Rest, 0, 0, F@_1,
+						 TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_Etcd.MemberPromoteRequest'(Rest, 0, 0,
+							F@_1, TrUserData);
+	    1 ->
+		'skip_64_Etcd.MemberPromoteRequest'(Rest, 0, 0, F@_1,
+						    TrUserData);
+	    2 ->
+		'skip_length_delimited_Etcd.MemberPromoteRequest'(Rest,
+								  0, 0, F@_1,
+								  TrUserData);
+	    3 ->
+		'skip_group_Etcd.MemberPromoteRequest'(Rest, Key bsr 3,
+						       0, F@_1, TrUserData);
+	    5 ->
+		'skip_32_Etcd.MemberPromoteRequest'(Rest, 0, 0, F@_1,
+						    TrUserData)
+	  end
+    end;
+'dg_read_field_def_Etcd.MemberPromoteRequest'(<<>>, 0,
+					      0, F@_1, _) ->
+    #{'ID' => F@_1}.
+
+'d_field_Etcd.MemberPromoteRequest_ID'(<<1:1, X:7,
+					 Rest/binary>>,
+				       N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.MemberPromoteRequest_ID'(Rest, N + 7,
+					   X bsl N + Acc, F@_1, TrUserData);
+'d_field_Etcd.MemberPromoteRequest_ID'(<<0:1, X:7,
+					 Rest/binary>>,
+				       N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
+			  Rest},
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(RestF, 0,
+						   0, NewFValue, TrUserData).
+
+'skip_varint_Etcd.MemberPromoteRequest'(<<1:1, _:7,
+					  Rest/binary>>,
+					Z1, Z2, F@_1, TrUserData) ->
+    'skip_varint_Etcd.MemberPromoteRequest'(Rest, Z1, Z2,
+					    F@_1, TrUserData);
+'skip_varint_Etcd.MemberPromoteRequest'(<<0:1, _:7,
+					  Rest/binary>>,
+					Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Rest, Z1,
+						   Z2, F@_1, TrUserData).
+
+'skip_length_delimited_Etcd.MemberPromoteRequest'(<<1:1,
+						    X:7, Rest/binary>>,
+						  N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_Etcd.MemberPromoteRequest'(Rest,
+						      N + 7, X bsl N + Acc,
+						      F@_1, TrUserData);
+'skip_length_delimited_Etcd.MemberPromoteRequest'(<<0:1,
+						    X:7, Rest/binary>>,
+						  N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Rest2, 0,
+						   0, F@_1, TrUserData).
+
+'skip_group_Etcd.MemberPromoteRequest'(Bin, FNum, Z2,
+				       F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Rest, 0,
+						   Z2, F@_1, TrUserData).
+
+'skip_32_Etcd.MemberPromoteRequest'(<<_:32,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Rest, Z1,
+						   Z2, F@_1, TrUserData).
+
+'skip_64_Etcd.MemberPromoteRequest'(<<_:64,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteRequest'(Rest, Z1,
+						   Z2, F@_1, TrUserData).
+
+'decode_msg_Etcd.MemberPromoteResponse'(Bin,
+					TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Bin, 0,
+						    0, id('$undef', TrUserData),
+						    id([], TrUserData),
+						    TrUserData).
+
+'dfp_read_field_def_Etcd.MemberPromoteResponse'(<<10,
+						  Rest/binary>>,
+						Z1, Z2, F@_1, F@_2,
+						TrUserData) ->
+    'd_field_Etcd.MemberPromoteResponse_header'(Rest, Z1,
+						Z2, F@_1, F@_2, TrUserData);
+'dfp_read_field_def_Etcd.MemberPromoteResponse'(<<18,
+						  Rest/binary>>,
+						Z1, Z2, F@_1, F@_2,
+						TrUserData) ->
+    'd_field_Etcd.MemberPromoteResponse_members'(Rest, Z1,
+						 Z2, F@_1, F@_2, TrUserData);
+'dfp_read_field_def_Etcd.MemberPromoteResponse'(<<>>, 0,
+						0, F@_1, R1, TrUserData) ->
+    S1 = #{},
+    S2 = if F@_1 == '$undef' -> S1;
+	    true -> S1#{header => F@_1}
+	 end,
+    if R1 == '$undef' -> S2;
+       true -> S2#{members => lists_reverse(R1, TrUserData)}
+    end;
+'dfp_read_field_def_Etcd.MemberPromoteResponse'(Other,
+						Z1, Z2, F@_1, F@_2,
+						TrUserData) ->
+    'dg_read_field_def_Etcd.MemberPromoteResponse'(Other,
+						   Z1, Z2, F@_1, F@_2,
+						   TrUserData).
+
+'dg_read_field_def_Etcd.MemberPromoteResponse'(<<1:1,
+						 X:7, Rest/binary>>,
+					       N, Acc, F@_1, F@_2, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_Etcd.MemberPromoteResponse'(Rest,
+						   N + 7, X bsl N + Acc, F@_1,
+						   F@_2, TrUserData);
+'dg_read_field_def_Etcd.MemberPromoteResponse'(<<0:1,
+						 X:7, Rest/binary>>,
+					       N, Acc, F@_1, F@_2,
+					       TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      10 ->
+	  'd_field_Etcd.MemberPromoteResponse_header'(Rest, 0, 0,
+						      F@_1, F@_2, TrUserData);
+      18 ->
+	  'd_field_Etcd.MemberPromoteResponse_members'(Rest, 0, 0,
+						       F@_1, F@_2, TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_Etcd.MemberPromoteResponse'(Rest, 0, 0,
+							 F@_1, F@_2,
+							 TrUserData);
+	    1 ->
+		'skip_64_Etcd.MemberPromoteResponse'(Rest, 0, 0, F@_1,
+						     F@_2, TrUserData);
+	    2 ->
+		'skip_length_delimited_Etcd.MemberPromoteResponse'(Rest,
+								   0, 0, F@_1,
+								   F@_2,
+								   TrUserData);
+	    3 ->
+		'skip_group_Etcd.MemberPromoteResponse'(Rest, Key bsr 3,
+							0, F@_1, F@_2,
+							TrUserData);
+	    5 ->
+		'skip_32_Etcd.MemberPromoteResponse'(Rest, 0, 0, F@_1,
+						     F@_2, TrUserData)
+	  end
+    end;
+'dg_read_field_def_Etcd.MemberPromoteResponse'(<<>>, 0,
+					       0, F@_1, R1, TrUserData) ->
+    S1 = #{},
+    S2 = if F@_1 == '$undef' -> S1;
+	    true -> S1#{header => F@_1}
+	 end,
+    if R1 == '$undef' -> S2;
+       true -> S2#{members => lists_reverse(R1, TrUserData)}
+    end.
+
+'d_field_Etcd.MemberPromoteResponse_header'(<<1:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, F@_1, F@_2, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.MemberPromoteResponse_header'(Rest, N + 7,
+						X bsl N + Acc, F@_1, F@_2,
+						TrUserData);
+'d_field_Etcd.MemberPromoteResponse_header'(<<0:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, Prev, F@_2, TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bs:Len/binary, Rest2/binary>> = Rest,
+			   {id('decode_msg_Etcd.ResponseHeader'(Bs, TrUserData),
+			       TrUserData),
+			    Rest2}
+			 end,
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(RestF,
+						    0, 0,
+						    if Prev == '$undef' ->
+							   NewFValue;
+						       true ->
+							   'merge_msg_Etcd.ResponseHeader'(Prev,
+											   NewFValue,
+											   TrUserData)
+						    end,
+						    F@_2, TrUserData).
+
+'d_field_Etcd.MemberPromoteResponse_members'(<<1:1, X:7,
+					       Rest/binary>>,
+					     N, Acc, F@_1, F@_2, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.MemberPromoteResponse_members'(Rest,
+						 N + 7, X bsl N + Acc, F@_1,
+						 F@_2, TrUserData);
+'d_field_Etcd.MemberPromoteResponse_members'(<<0:1, X:7,
+					       Rest/binary>>,
+					     N, Acc, F@_1, Prev, TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bs:Len/binary, Rest2/binary>> = Rest,
+			   {id('decode_msg_Etcd.Member'(Bs, TrUserData),
+			       TrUserData),
+			    Rest2}
+			 end,
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(RestF,
+						    0, 0, F@_1,
+						    cons(NewFValue, Prev,
+							 TrUserData),
+						    TrUserData).
+
+'skip_varint_Etcd.MemberPromoteResponse'(<<1:1, _:7,
+					   Rest/binary>>,
+					 Z1, Z2, F@_1, F@_2, TrUserData) ->
+    'skip_varint_Etcd.MemberPromoteResponse'(Rest, Z1, Z2,
+					     F@_1, F@_2, TrUserData);
+'skip_varint_Etcd.MemberPromoteResponse'(<<0:1, _:7,
+					   Rest/binary>>,
+					 Z1, Z2, F@_1, F@_2, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Rest,
+						    Z1, Z2, F@_1, F@_2,
+						    TrUserData).
+
+'skip_length_delimited_Etcd.MemberPromoteResponse'(<<1:1,
+						     X:7, Rest/binary>>,
+						   N, Acc, F@_1, F@_2,
+						   TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_Etcd.MemberPromoteResponse'(Rest,
+						       N + 7, X bsl N + Acc,
+						       F@_1, F@_2, TrUserData);
+'skip_length_delimited_Etcd.MemberPromoteResponse'(<<0:1,
+						     X:7, Rest/binary>>,
+						   N, Acc, F@_1, F@_2,
+						   TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Rest2,
+						    0, 0, F@_1, F@_2,
+						    TrUserData).
+
+'skip_group_Etcd.MemberPromoteResponse'(Bin, FNum, Z2,
+					F@_1, F@_2, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Rest, 0,
+						    Z2, F@_1, F@_2, TrUserData).
+
+'skip_32_Etcd.MemberPromoteResponse'(<<_:32,
+				       Rest/binary>>,
+				     Z1, Z2, F@_1, F@_2, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Rest,
+						    Z1, Z2, F@_1, F@_2,
+						    TrUserData).
+
+'skip_64_Etcd.MemberPromoteResponse'(<<_:64,
+				       Rest/binary>>,
+				     Z1, Z2, F@_1, F@_2, TrUserData) ->
+    'dfp_read_field_def_Etcd.MemberPromoteResponse'(Rest,
+						    Z1, Z2, F@_1, F@_2,
+						    TrUserData).
+
 'decode_msg_Etcd.DefragmentRequest'(Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.DefragmentRequest'(Bin, 0, 0,
 						TrUserData).
@@ -19083,181 +19665,216 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 					     id(0, TrUserData),
 					     id(0, TrUserData),
 					     id([], TrUserData),
-					     id(0, TrUserData), TrUserData).
+					     id(0, TrUserData),
+					     id(false, TrUserData), TrUserData).
 
 'dfp_read_field_def_Etcd.StatusResponse'(<<10,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_header'(Rest, Z1, Z2, F@_1,
 					 F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-					 F@_8, F@_9, TrUserData);
+					 F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<18,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_version'(Rest, Z1, Z2,
 					  F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					  F@_7, F@_8, F@_9, TrUserData);
+					  F@_7, F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<24,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_dbSize'(Rest, Z1, Z2, F@_1,
 					 F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-					 F@_8, F@_9, TrUserData);
+					 F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<32,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_leader'(Rest, Z1, Z2, F@_1,
 					 F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-					 F@_8, F@_9, TrUserData);
+					 F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<40,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_raftIndex'(Rest, Z1, Z2,
 					    F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					    F@_7, F@_8, F@_9, TrUserData);
+					    F@_7, F@_8, F@_9, F@_10,
+					    TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<48,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_raftTerm'(Rest, Z1, Z2,
 					   F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					   F@_7, F@_8, F@_9, TrUserData);
+					   F@_7, F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<56,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_raftAppliedIndex'(Rest, Z1,
 						   Z2, F@_1, F@_2, F@_3, F@_4,
 						   F@_5, F@_6, F@_7, F@_8, F@_9,
-						   TrUserData);
+						   F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<66,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_errors'(Rest, Z1, Z2, F@_1,
 					 F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-					 F@_8, F@_9, TrUserData);
+					 F@_8, F@_9, F@_10, TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<72,
 					   Rest/binary>>,
 					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
-					 F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
     'd_field_Etcd.StatusResponse_dbSizeInUse'(Rest, Z1, Z2,
 					      F@_1, F@_2, F@_3, F@_4, F@_5,
-					      F@_6, F@_7, F@_8, F@_9,
+					      F@_6, F@_7, F@_8, F@_9, F@_10,
 					      TrUserData);
+'dfp_read_field_def_Etcd.StatusResponse'(<<80,
+					   Rest/binary>>,
+					 Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5,
+					 F@_6, F@_7, F@_8, F@_9, F@_10,
+					 TrUserData) ->
+    'd_field_Etcd.StatusResponse_isLearner'(Rest, Z1, Z2,
+					    F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
+					    F@_7, F@_8, F@_9, F@_10,
+					    TrUserData);
 'dfp_read_field_def_Etcd.StatusResponse'(<<>>, 0, 0,
 					 F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					 F@_7, R1, F@_9, TrUserData) ->
+					 F@_7, R1, F@_9, F@_10, TrUserData) ->
     S1 = #{version => F@_2, dbSize => F@_3, leader => F@_4,
 	   raftIndex => F@_5, raftTerm => F@_6,
 	   raftAppliedIndex => F@_7,
 	   errors => lists_reverse(R1, TrUserData),
-	   dbSizeInUse => F@_9},
+	   dbSizeInUse => F@_9, isLearner => F@_10},
     if F@_1 == '$undef' -> S1;
        true -> S1#{header => F@_1}
     end;
 'dfp_read_field_def_Etcd.StatusResponse'(Other, Z1, Z2,
 					 F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					 F@_7, F@_8, F@_9, TrUserData) ->
+					 F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     'dg_read_field_def_Etcd.StatusResponse'(Other, Z1, Z2,
 					    F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					    F@_7, F@_8, F@_9, TrUserData).
+					    F@_7, F@_8, F@_9, F@_10,
+					    TrUserData).
 
 'dg_read_field_def_Etcd.StatusResponse'(<<1:1, X:7,
 					  Rest/binary>>,
 					N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-					F@_6, F@_7, F@_8, F@_9, TrUserData)
+					F@_6, F@_7, F@_8, F@_9, F@_10,
+					TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_Etcd.StatusResponse'(Rest, N + 7,
 					    X bsl N + Acc, F@_1, F@_2, F@_3,
 					    F@_4, F@_5, F@_6, F@_7, F@_8, F@_9,
-					    TrUserData);
+					    F@_10, TrUserData);
 'dg_read_field_def_Etcd.StatusResponse'(<<0:1, X:7,
 					  Rest/binary>>,
 					N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-					F@_6, F@_7, F@_8, F@_9, TrUserData) ->
+					F@_6, F@_7, F@_8, F@_9, F@_10,
+					TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       10 ->
 	  'd_field_Etcd.StatusResponse_header'(Rest, 0, 0, F@_1,
 					       F@_2, F@_3, F@_4, F@_5, F@_6,
-					       F@_7, F@_8, F@_9, TrUserData);
+					       F@_7, F@_8, F@_9, F@_10,
+					       TrUserData);
       18 ->
 	  'd_field_Etcd.StatusResponse_version'(Rest, 0, 0, F@_1,
 						F@_2, F@_3, F@_4, F@_5, F@_6,
-						F@_7, F@_8, F@_9, TrUserData);
+						F@_7, F@_8, F@_9, F@_10,
+						TrUserData);
       24 ->
 	  'd_field_Etcd.StatusResponse_dbSize'(Rest, 0, 0, F@_1,
 					       F@_2, F@_3, F@_4, F@_5, F@_6,
-					       F@_7, F@_8, F@_9, TrUserData);
+					       F@_7, F@_8, F@_9, F@_10,
+					       TrUserData);
       32 ->
 	  'd_field_Etcd.StatusResponse_leader'(Rest, 0, 0, F@_1,
 					       F@_2, F@_3, F@_4, F@_5, F@_6,
-					       F@_7, F@_8, F@_9, TrUserData);
+					       F@_7, F@_8, F@_9, F@_10,
+					       TrUserData);
       40 ->
 	  'd_field_Etcd.StatusResponse_raftIndex'(Rest, 0, 0,
 						  F@_1, F@_2, F@_3, F@_4, F@_5,
-						  F@_6, F@_7, F@_8, F@_9,
+						  F@_6, F@_7, F@_8, F@_9, F@_10,
 						  TrUserData);
       48 ->
 	  'd_field_Etcd.StatusResponse_raftTerm'(Rest, 0, 0, F@_1,
 						 F@_2, F@_3, F@_4, F@_5, F@_6,
-						 F@_7, F@_8, F@_9, TrUserData);
+						 F@_7, F@_8, F@_9, F@_10,
+						 TrUserData);
       56 ->
 	  'd_field_Etcd.StatusResponse_raftAppliedIndex'(Rest, 0,
 							 0, F@_1, F@_2, F@_3,
 							 F@_4, F@_5, F@_6, F@_7,
-							 F@_8, F@_9,
+							 F@_8, F@_9, F@_10,
 							 TrUserData);
       66 ->
 	  'd_field_Etcd.StatusResponse_errors'(Rest, 0, 0, F@_1,
 					       F@_2, F@_3, F@_4, F@_5, F@_6,
-					       F@_7, F@_8, F@_9, TrUserData);
+					       F@_7, F@_8, F@_9, F@_10,
+					       TrUserData);
       72 ->
 	  'd_field_Etcd.StatusResponse_dbSizeInUse'(Rest, 0, 0,
 						    F@_1, F@_2, F@_3, F@_4,
 						    F@_5, F@_6, F@_7, F@_8,
-						    F@_9, TrUserData);
+						    F@_9, F@_10, TrUserData);
+      80 ->
+	  'd_field_Etcd.StatusResponse_isLearner'(Rest, 0, 0,
+						  F@_1, F@_2, F@_3, F@_4, F@_5,
+						  F@_6, F@_7, F@_8, F@_9, F@_10,
+						  TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_Etcd.StatusResponse'(Rest, 0, 0, F@_1,
 						  F@_2, F@_3, F@_4, F@_5, F@_6,
-						  F@_7, F@_8, F@_9, TrUserData);
+						  F@_7, F@_8, F@_9, F@_10,
+						  TrUserData);
 	    1 ->
 		'skip_64_Etcd.StatusResponse'(Rest, 0, 0, F@_1, F@_2,
 					      F@_3, F@_4, F@_5, F@_6, F@_7,
-					      F@_8, F@_9, TrUserData);
+					      F@_8, F@_9, F@_10, TrUserData);
 	    2 ->
 		'skip_length_delimited_Etcd.StatusResponse'(Rest, 0, 0,
 							    F@_1, F@_2, F@_3,
 							    F@_4, F@_5, F@_6,
 							    F@_7, F@_8, F@_9,
-							    TrUserData);
+							    F@_10, TrUserData);
 	    3 ->
 		'skip_group_Etcd.StatusResponse'(Rest, Key bsr 3, 0,
 						 F@_1, F@_2, F@_3, F@_4, F@_5,
-						 F@_6, F@_7, F@_8, F@_9,
+						 F@_6, F@_7, F@_8, F@_9, F@_10,
 						 TrUserData);
 	    5 ->
 		'skip_32_Etcd.StatusResponse'(Rest, 0, 0, F@_1, F@_2,
 					      F@_3, F@_4, F@_5, F@_6, F@_7,
-					      F@_8, F@_9, TrUserData)
+					      F@_8, F@_9, F@_10, TrUserData)
 	  end
     end;
 'dg_read_field_def_Etcd.StatusResponse'(<<>>, 0, 0,
 					F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					F@_7, R1, F@_9, TrUserData) ->
+					F@_7, R1, F@_9, F@_10, TrUserData) ->
     S1 = #{version => F@_2, dbSize => F@_3, leader => F@_4,
 	   raftIndex => F@_5, raftTerm => F@_6,
 	   raftAppliedIndex => F@_7,
 	   errors => lists_reverse(R1, TrUserData),
-	   dbSizeInUse => F@_9},
+	   dbSizeInUse => F@_9, isLearner => F@_10},
     if F@_1 == '$undef' -> S1;
        true -> S1#{header => F@_1}
     end.
@@ -19265,16 +19882,16 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 'd_field_Etcd.StatusResponse_header'(<<1:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData)
+				     F@_7, F@_8, F@_9, F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_header'(Rest, N + 7,
 					 X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					 F@_5, F@_6, F@_7, F@_8, F@_9,
+					 F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					 TrUserData);
 'd_field_Etcd.StatusResponse_header'(<<0:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, Prev, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData) ->
+				     F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bs:Len/binary, Rest2/binary>> = Rest,
@@ -19290,21 +19907,21 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 										    TrUserData)
 					     end,
 					     F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-					     F@_8, F@_9, TrUserData).
+					     F@_8, F@_9, F@_10, TrUserData).
 
 'd_field_Etcd.StatusResponse_version'(<<1:1, X:7,
 					Rest/binary>>,
 				      N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-				      F@_6, F@_7, F@_8, F@_9, TrUserData)
+				      F@_6, F@_7, F@_8, F@_9, F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_version'(Rest, N + 7,
 					  X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					  F@_5, F@_6, F@_7, F@_8, F@_9,
+					  F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					  TrUserData);
 'd_field_Etcd.StatusResponse_version'(<<0:1, X:7,
 					Rest/binary>>,
 				      N, Acc, F@_1, _, F@_3, F@_4, F@_5, F@_6,
-				      F@_7, F@_8, F@_9, TrUserData) ->
+				      F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -19312,22 +19929,22 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			 end,
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, NewFValue, F@_3, F@_4, F@_5,
-					     F@_6, F@_7, F@_8, F@_9,
+					     F@_6, F@_7, F@_8, F@_9, F@_10,
 					     TrUserData).
 
 'd_field_Etcd.StatusResponse_dbSize'(<<1:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData)
+				     F@_7, F@_8, F@_9, F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_dbSize'(Rest, N + 7,
 					 X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					 F@_5, F@_6, F@_7, F@_8, F@_9,
+					 F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					 TrUserData);
 'd_field_Etcd.StatusResponse_dbSize'(<<0:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, _, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData) ->
+				     F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = {begin
 			    <<Res:64/signed-native>> = <<(X bsl N +
 							    Acc):64/unsigned-native>>,
@@ -19336,104 +19953,107 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, NewFValue, F@_4, F@_5,
-					     F@_6, F@_7, F@_8, F@_9,
+					     F@_6, F@_7, F@_8, F@_9, F@_10,
 					     TrUserData).
 
 'd_field_Etcd.StatusResponse_leader'(<<1:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData)
+				     F@_7, F@_8, F@_9, F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_leader'(Rest, N + 7,
 					 X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					 F@_5, F@_6, F@_7, F@_8, F@_9,
+					 F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					 TrUserData);
 'd_field_Etcd.StatusResponse_leader'(<<0:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, _, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData) ->
+				     F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, F@_3, NewFValue, F@_5,
-					     F@_6, F@_7, F@_8, F@_9,
+					     F@_6, F@_7, F@_8, F@_9, F@_10,
 					     TrUserData).
 
 'd_field_Etcd.StatusResponse_raftIndex'(<<1:1, X:7,
 					  Rest/binary>>,
 					N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-					F@_6, F@_7, F@_8, F@_9, TrUserData)
+					F@_6, F@_7, F@_8, F@_9, F@_10,
+					TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_raftIndex'(Rest, N + 7,
 					    X bsl N + Acc, F@_1, F@_2, F@_3,
 					    F@_4, F@_5, F@_6, F@_7, F@_8, F@_9,
-					    TrUserData);
+					    F@_10, TrUserData);
 'd_field_Etcd.StatusResponse_raftIndex'(<<0:1, X:7,
 					  Rest/binary>>,
 					N, Acc, F@_1, F@_2, F@_3, F@_4, _, F@_6,
-					F@_7, F@_8, F@_9, TrUserData) ->
+					F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, F@_3, F@_4, NewFValue,
-					     F@_6, F@_7, F@_8, F@_9,
+					     F@_6, F@_7, F@_8, F@_9, F@_10,
 					     TrUserData).
 
 'd_field_Etcd.StatusResponse_raftTerm'(<<1:1, X:7,
 					 Rest/binary>>,
 				       N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-				       F@_6, F@_7, F@_8, F@_9, TrUserData)
+				       F@_6, F@_7, F@_8, F@_9, F@_10,
+				       TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_raftTerm'(Rest, N + 7,
 					   X bsl N + Acc, F@_1, F@_2, F@_3,
 					   F@_4, F@_5, F@_6, F@_7, F@_8, F@_9,
-					   TrUserData);
+					   F@_10, TrUserData);
 'd_field_Etcd.StatusResponse_raftTerm'(<<0:1, X:7,
 					 Rest/binary>>,
 				       N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, _,
-				       F@_7, F@_8, F@_9, TrUserData) ->
+				       F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, F@_3, F@_4, F@_5,
-					     NewFValue, F@_7, F@_8, F@_9,
+					     NewFValue, F@_7, F@_8, F@_9, F@_10,
 					     TrUserData).
 
 'd_field_Etcd.StatusResponse_raftAppliedIndex'(<<1:1,
 						 X:7, Rest/binary>>,
 					       N, Acc, F@_1, F@_2, F@_3, F@_4,
 					       F@_5, F@_6, F@_7, F@_8, F@_9,
-					       TrUserData)
+					       F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_raftAppliedIndex'(Rest,
 						   N + 7, X bsl N + Acc, F@_1,
 						   F@_2, F@_3, F@_4, F@_5, F@_6,
-						   F@_7, F@_8, F@_9,
+						   F@_7, F@_8, F@_9, F@_10,
 						   TrUserData);
 'd_field_Etcd.StatusResponse_raftAppliedIndex'(<<0:1,
 						 X:7, Rest/binary>>,
 					       N, Acc, F@_1, F@_2, F@_3, F@_4,
-					       F@_5, F@_6, _, F@_8, F@_9,
+					       F@_5, F@_6, _, F@_8, F@_9, F@_10,
 					       TrUserData) ->
     {NewFValue, RestF} = {id(X bsl N + Acc, TrUserData),
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     NewFValue, F@_8, F@_9, TrUserData).
+					     NewFValue, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'd_field_Etcd.StatusResponse_errors'(<<1:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, F@_8, F@_9, TrUserData)
+				     F@_7, F@_8, F@_9, F@_10, TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_errors'(Rest, N + 7,
 					 X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
-					 F@_5, F@_6, F@_7, F@_8, F@_9,
+					 F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					 TrUserData);
 'd_field_Etcd.StatusResponse_errors'(<<0:1, X:7,
 				       Rest/binary>>,
 				     N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				     F@_7, Prev, F@_9, TrUserData) ->
+				     F@_7, Prev, F@_9, F@_10, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -19443,21 +20063,23 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
 					     F@_7,
 					     cons(NewFValue, Prev, TrUserData),
-					     F@_9, TrUserData).
+					     F@_9, F@_10, TrUserData).
 
 'd_field_Etcd.StatusResponse_dbSizeInUse'(<<1:1, X:7,
 					    Rest/binary>>,
 					  N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-					  F@_6, F@_7, F@_8, F@_9, TrUserData)
+					  F@_6, F@_7, F@_8, F@_9, F@_10,
+					  TrUserData)
     when N < 57 ->
     'd_field_Etcd.StatusResponse_dbSizeInUse'(Rest, N + 7,
 					      X bsl N + Acc, F@_1, F@_2, F@_3,
 					      F@_4, F@_5, F@_6, F@_7, F@_8,
-					      F@_9, TrUserData);
+					      F@_9, F@_10, TrUserData);
 'd_field_Etcd.StatusResponse_dbSizeInUse'(<<0:1, X:7,
 					    Rest/binary>>,
 					  N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
-					  F@_6, F@_7, F@_8, _, TrUserData) ->
+					  F@_6, F@_7, F@_8, _, F@_10,
+					  TrUserData) ->
     {NewFValue, RestF} = {begin
 			    <<Res:64/signed-native>> = <<(X bsl N +
 							    Acc):64/unsigned-native>>,
@@ -19466,65 +20088,94 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			  Rest},
     'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, NewFValue, TrUserData).
+					     F@_7, F@_8, NewFValue, F@_10,
+					     TrUserData).
+
+'d_field_Etcd.StatusResponse_isLearner'(<<1:1, X:7,
+					  Rest/binary>>,
+					N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+					F@_6, F@_7, F@_8, F@_9, F@_10,
+					TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.StatusResponse_isLearner'(Rest, N + 7,
+					    X bsl N + Acc, F@_1, F@_2, F@_3,
+					    F@_4, F@_5, F@_6, F@_7, F@_8, F@_9,
+					    F@_10, TrUserData);
+'d_field_Etcd.StatusResponse_isLearner'(<<0:1, X:7,
+					  Rest/binary>>,
+					N, Acc, F@_1, F@_2, F@_3, F@_4, F@_5,
+					F@_6, F@_7, F@_8, F@_9, _,
+					TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc =/= 0,
+			     TrUserData),
+			  Rest},
+    'dfp_read_field_def_Etcd.StatusResponse'(RestF, 0, 0,
+					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
+					     F@_7, F@_8, F@_9, NewFValue,
+					     TrUserData).
 
 'skip_varint_Etcd.StatusResponse'(<<1:1, _:7,
 				    Rest/binary>>,
 				  Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				  F@_7, F@_8, F@_9, TrUserData) ->
+				  F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     'skip_varint_Etcd.StatusResponse'(Rest, Z1, Z2, F@_1,
 				      F@_2, F@_3, F@_4, F@_5, F@_6, F@_7, F@_8,
-				      F@_9, TrUserData);
+				      F@_9, F@_10, TrUserData);
 'skip_varint_Etcd.StatusResponse'(<<0:1, _:7,
 				    Rest/binary>>,
 				  Z1, Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-				  F@_7, F@_8, F@_9, TrUserData) ->
+				  F@_7, F@_8, F@_9, F@_10, TrUserData) ->
     'dfp_read_field_def_Etcd.StatusResponse'(Rest, Z1, Z2,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, F@_9, TrUserData).
+					     F@_7, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'skip_length_delimited_Etcd.StatusResponse'(<<1:1, X:7,
 					      Rest/binary>>,
 					    N, Acc, F@_1, F@_2, F@_3, F@_4,
-					    F@_5, F@_6, F@_7, F@_8, F@_9,
+					    F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					    TrUserData)
     when N < 57 ->
     'skip_length_delimited_Etcd.StatusResponse'(Rest, N + 7,
 						X bsl N + Acc, F@_1, F@_2, F@_3,
 						F@_4, F@_5, F@_6, F@_7, F@_8,
-						F@_9, TrUserData);
+						F@_9, F@_10, TrUserData);
 'skip_length_delimited_Etcd.StatusResponse'(<<0:1, X:7,
 					      Rest/binary>>,
 					    N, Acc, F@_1, F@_2, F@_3, F@_4,
-					    F@_5, F@_6, F@_7, F@_8, F@_9,
+					    F@_5, F@_6, F@_7, F@_8, F@_9, F@_10,
 					    TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_Etcd.StatusResponse'(Rest2, 0, 0,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, F@_9, TrUserData).
+					     F@_7, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'skip_group_Etcd.StatusResponse'(Bin, FNum, Z2, F@_1,
 				 F@_2, F@_3, F@_4, F@_5, F@_6, F@_7, F@_8, F@_9,
-				 TrUserData) ->
+				 F@_10, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_Etcd.StatusResponse'(Rest, 0, Z2,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, F@_9, TrUserData).
+					     F@_7, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'skip_32_Etcd.StatusResponse'(<<_:32, Rest/binary>>, Z1,
 			      Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-			      F@_8, F@_9, TrUserData) ->
+			      F@_8, F@_9, F@_10, TrUserData) ->
     'dfp_read_field_def_Etcd.StatusResponse'(Rest, Z1, Z2,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, F@_9, TrUserData).
+					     F@_7, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'skip_64_Etcd.StatusResponse'(<<_:64, Rest/binary>>, Z1,
 			      Z2, F@_1, F@_2, F@_3, F@_4, F@_5, F@_6, F@_7,
-			      F@_8, F@_9, TrUserData) ->
+			      F@_8, F@_9, F@_10, TrUserData) ->
     'dfp_read_field_def_Etcd.StatusResponse'(Rest, Z1, Z2,
 					     F@_1, F@_2, F@_3, F@_4, F@_5, F@_6,
-					     F@_7, F@_8, F@_9, TrUserData).
+					     F@_7, F@_8, F@_9, F@_10,
+					     TrUserData).
 
 'decode_msg_Etcd.AuthEnableRequest'(Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthEnableRequest'(Bin, 0, 0,
@@ -19851,148 +20502,210 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Bin, 0, 0,
 						 id(<<>>, TrUserData),
 						 id(<<>>, TrUserData),
+						 id('$undef', TrUserData),
 						 TrUserData).
 
 'dfp_read_field_def_Etcd.AuthUserAddRequest'(<<10,
 					       Rest/binary>>,
-					     Z1, Z2, F@_1, F@_2, TrUserData) ->
+					     Z1, Z2, F@_1, F@_2, F@_3,
+					     TrUserData) ->
     'd_field_Etcd.AuthUserAddRequest_name'(Rest, Z1, Z2,
-					   F@_1, F@_2, TrUserData);
+					   F@_1, F@_2, F@_3, TrUserData);
 'dfp_read_field_def_Etcd.AuthUserAddRequest'(<<18,
 					       Rest/binary>>,
-					     Z1, Z2, F@_1, F@_2, TrUserData) ->
+					     Z1, Z2, F@_1, F@_2, F@_3,
+					     TrUserData) ->
     'd_field_Etcd.AuthUserAddRequest_password'(Rest, Z1, Z2,
-					       F@_1, F@_2, TrUserData);
+					       F@_1, F@_2, F@_3, TrUserData);
+'dfp_read_field_def_Etcd.AuthUserAddRequest'(<<26,
+					       Rest/binary>>,
+					     Z1, Z2, F@_1, F@_2, F@_3,
+					     TrUserData) ->
+    'd_field_Etcd.AuthUserAddRequest_options'(Rest, Z1, Z2,
+					      F@_1, F@_2, F@_3, TrUserData);
 'dfp_read_field_def_Etcd.AuthUserAddRequest'(<<>>, 0, 0,
-					     F@_1, F@_2, _) ->
-    #{name => F@_1, password => F@_2};
+					     F@_1, F@_2, F@_3, _) ->
+    S1 = #{name => F@_1, password => F@_2},
+    if F@_3 == '$undef' -> S1;
+       true -> S1#{options => F@_3}
+    end;
 'dfp_read_field_def_Etcd.AuthUserAddRequest'(Other, Z1,
-					     Z2, F@_1, F@_2, TrUserData) ->
+					     Z2, F@_1, F@_2, F@_3,
+					     TrUserData) ->
     'dg_read_field_def_Etcd.AuthUserAddRequest'(Other, Z1,
-						Z2, F@_1, F@_2, TrUserData).
+						Z2, F@_1, F@_2, F@_3,
+						TrUserData).
 
 'dg_read_field_def_Etcd.AuthUserAddRequest'(<<1:1, X:7,
 					      Rest/binary>>,
-					    N, Acc, F@_1, F@_2, TrUserData)
+					    N, Acc, F@_1, F@_2, F@_3,
+					    TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_Etcd.AuthUserAddRequest'(Rest, N + 7,
-						X bsl N + Acc, F@_1, F@_2,
+						X bsl N + Acc, F@_1, F@_2, F@_3,
 						TrUserData);
 'dg_read_field_def_Etcd.AuthUserAddRequest'(<<0:1, X:7,
 					      Rest/binary>>,
-					    N, Acc, F@_1, F@_2, TrUserData) ->
+					    N, Acc, F@_1, F@_2, F@_3,
+					    TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       10 ->
 	  'd_field_Etcd.AuthUserAddRequest_name'(Rest, 0, 0, F@_1,
-						 F@_2, TrUserData);
+						 F@_2, F@_3, TrUserData);
       18 ->
 	  'd_field_Etcd.AuthUserAddRequest_password'(Rest, 0, 0,
-						     F@_1, F@_2, TrUserData);
+						     F@_1, F@_2, F@_3,
+						     TrUserData);
+      26 ->
+	  'd_field_Etcd.AuthUserAddRequest_options'(Rest, 0, 0,
+						    F@_1, F@_2, F@_3,
+						    TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_Etcd.AuthUserAddRequest'(Rest, 0, 0, F@_1,
-						      F@_2, TrUserData);
+						      F@_2, F@_3, TrUserData);
 	    1 ->
 		'skip_64_Etcd.AuthUserAddRequest'(Rest, 0, 0, F@_1,
-						  F@_2, TrUserData);
+						  F@_2, F@_3, TrUserData);
 	    2 ->
 		'skip_length_delimited_Etcd.AuthUserAddRequest'(Rest, 0,
 								0, F@_1, F@_2,
+								F@_3,
 								TrUserData);
 	    3 ->
 		'skip_group_Etcd.AuthUserAddRequest'(Rest, Key bsr 3, 0,
-						     F@_1, F@_2, TrUserData);
+						     F@_1, F@_2, F@_3,
+						     TrUserData);
 	    5 ->
 		'skip_32_Etcd.AuthUserAddRequest'(Rest, 0, 0, F@_1,
-						  F@_2, TrUserData)
+						  F@_2, F@_3, TrUserData)
 	  end
     end;
 'dg_read_field_def_Etcd.AuthUserAddRequest'(<<>>, 0, 0,
-					    F@_1, F@_2, _) ->
-    #{name => F@_1, password => F@_2}.
+					    F@_1, F@_2, F@_3, _) ->
+    S1 = #{name => F@_1, password => F@_2},
+    if F@_3 == '$undef' -> S1;
+       true -> S1#{options => F@_3}
+    end.
 
 'd_field_Etcd.AuthUserAddRequest_name'(<<1:1, X:7,
 					 Rest/binary>>,
-				       N, Acc, F@_1, F@_2, TrUserData)
+				       N, Acc, F@_1, F@_2, F@_3, TrUserData)
     when N < 57 ->
     'd_field_Etcd.AuthUserAddRequest_name'(Rest, N + 7,
-					   X bsl N + Acc, F@_1, F@_2,
+					   X bsl N + Acc, F@_1, F@_2, F@_3,
 					   TrUserData);
 'd_field_Etcd.AuthUserAddRequest_name'(<<0:1, X:7,
 					 Rest/binary>>,
-				       N, Acc, _, F@_2, TrUserData) ->
+				       N, Acc, _, F@_2, F@_3, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(RestF, 0,
-						 0, NewFValue, F@_2,
+						 0, NewFValue, F@_2, F@_3,
 						 TrUserData).
 
 'd_field_Etcd.AuthUserAddRequest_password'(<<1:1, X:7,
 					     Rest/binary>>,
-					   N, Acc, F@_1, F@_2, TrUserData)
+					   N, Acc, F@_1, F@_2, F@_3, TrUserData)
     when N < 57 ->
     'd_field_Etcd.AuthUserAddRequest_password'(Rest, N + 7,
-					       X bsl N + Acc, F@_1, F@_2,
+					       X bsl N + Acc, F@_1, F@_2, F@_3,
 					       TrUserData);
 'd_field_Etcd.AuthUserAddRequest_password'(<<0:1, X:7,
 					     Rest/binary>>,
-					   N, Acc, F@_1, _, TrUserData) ->
+					   N, Acc, F@_1, _, F@_3, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(RestF, 0,
-						 0, F@_1, NewFValue,
+						 0, F@_1, NewFValue, F@_3,
+						 TrUserData).
+
+'d_field_Etcd.AuthUserAddRequest_options'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, F@_2, F@_3, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.AuthUserAddRequest_options'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, F@_2, F@_3,
+					      TrUserData);
+'d_field_Etcd.AuthUserAddRequest_options'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, F@_2, Prev,
+					  TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bs:Len/binary, Rest2/binary>> = Rest,
+			   {id('decode_msg_authpb.UserAddOptions'(Bs,
+								  TrUserData),
+			       TrUserData),
+			    Rest2}
+			 end,
+    'dfp_read_field_def_Etcd.AuthUserAddRequest'(RestF, 0,
+						 0, F@_1, F@_2,
+						 if Prev == '$undef' ->
+							NewFValue;
+						    true ->
+							'merge_msg_authpb.UserAddOptions'(Prev,
+											  NewFValue,
+											  TrUserData)
+						 end,
 						 TrUserData).
 
 'skip_varint_Etcd.AuthUserAddRequest'(<<1:1, _:7,
 					Rest/binary>>,
-				      Z1, Z2, F@_1, F@_2, TrUserData) ->
+				      Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
     'skip_varint_Etcd.AuthUserAddRequest'(Rest, Z1, Z2,
-					  F@_1, F@_2, TrUserData);
+					  F@_1, F@_2, F@_3, TrUserData);
 'skip_varint_Etcd.AuthUserAddRequest'(<<0:1, _:7,
 					Rest/binary>>,
-				      Z1, Z2, F@_1, F@_2, TrUserData) ->
+				      Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Rest, Z1,
-						 Z2, F@_1, F@_2, TrUserData).
+						 Z2, F@_1, F@_2, F@_3,
+						 TrUserData).
 
 'skip_length_delimited_Etcd.AuthUserAddRequest'(<<1:1,
 						  X:7, Rest/binary>>,
-						N, Acc, F@_1, F@_2, TrUserData)
+						N, Acc, F@_1, F@_2, F@_3,
+						TrUserData)
     when N < 57 ->
     'skip_length_delimited_Etcd.AuthUserAddRequest'(Rest,
 						    N + 7, X bsl N + Acc, F@_1,
-						    F@_2, TrUserData);
+						    F@_2, F@_3, TrUserData);
 'skip_length_delimited_Etcd.AuthUserAddRequest'(<<0:1,
 						  X:7, Rest/binary>>,
-						N, Acc, F@_1, F@_2,
+						N, Acc, F@_1, F@_2, F@_3,
 						TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Rest2, 0,
-						 0, F@_1, F@_2, TrUserData).
+						 0, F@_1, F@_2, F@_3,
+						 TrUserData).
 
 'skip_group_Etcd.AuthUserAddRequest'(Bin, FNum, Z2,
-				     F@_1, F@_2, TrUserData) ->
+				     F@_1, F@_2, F@_3, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Rest, 0,
-						 Z2, F@_1, F@_2, TrUserData).
+						 Z2, F@_1, F@_2, F@_3,
+						 TrUserData).
 
 'skip_32_Etcd.AuthUserAddRequest'(<<_:32, Rest/binary>>,
-				  Z1, Z2, F@_1, F@_2, TrUserData) ->
+				  Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Rest, Z1,
-						 Z2, F@_1, F@_2, TrUserData).
+						 Z2, F@_1, F@_2, F@_3,
+						 TrUserData).
 
 'skip_64_Etcd.AuthUserAddRequest'(<<_:64, Rest/binary>>,
-				  Z1, Z2, F@_1, F@_2, TrUserData) ->
+				  Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthUserAddRequest'(Rest, Z1,
-						 Z2, F@_1, F@_2, TrUserData).
+						 Z2, F@_1, F@_2, F@_3,
+						 TrUserData).
 
 'decode_msg_Etcd.AuthUserGetRequest'(Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthUserGetRequest'(Bin, 0, 0,
@@ -44505,116 +45218,246 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_mvccpb.Event'(Rest, Z1, Z2, F@_1,
 				      F@_2, F@_3, TrUserData).
 
+'decode_msg_authpb.UserAddOptions'(Bin, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Bin, 0, 0,
+					       id(false, TrUserData),
+					       TrUserData).
+
+'dfp_read_field_def_authpb.UserAddOptions'(<<8,
+					     Rest/binary>>,
+					   Z1, Z2, F@_1, TrUserData) ->
+    'd_field_authpb.UserAddOptions_no_password'(Rest, Z1,
+						Z2, F@_1, TrUserData);
+'dfp_read_field_def_authpb.UserAddOptions'(<<>>, 0, 0,
+					   F@_1, _) ->
+    #{no_password => F@_1};
+'dfp_read_field_def_authpb.UserAddOptions'(Other, Z1,
+					   Z2, F@_1, TrUserData) ->
+    'dg_read_field_def_authpb.UserAddOptions'(Other, Z1, Z2,
+					      F@_1, TrUserData).
+
+'dg_read_field_def_authpb.UserAddOptions'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_authpb.UserAddOptions'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, TrUserData);
+'dg_read_field_def_authpb.UserAddOptions'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      8 ->
+	  'd_field_authpb.UserAddOptions_no_password'(Rest, 0, 0,
+						      F@_1, TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						    TrUserData);
+	    1 ->
+		'skip_64_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						TrUserData);
+	    2 ->
+		'skip_length_delimited_authpb.UserAddOptions'(Rest, 0,
+							      0, F@_1,
+							      TrUserData);
+	    3 ->
+		'skip_group_authpb.UserAddOptions'(Rest, Key bsr 3, 0,
+						   F@_1, TrUserData);
+	    5 ->
+		'skip_32_authpb.UserAddOptions'(Rest, 0, 0, F@_1,
+						TrUserData)
+	  end
+    end;
+'dg_read_field_def_authpb.UserAddOptions'(<<>>, 0, 0,
+					  F@_1, _) ->
+    #{no_password => F@_1}.
+
+'d_field_authpb.UserAddOptions_no_password'(<<1:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'd_field_authpb.UserAddOptions_no_password'(Rest, N + 7,
+						X bsl N + Acc, F@_1,
+						TrUserData);
+'d_field_authpb.UserAddOptions_no_password'(<<0:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = {id(X bsl N + Acc =/= 0,
+			     TrUserData),
+			  Rest},
+    'dfp_read_field_def_authpb.UserAddOptions'(RestF, 0, 0,
+					       NewFValue, TrUserData).
+
+'skip_varint_authpb.UserAddOptions'(<<1:1, _:7,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'skip_varint_authpb.UserAddOptions'(Rest, Z1, Z2, F@_1,
+					TrUserData);
+'skip_varint_authpb.UserAddOptions'(<<0:1, _:7,
+				      Rest/binary>>,
+				    Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
+'skip_length_delimited_authpb.UserAddOptions'(<<1:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_authpb.UserAddOptions'(Rest,
+						  N + 7, X bsl N + Acc, F@_1,
+						  TrUserData);
+'skip_length_delimited_authpb.UserAddOptions'(<<0:1,
+						X:7, Rest/binary>>,
+					      N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest2, 0, 0,
+					       F@_1, TrUserData).
+
+'skip_group_authpb.UserAddOptions'(Bin, FNum, Z2, F@_1,
+				   TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, 0, Z2,
+					       F@_1, TrUserData).
+
+'skip_32_authpb.UserAddOptions'(<<_:32, Rest/binary>>,
+				Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
+'skip_64_authpb.UserAddOptions'(<<_:64, Rest/binary>>,
+				Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_authpb.UserAddOptions'(Rest, Z1, Z2,
+					       F@_1, TrUserData).
+
 'decode_msg_authpb.User'(Bin, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Bin, 0, 0,
 				     id(<<>>, TrUserData), id(<<>>, TrUserData),
-				     id([], TrUserData), TrUserData).
+				     id([], TrUserData),
+				     id('$undef', TrUserData), TrUserData).
 
 'dfp_read_field_def_authpb.User'(<<10, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_name'(Rest, Z1, Z2, F@_1, F@_2,
-			       F@_3, TrUserData);
+			       F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<18, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_password'(Rest, Z1, Z2, F@_1, F@_2,
-				   F@_3, TrUserData);
+				   F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<26, Rest/binary>>,
-				 Z1, Z2, F@_1, F@_2, F@_3, TrUserData) ->
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'd_field_authpb.User_roles'(Rest, Z1, Z2, F@_1, F@_2,
-				F@_3, TrUserData);
+				F@_3, F@_4, TrUserData);
+'dfp_read_field_def_authpb.User'(<<34, Rest/binary>>,
+				 Z1, Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
+    'd_field_authpb.User_options'(Rest, Z1, Z2, F@_1, F@_2,
+				  F@_3, F@_4, TrUserData);
 'dfp_read_field_def_authpb.User'(<<>>, 0, 0, F@_1, F@_2,
-				 R1, TrUserData) ->
-    #{name => F@_1, password => F@_2,
-      roles => lists_reverse(R1, TrUserData)};
+				 R1, F@_4, TrUserData) ->
+    S1 = #{name => F@_1, password => F@_2,
+	   roles => lists_reverse(R1, TrUserData)},
+    if F@_4 == '$undef' -> S1;
+       true -> S1#{options => F@_4}
+    end;
 'dfp_read_field_def_authpb.User'(Other, Z1, Z2, F@_1,
-				 F@_2, F@_3, TrUserData) ->
+				 F@_2, F@_3, F@_4, TrUserData) ->
     'dg_read_field_def_authpb.User'(Other, Z1, Z2, F@_1,
-				    F@_2, F@_3, TrUserData).
+				    F@_2, F@_3, F@_4, TrUserData).
 
 'dg_read_field_def_authpb.User'(<<1:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, TrUserData)
+				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 32 - 7 ->
     'dg_read_field_def_authpb.User'(Rest, N + 7,
-				    X bsl N + Acc, F@_1, F@_2, F@_3,
+				    X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
 				    TrUserData);
 'dg_read_field_def_authpb.User'(<<0:1, X:7,
 				  Rest/binary>>,
-				N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
+				N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     Key = X bsl N + Acc,
     case Key of
       10 ->
 	  'd_field_authpb.User_name'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				     TrUserData);
+				     F@_4, TrUserData);
       18 ->
 	  'd_field_authpb.User_password'(Rest, 0, 0, F@_1, F@_2,
-					 F@_3, TrUserData);
+					 F@_3, F@_4, TrUserData);
       26 ->
 	  'd_field_authpb.User_roles'(Rest, 0, 0, F@_1, F@_2,
-				      F@_3, TrUserData);
+				      F@_3, F@_4, TrUserData);
+      34 ->
+	  'd_field_authpb.User_options'(Rest, 0, 0, F@_1, F@_2,
+					F@_3, F@_4, TrUserData);
       _ ->
 	  case Key band 7 of
 	    0 ->
 		'skip_varint_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-					  TrUserData);
+					  F@_4, TrUserData);
 	    1 ->
 		'skip_64_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      TrUserData);
+				      F@_4, TrUserData);
 	    2 ->
 		'skip_length_delimited_authpb.User'(Rest, 0, 0, F@_1,
-						    F@_2, F@_3, TrUserData);
+						    F@_2, F@_3, F@_4,
+						    TrUserData);
 	    3 ->
 		'skip_group_authpb.User'(Rest, Key bsr 3, 0, F@_1, F@_2,
-					 F@_3, TrUserData);
+					 F@_3, F@_4, TrUserData);
 	    5 ->
 		'skip_32_authpb.User'(Rest, 0, 0, F@_1, F@_2, F@_3,
-				      TrUserData)
+				      F@_4, TrUserData)
 	  end
     end;
 'dg_read_field_def_authpb.User'(<<>>, 0, 0, F@_1, F@_2,
-				R1, TrUserData) ->
-    #{name => F@_1, password => F@_2,
-      roles => lists_reverse(R1, TrUserData)}.
+				R1, F@_4, TrUserData) ->
+    S1 = #{name => F@_1, password => F@_2,
+	   roles => lists_reverse(R1, TrUserData)},
+    if F@_4 == '$undef' -> S1;
+       true -> S1#{options => F@_4}
+    end.
 
 'd_field_authpb.User_name'(<<1:1, X:7, Rest/binary>>, N,
-			   Acc, F@_1, F@_2, F@_3, TrUserData)
+			   Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_name'(Rest, N + 7, X bsl N + Acc,
-			       F@_1, F@_2, F@_3, TrUserData);
+			       F@_1, F@_2, F@_3, F@_4, TrUserData);
 'd_field_authpb.User_name'(<<0:1, X:7, Rest/binary>>, N,
-			   Acc, _, F@_2, F@_3, TrUserData) ->
+			   Acc, _, F@_2, F@_3, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, NewFValue,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'd_field_authpb.User_password'(<<1:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, F@_2, F@_3, TrUserData)
+			       N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_password'(Rest, N + 7,
-				   X bsl N + Acc, F@_1, F@_2, F@_3, TrUserData);
+				   X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				   TrUserData);
 'd_field_authpb.User_password'(<<0:1, X:7,
 				 Rest/binary>>,
-			       N, Acc, F@_1, _, F@_3, TrUserData) ->
+			       N, Acc, F@_1, _, F@_3, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
 			   {id(binary:copy(Bytes), TrUserData), Rest2}
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
-				     NewFValue, F@_3, TrUserData).
+				     NewFValue, F@_3, F@_4, TrUserData).
 
 'd_field_authpb.User_roles'(<<1:1, X:7, Rest/binary>>,
-			    N, Acc, F@_1, F@_2, F@_3, TrUserData)
+			    N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'd_field_authpb.User_roles'(Rest, N + 7, X bsl N + Acc,
-				F@_1, F@_2, F@_3, TrUserData);
+				F@_1, F@_2, F@_3, F@_4, TrUserData);
 'd_field_authpb.User_roles'(<<0:1, X:7, Rest/binary>>,
-			    N, Acc, F@_1, F@_2, Prev, TrUserData) ->
+			    N, Acc, F@_1, F@_2, Prev, F@_4, TrUserData) ->
     {NewFValue, RestF} = begin
 			   Len = X bsl N + Acc,
 			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
@@ -44622,47 +45465,74 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
 			 end,
     'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
 				     F@_2, cons(NewFValue, Prev, TrUserData),
+				     F@_4, TrUserData).
+
+'d_field_authpb.User_options'(<<1:1, X:7, Rest/binary>>,
+			      N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
+    when N < 57 ->
+    'd_field_authpb.User_options'(Rest, N + 7,
+				  X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
+				  TrUserData);
+'d_field_authpb.User_options'(<<0:1, X:7, Rest/binary>>,
+			      N, Acc, F@_1, F@_2, F@_3, Prev, TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bs:Len/binary, Rest2/binary>> = Rest,
+			   {id('decode_msg_authpb.UserAddOptions'(Bs,
+								  TrUserData),
+			       TrUserData),
+			    Rest2}
+			 end,
+    'dfp_read_field_def_authpb.User'(RestF, 0, 0, F@_1,
+				     F@_2, F@_3,
+				     if Prev == '$undef' -> NewFValue;
+					true ->
+					    'merge_msg_authpb.UserAddOptions'(Prev,
+									      NewFValue,
+									      TrUserData)
+				     end,
 				     TrUserData).
 
 'skip_varint_authpb.User'(<<1:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'skip_varint_authpb.User'(Rest, Z1, Z2, F@_1, F@_2,
-			      F@_3, TrUserData);
+			      F@_3, F@_4, TrUserData);
 'skip_varint_authpb.User'(<<0:1, _:7, Rest/binary>>, Z1,
-			  Z2, F@_1, F@_2, F@_3, TrUserData) ->
+			  Z2, F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_length_delimited_authpb.User'(<<1:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, TrUserData)
+				    N, Acc, F@_1, F@_2, F@_3, F@_4, TrUserData)
     when N < 57 ->
     'skip_length_delimited_authpb.User'(Rest, N + 7,
-					X bsl N + Acc, F@_1, F@_2, F@_3,
+					X bsl N + Acc, F@_1, F@_2, F@_3, F@_4,
 					TrUserData);
 'skip_length_delimited_authpb.User'(<<0:1, X:7,
 				      Rest/binary>>,
-				    N, Acc, F@_1, F@_2, F@_3, TrUserData) ->
+				    N, Acc, F@_1, F@_2, F@_3, F@_4,
+				    TrUserData) ->
     Length = X bsl N + Acc,
     <<_:Length/binary, Rest2/binary>> = Rest,
     'dfp_read_field_def_authpb.User'(Rest2, 0, 0, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_group_authpb.User'(Bin, FNum, Z2, F@_1, F@_2,
-			 F@_3, TrUserData) ->
+			 F@_3, F@_4, TrUserData) ->
     {_, Rest} = read_group(Bin, FNum),
     'dfp_read_field_def_authpb.User'(Rest, 0, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_32_authpb.User'(<<_:32, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'skip_64_authpb.User'(<<_:64, Rest/binary>>, Z1, Z2,
-		      F@_1, F@_2, F@_3, TrUserData) ->
+		      F@_1, F@_2, F@_3, F@_4, TrUserData) ->
     'dfp_read_field_def_authpb.User'(Rest, Z1, Z2, F@_1,
-				     F@_2, F@_3, TrUserData).
+				     F@_2, F@_3, F@_4, TrUserData).
 
 'decode_msg_authpb.Permission'(Bin, TrUserData) ->
     'dfp_read_field_def_authpb.Permission'(Bin, 0, 0,
@@ -45296,6 +46166,12 @@ merge_msgs(Prev, New, MsgName, Opts) ->
       'Etcd.MemberListResponse' ->
 	  'merge_msg_Etcd.MemberListResponse'(Prev, New,
 					      TrUserData);
+      'Etcd.MemberPromoteRequest' ->
+	  'merge_msg_Etcd.MemberPromoteRequest'(Prev, New,
+						TrUserData);
+      'Etcd.MemberPromoteResponse' ->
+	  'merge_msg_Etcd.MemberPromoteResponse'(Prev, New,
+						 TrUserData);
       'Etcd.DefragmentRequest' ->
 	  'merge_msg_Etcd.DefragmentRequest'(Prev, New,
 					     TrUserData);
@@ -45494,6 +46370,9 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 	  'merge_msg_mvccpb.KeyValue'(Prev, New, TrUserData);
       'mvccpb.Event' ->
 	  'merge_msg_mvccpb.Event'(Prev, New, TrUserData);
+      'authpb.UserAddOptions' ->
+	  'merge_msg_authpb.UserAddOptions'(Prev, New,
+					    TrUserData);
       'authpb.User' ->
 	  'merge_msg_authpb.User'(Prev, New, TrUserData);
       'authpb.Permission' ->
@@ -46503,32 +47382,46 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 	       S3#{peerURLs => PFpeerURLs};
 	   {_, _} -> S3
 	 end,
+    S5 = case {PMsg, NMsg} of
+	   {#{clientURLs := PFclientURLs},
+	    #{clientURLs := NFclientURLs}} ->
+	       S4#{clientURLs =>
+		       'erlang_++'(PFclientURLs, NFclientURLs, TrUserData)};
+	   {_, #{clientURLs := NFclientURLs}} ->
+	       S4#{clientURLs => NFclientURLs};
+	   {#{clientURLs := PFclientURLs}, _} ->
+	       S4#{clientURLs => PFclientURLs};
+	   {_, _} -> S4
+	 end,
     case {PMsg, NMsg} of
-      {#{clientURLs := PFclientURLs},
-       #{clientURLs := NFclientURLs}} ->
-	  S4#{clientURLs =>
-		  'erlang_++'(PFclientURLs, NFclientURLs, TrUserData)};
-      {_, #{clientURLs := NFclientURLs}} ->
-	  S4#{clientURLs => NFclientURLs};
-      {#{clientURLs := PFclientURLs}, _} ->
-	  S4#{clientURLs => PFclientURLs};
-      {_, _} -> S4
+      {_, #{isLearner := NFisLearner}} ->
+	  S5#{isLearner => NFisLearner};
+      {#{isLearner := PFisLearner}, _} ->
+	  S5#{isLearner => PFisLearner};
+      _ -> S5
     end.
 
 -compile({nowarn_unused_function,'merge_msg_Etcd.MemberAddRequest'/3}).
 'merge_msg_Etcd.MemberAddRequest'(PMsg, NMsg,
 				  TrUserData) ->
     S1 = #{},
+    S2 = case {PMsg, NMsg} of
+	   {#{peerURLs := PFpeerURLs},
+	    #{peerURLs := NFpeerURLs}} ->
+	       S1#{peerURLs =>
+		       'erlang_++'(PFpeerURLs, NFpeerURLs, TrUserData)};
+	   {_, #{peerURLs := NFpeerURLs}} ->
+	       S1#{peerURLs => NFpeerURLs};
+	   {#{peerURLs := PFpeerURLs}, _} ->
+	       S1#{peerURLs => PFpeerURLs};
+	   {_, _} -> S1
+	 end,
     case {PMsg, NMsg} of
-      {#{peerURLs := PFpeerURLs},
-       #{peerURLs := NFpeerURLs}} ->
-	  S1#{peerURLs =>
-		  'erlang_++'(PFpeerURLs, NFpeerURLs, TrUserData)};
-      {_, #{peerURLs := NFpeerURLs}} ->
-	  S1#{peerURLs => NFpeerURLs};
-      {#{peerURLs := PFpeerURLs}, _} ->
-	  S1#{peerURLs => PFpeerURLs};
-      {_, _} -> S1
+      {_, #{isLearner := NFisLearner}} ->
+	  S2#{isLearner => NFisLearner};
+      {#{isLearner := PFisLearner}, _} ->
+	  S2#{isLearner => PFisLearner};
+      _ -> S2
     end.
 
 -compile({nowarn_unused_function,'merge_msg_Etcd.MemberAddResponse'/3}).
@@ -46650,6 +47543,39 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 -compile({nowarn_unused_function,'merge_msg_Etcd.MemberListResponse'/3}).
 'merge_msg_Etcd.MemberListResponse'(PMsg, NMsg,
 				    TrUserData) ->
+    S1 = #{},
+    S2 = case {PMsg, NMsg} of
+	   {#{header := PFheader}, #{header := NFheader}} ->
+	       S1#{header =>
+		       'merge_msg_Etcd.ResponseHeader'(PFheader, NFheader,
+						       TrUserData)};
+	   {_, #{header := NFheader}} -> S1#{header => NFheader};
+	   {#{header := PFheader}, _} -> S1#{header => PFheader};
+	   {_, _} -> S1
+	 end,
+    case {PMsg, NMsg} of
+      {#{members := PFmembers}, #{members := NFmembers}} ->
+	  S2#{members =>
+		  'erlang_++'(PFmembers, NFmembers, TrUserData)};
+      {_, #{members := NFmembers}} ->
+	  S2#{members => NFmembers};
+      {#{members := PFmembers}, _} ->
+	  S2#{members => PFmembers};
+      {_, _} -> S2
+    end.
+
+-compile({nowarn_unused_function,'merge_msg_Etcd.MemberPromoteRequest'/3}).
+'merge_msg_Etcd.MemberPromoteRequest'(PMsg, NMsg, _) ->
+    S1 = #{},
+    case {PMsg, NMsg} of
+      {_, #{'ID' := NFID}} -> S1#{'ID' => NFID};
+      {#{'ID' := PFID}, _} -> S1#{'ID' => PFID};
+      _ -> S1
+    end.
+
+-compile({nowarn_unused_function,'merge_msg_Etcd.MemberPromoteResponse'/3}).
+'merge_msg_Etcd.MemberPromoteResponse'(PMsg, NMsg,
+				       TrUserData) ->
     S1 = #{},
     S2 = case {PMsg, NMsg} of
 	   {#{header := PFheader}, #{header := NFheader}} ->
@@ -46838,12 +47764,19 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 	   {#{errors := PFerrors}, _} -> S8#{errors => PFerrors};
 	   {_, _} -> S8
 	 end,
+    S10 = case {PMsg, NMsg} of
+	    {_, #{dbSizeInUse := NFdbSizeInUse}} ->
+		S9#{dbSizeInUse => NFdbSizeInUse};
+	    {#{dbSizeInUse := PFdbSizeInUse}, _} ->
+		S9#{dbSizeInUse => PFdbSizeInUse};
+	    _ -> S9
+	  end,
     case {PMsg, NMsg} of
-      {_, #{dbSizeInUse := NFdbSizeInUse}} ->
-	  S9#{dbSizeInUse => NFdbSizeInUse};
-      {#{dbSizeInUse := PFdbSizeInUse}, _} ->
-	  S9#{dbSizeInUse => PFdbSizeInUse};
-      _ -> S9
+      {_, #{isLearner := NFisLearner}} ->
+	  S10#{isLearner => NFisLearner};
+      {#{isLearner := PFisLearner}, _} ->
+	  S10#{isLearner => PFisLearner};
+      _ -> S10
     end.
 
 -compile({nowarn_unused_function,'merge_msg_Etcd.AuthEnableRequest'/3}).
@@ -46873,19 +47806,31 @@ merge_msgs(Prev, New, MsgName, Opts) ->
     end.
 
 -compile({nowarn_unused_function,'merge_msg_Etcd.AuthUserAddRequest'/3}).
-'merge_msg_Etcd.AuthUserAddRequest'(PMsg, NMsg, _) ->
+'merge_msg_Etcd.AuthUserAddRequest'(PMsg, NMsg,
+				    TrUserData) ->
     S1 = #{},
     S2 = case {PMsg, NMsg} of
 	   {_, #{name := NFname}} -> S1#{name => NFname};
 	   {#{name := PFname}, _} -> S1#{name => PFname};
 	   _ -> S1
 	 end,
+    S3 = case {PMsg, NMsg} of
+	   {_, #{password := NFpassword}} ->
+	       S2#{password => NFpassword};
+	   {#{password := PFpassword}, _} ->
+	       S2#{password => PFpassword};
+	   _ -> S2
+	 end,
     case {PMsg, NMsg} of
-      {_, #{password := NFpassword}} ->
-	  S2#{password => NFpassword};
-      {#{password := PFpassword}, _} ->
-	  S2#{password => PFpassword};
-      _ -> S2
+      {#{options := PFoptions}, #{options := NFoptions}} ->
+	  S3#{options =>
+		  'merge_msg_authpb.UserAddOptions'(PFoptions, NFoptions,
+						    TrUserData)};
+      {_, #{options := NFoptions}} ->
+	  S3#{options => NFoptions};
+      {#{options := PFoptions}, _} ->
+	  S3#{options => PFoptions};
+      {_, _} -> S3
     end.
 
 -compile({nowarn_unused_function,'merge_msg_Etcd.AuthUserGetRequest'/3}).
@@ -48879,6 +49824,17 @@ merge_msgs(Prev, New, MsgName, Opts) ->
       {_, _} -> S3
     end.
 
+-compile({nowarn_unused_function,'merge_msg_authpb.UserAddOptions'/3}).
+'merge_msg_authpb.UserAddOptions'(PMsg, NMsg, _) ->
+    S1 = #{},
+    case {PMsg, NMsg} of
+      {_, #{no_password := NFno_password}} ->
+	  S1#{no_password => NFno_password};
+      {#{no_password := PFno_password}, _} ->
+	  S1#{no_password => PFno_password};
+      _ -> S1
+    end.
+
 -compile({nowarn_unused_function,'merge_msg_authpb.User'/3}).
 'merge_msg_authpb.User'(PMsg, NMsg, TrUserData) ->
     S1 = #{},
@@ -48894,12 +49850,23 @@ merge_msgs(Prev, New, MsgName, Opts) ->
 	       S2#{password => PFpassword};
 	   _ -> S2
 	 end,
+    S4 = case {PMsg, NMsg} of
+	   {#{roles := PFroles}, #{roles := NFroles}} ->
+	       S3#{roles => 'erlang_++'(PFroles, NFroles, TrUserData)};
+	   {_, #{roles := NFroles}} -> S3#{roles => NFroles};
+	   {#{roles := PFroles}, _} -> S3#{roles => PFroles};
+	   {_, _} -> S3
+	 end,
     case {PMsg, NMsg} of
-      {#{roles := PFroles}, #{roles := NFroles}} ->
-	  S3#{roles => 'erlang_++'(PFroles, NFroles, TrUserData)};
-      {_, #{roles := NFroles}} -> S3#{roles => NFroles};
-      {#{roles := PFroles}, _} -> S3#{roles => PFroles};
-      {_, _} -> S3
+      {#{options := PFoptions}, #{options := NFoptions}} ->
+	  S4#{options =>
+		  'merge_msg_authpb.UserAddOptions'(PFoptions, NFoptions,
+						    TrUserData)};
+      {_, #{options := NFoptions}} ->
+	  S4#{options => NFoptions};
+      {#{options := PFoptions}, _} ->
+	  S4#{options => PFoptions};
+      {_, _} -> S4
     end.
 
 -compile({nowarn_unused_function,'merge_msg_authpb.Permission'/3}).
@@ -49079,6 +50046,12 @@ verify_msg(Msg, MsgName, Opts) ->
       'Etcd.MemberListResponse' ->
 	  'v_msg_Etcd.MemberListResponse'(Msg, [MsgName],
 					  TrUserData);
+      'Etcd.MemberPromoteRequest' ->
+	  'v_msg_Etcd.MemberPromoteRequest'(Msg, [MsgName],
+					    TrUserData);
+      'Etcd.MemberPromoteResponse' ->
+	  'v_msg_Etcd.MemberPromoteResponse'(Msg, [MsgName],
+					     TrUserData);
       'Etcd.DefragmentRequest' ->
 	  'v_msg_Etcd.DefragmentRequest'(Msg, [MsgName],
 					 TrUserData);
@@ -49279,6 +50252,9 @@ verify_msg(Msg, MsgName, Opts) ->
 	  'v_msg_mvccpb.KeyValue'(Msg, [MsgName], TrUserData);
       'mvccpb.Event' ->
 	  'v_msg_mvccpb.Event'(Msg, [MsgName], TrUserData);
+      'authpb.UserAddOptions' ->
+	  'v_msg_authpb.UserAddOptions'(Msg, [MsgName],
+					TrUserData);
       'authpb.User' ->
 	  'v_msg_authpb.User'(Msg, [MsgName], TrUserData);
       'authpb.Permission' ->
@@ -50843,10 +51819,16 @@ verify_msg(Msg, MsgName, Opts) ->
 	  end;
       _ -> ok
     end,
+    case M of
+      #{isLearner := F5} ->
+	  v_type_bool(F5, [isLearner | Path], TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun ('ID') -> ok;
 		      (name) -> ok;
 		      (peerURLs) -> ok;
 		      (clientURLs) -> ok;
+		      (isLearner) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -50876,7 +51858,13 @@ verify_msg(Msg, MsgName, Opts) ->
 	  end;
       _ -> ok
     end,
+    case M of
+      #{isLearner := F2} ->
+	  v_type_bool(F2, [isLearner | Path], TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun (peerURLs) -> ok;
+		      (isLearner) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -51137,6 +52125,73 @@ verify_msg(Msg, MsgName, Opts) ->
 		  M, Path);
 'v_msg_Etcd.MemberListResponse'(X, Path, _TrUserData) ->
     mk_type_error({expected_msg, 'Etcd.MemberListResponse'},
+		  X, Path).
+
+-compile({nowarn_unused_function,'v_msg_Etcd.MemberPromoteRequest'/3}).
+-dialyzer({nowarn_function,'v_msg_Etcd.MemberPromoteRequest'/3}).
+'v_msg_Etcd.MemberPromoteRequest'(#{} = M, Path,
+				  TrUserData) ->
+    case M of
+      #{'ID' := F1} ->
+	  v_type_uint64(F1, ['ID' | Path], TrUserData);
+      _ -> ok
+    end,
+    lists:foreach(fun ('ID') -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_Etcd.MemberPromoteRequest'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'Etcd.MemberPromoteRequest'},
+		  M, Path);
+'v_msg_Etcd.MemberPromoteRequest'(X, Path,
+				  _TrUserData) ->
+    mk_type_error({expected_msg,
+		   'Etcd.MemberPromoteRequest'},
+		  X, Path).
+
+-compile({nowarn_unused_function,'v_msg_Etcd.MemberPromoteResponse'/3}).
+-dialyzer({nowarn_function,'v_msg_Etcd.MemberPromoteResponse'/3}).
+'v_msg_Etcd.MemberPromoteResponse'(#{} = M, Path,
+				   TrUserData) ->
+    case M of
+      #{header := F1} ->
+	  'v_msg_Etcd.ResponseHeader'(F1, [header | Path],
+				      TrUserData);
+      _ -> ok
+    end,
+    case M of
+      #{members := F2} ->
+	  if is_list(F2) ->
+		 _ = ['v_msg_Etcd.Member'(Elem, [members | Path],
+					  TrUserData)
+		      || Elem <- F2],
+		 ok;
+	     true ->
+		 mk_type_error({invalid_list_of, {msg, 'Etcd.Member'}},
+			       F2, [members | Path])
+	  end;
+      _ -> ok
+    end,
+    lists:foreach(fun (header) -> ok;
+		      (members) -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_Etcd.MemberPromoteResponse'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'Etcd.MemberPromoteResponse'},
+		  M, Path);
+'v_msg_Etcd.MemberPromoteResponse'(X, Path,
+				   _TrUserData) ->
+    mk_type_error({expected_msg,
+		   'Etcd.MemberPromoteResponse'},
 		  X, Path).
 
 -compile({nowarn_unused_function,'v_msg_Etcd.DefragmentRequest'/3}).
@@ -51409,6 +52464,11 @@ verify_msg(Msg, MsgName, Opts) ->
 	  v_type_int64(F9, [dbSizeInUse | Path], TrUserData);
       _ -> ok
     end,
+    case M of
+      #{isLearner := F10} ->
+	  v_type_bool(F10, [isLearner | Path], TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun (header) -> ok;
 		      (version) -> ok;
 		      (dbSize) -> ok;
@@ -51418,6 +52478,7 @@ verify_msg(Msg, MsgName, Opts) ->
 		      (raftAppliedIndex) -> ok;
 		      (errors) -> ok;
 		      (dbSizeInUse) -> ok;
+		      (isLearner) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -51512,8 +52573,15 @@ verify_msg(Msg, MsgName, Opts) ->
 	  v_type_string(F2, [password | Path], TrUserData);
       _ -> ok
     end,
+    case M of
+      #{options := F3} ->
+	  'v_msg_authpb.UserAddOptions'(F3, [options | Path],
+					TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun (name) -> ok;
 		      (password) -> ok;
+		      (options) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -54390,6 +55458,30 @@ verify_msg(Msg, MsgName, Opts) ->
 'v_msg_mvccpb.Event'(X, Path, _TrUserData) ->
     mk_type_error({expected_msg, 'mvccpb.Event'}, X, Path).
 
+-compile({nowarn_unused_function,'v_msg_authpb.UserAddOptions'/3}).
+-dialyzer({nowarn_function,'v_msg_authpb.UserAddOptions'/3}).
+'v_msg_authpb.UserAddOptions'(#{} = M, Path,
+			      TrUserData) ->
+    case M of
+      #{no_password := F1} ->
+	  v_type_bool(F1, [no_password | Path], TrUserData);
+      _ -> ok
+    end,
+    lists:foreach(fun (no_password) -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_authpb.UserAddOptions'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'authpb.UserAddOptions'},
+		  M, Path);
+'v_msg_authpb.UserAddOptions'(X, Path, _TrUserData) ->
+    mk_type_error({expected_msg, 'authpb.UserAddOptions'},
+		  X, Path).
+
 -compile({nowarn_unused_function,'v_msg_authpb.User'/3}).
 -dialyzer({nowarn_function,'v_msg_authpb.User'/3}).
 'v_msg_authpb.User'(#{} = M, Path, TrUserData) ->
@@ -54415,9 +55507,16 @@ verify_msg(Msg, MsgName, Opts) ->
 	  end;
       _ -> ok
     end,
+    case M of
+      #{options := F4} ->
+	  'v_msg_authpb.UserAddOptions'(F4, [options | Path],
+					TrUserData);
+      _ -> ok
+    end,
     lists:foreach(fun (name) -> ok;
 		      (password) -> ok;
 		      (roles) -> ok;
+		      (options) -> ok;
 		      (OtherKey) ->
 			  mk_type_error({extraneous_key, OtherKey}, M, Path)
 		  end,
@@ -55363,10 +56462,14 @@ get_msg_defs() ->
        #{name => peerURLs, fnum => 3, rnum => 4,
 	 type => string, occurrence => repeated, opts => []},
        #{name => clientURLs, fnum => 4, rnum => 5,
-	 type => string, occurrence => repeated, opts => []}]},
+	 type => string, occurrence => repeated, opts => []},
+       #{name => isLearner, fnum => 5, rnum => 6, type => bool,
+	 occurrence => optional, opts => []}]},
      {{msg, 'Etcd.MemberAddRequest'},
       [#{name => peerURLs, fnum => 1, rnum => 2,
-	 type => string, occurrence => repeated, opts => []}]},
+	 type => string, occurrence => repeated, opts => []},
+       #{name => isLearner, fnum => 2, rnum => 3, type => bool,
+	 occurrence => optional, opts => []}]},
      {{msg, 'Etcd.MemberAddResponse'},
       [#{name => header, fnum => 1, rnum => 2,
 	 type => {msg, 'Etcd.ResponseHeader'},
@@ -55401,6 +56504,16 @@ get_msg_defs() ->
 	 opts => []}]},
      {{msg, 'Etcd.MemberListRequest'}, []},
      {{msg, 'Etcd.MemberListResponse'},
+      [#{name => header, fnum => 1, rnum => 2,
+	 type => {msg, 'Etcd.ResponseHeader'},
+	 occurrence => optional, opts => []},
+       #{name => members, fnum => 2, rnum => 3,
+	 type => {msg, 'Etcd.Member'}, occurrence => repeated,
+	 opts => []}]},
+     {{msg, 'Etcd.MemberPromoteRequest'},
+      [#{name => 'ID', fnum => 1, rnum => 2, type => uint64,
+	 occurrence => optional, opts => []}]},
+     {{msg, 'Etcd.MemberPromoteResponse'},
       [#{name => header, fnum => 1, rnum => 2,
 	 type => {msg, 'Etcd.ResponseHeader'},
 	 occurrence => optional, opts => []},
@@ -55461,7 +56574,9 @@ get_msg_defs() ->
        #{name => errors, fnum => 8, rnum => 9, type => string,
 	 occurrence => repeated, opts => []},
        #{name => dbSizeInUse, fnum => 9, rnum => 10,
-	 type => int64, occurrence => optional, opts => []}]},
+	 type => int64, occurrence => optional, opts => []},
+       #{name => isLearner, fnum => 10, rnum => 11,
+	 type => bool, occurrence => optional, opts => []}]},
      {{msg, 'Etcd.AuthEnableRequest'}, []},
      {{msg, 'Etcd.AuthDisableRequest'}, []},
      {{msg, 'Etcd.AuthenticateRequest'},
@@ -55473,7 +56588,10 @@ get_msg_defs() ->
       [#{name => name, fnum => 1, rnum => 2, type => string,
 	 occurrence => optional, opts => []},
        #{name => password, fnum => 2, rnum => 3,
-	 type => string, occurrence => optional, opts => []}]},
+	 type => string, occurrence => optional, opts => []},
+       #{name => options, fnum => 3, rnum => 4,
+	 type => {msg, 'authpb.UserAddOptions'},
+	 occurrence => optional, opts => []}]},
      {{msg, 'Etcd.AuthUserGetRequest'},
       [#{name => name, fnum => 1, rnum => 2, type => string,
 	 occurrence => optional, opts => []}]},
@@ -56070,13 +57188,19 @@ get_msg_defs() ->
        #{name => prev_kv, fnum => 3, rnum => 4,
 	 type => {msg, 'mvccpb.KeyValue'},
 	 occurrence => optional, opts => []}]},
+     {{msg, 'authpb.UserAddOptions'},
+      [#{name => no_password, fnum => 1, rnum => 2,
+	 type => bool, occurrence => optional, opts => []}]},
      {{msg, 'authpb.User'},
       [#{name => name, fnum => 1, rnum => 2, type => bytes,
 	 occurrence => optional, opts => []},
        #{name => password, fnum => 2, rnum => 3, type => bytes,
 	 occurrence => optional, opts => []},
        #{name => roles, fnum => 3, rnum => 4, type => string,
-	 occurrence => repeated, opts => []}]},
+	 occurrence => repeated, opts => []},
+       #{name => options, fnum => 4, rnum => 5,
+	 type => {msg, 'authpb.UserAddOptions'},
+	 occurrence => optional, opts => []}]},
      {{msg, 'authpb.Permission'},
       [#{name => permType, fnum => 1, rnum => 2,
 	 type => {enum, 'authpb.Permission.Type'},
@@ -56120,14 +57244,15 @@ get_msg_names() ->
      'Etcd.MemberRemoveRequest', 'Etcd.MemberRemoveResponse',
      'Etcd.MemberUpdateRequest', 'Etcd.MemberUpdateResponse',
      'Etcd.MemberListRequest', 'Etcd.MemberListResponse',
-     'Etcd.DefragmentRequest', 'Etcd.DefragmentResponse',
-     'Etcd.MoveLeaderRequest', 'Etcd.MoveLeaderResponse',
-     'Etcd.AlarmRequest', 'Etcd.AlarmMember',
-     'Etcd.AlarmResponse', 'Etcd.StatusRequest',
-     'Etcd.StatusResponse', 'Etcd.AuthEnableRequest',
-     'Etcd.AuthDisableRequest', 'Etcd.AuthenticateRequest',
-     'Etcd.AuthUserAddRequest', 'Etcd.AuthUserGetRequest',
-     'Etcd.AuthUserDeleteRequest',
+     'Etcd.MemberPromoteRequest',
+     'Etcd.MemberPromoteResponse', 'Etcd.DefragmentRequest',
+     'Etcd.DefragmentResponse', 'Etcd.MoveLeaderRequest',
+     'Etcd.MoveLeaderResponse', 'Etcd.AlarmRequest',
+     'Etcd.AlarmMember', 'Etcd.AlarmResponse',
+     'Etcd.StatusRequest', 'Etcd.StatusResponse',
+     'Etcd.AuthEnableRequest', 'Etcd.AuthDisableRequest',
+     'Etcd.AuthenticateRequest', 'Etcd.AuthUserAddRequest',
+     'Etcd.AuthUserGetRequest', 'Etcd.AuthUserDeleteRequest',
      'Etcd.AuthUserChangePasswordRequest',
      'Etcd.AuthUserGrantRoleRequest',
      'Etcd.AuthUserRevokeRoleRequest',
@@ -56173,8 +57298,8 @@ get_msg_names() ->
      'google.protobuf.SourceCodeInfo',
      'google.protobuf.GeneratedCodeInfo.Annotation',
      'google.protobuf.GeneratedCodeInfo', 'mvccpb.KeyValue',
-     'mvccpb.Event', 'authpb.User', 'authpb.Permission',
-     'authpb.Role'].
+     'mvccpb.Event', 'authpb.UserAddOptions', 'authpb.User',
+     'authpb.Permission', 'authpb.Role'].
 
 
 get_group_names() -> [].
@@ -56207,14 +57332,15 @@ get_msg_or_group_names() ->
      'Etcd.MemberRemoveRequest', 'Etcd.MemberRemoveResponse',
      'Etcd.MemberUpdateRequest', 'Etcd.MemberUpdateResponse',
      'Etcd.MemberListRequest', 'Etcd.MemberListResponse',
-     'Etcd.DefragmentRequest', 'Etcd.DefragmentResponse',
-     'Etcd.MoveLeaderRequest', 'Etcd.MoveLeaderResponse',
-     'Etcd.AlarmRequest', 'Etcd.AlarmMember',
-     'Etcd.AlarmResponse', 'Etcd.StatusRequest',
-     'Etcd.StatusResponse', 'Etcd.AuthEnableRequest',
-     'Etcd.AuthDisableRequest', 'Etcd.AuthenticateRequest',
-     'Etcd.AuthUserAddRequest', 'Etcd.AuthUserGetRequest',
-     'Etcd.AuthUserDeleteRequest',
+     'Etcd.MemberPromoteRequest',
+     'Etcd.MemberPromoteResponse', 'Etcd.DefragmentRequest',
+     'Etcd.DefragmentResponse', 'Etcd.MoveLeaderRequest',
+     'Etcd.MoveLeaderResponse', 'Etcd.AlarmRequest',
+     'Etcd.AlarmMember', 'Etcd.AlarmResponse',
+     'Etcd.StatusRequest', 'Etcd.StatusResponse',
+     'Etcd.AuthEnableRequest', 'Etcd.AuthDisableRequest',
+     'Etcd.AuthenticateRequest', 'Etcd.AuthUserAddRequest',
+     'Etcd.AuthUserGetRequest', 'Etcd.AuthUserDeleteRequest',
      'Etcd.AuthUserChangePasswordRequest',
      'Etcd.AuthUserGrantRoleRequest',
      'Etcd.AuthUserRevokeRoleRequest',
@@ -56260,8 +57386,8 @@ get_msg_or_group_names() ->
      'google.protobuf.SourceCodeInfo',
      'google.protobuf.GeneratedCodeInfo.Annotation',
      'google.protobuf.GeneratedCodeInfo', 'mvccpb.KeyValue',
-     'mvccpb.Event', 'authpb.User', 'authpb.Permission',
-     'authpb.Role'].
+     'mvccpb.Event', 'authpb.UserAddOptions', 'authpb.User',
+     'authpb.Permission', 'authpb.Role'].
 
 
 get_enum_names() ->
@@ -56621,10 +57747,14 @@ find_msg_def('Etcd.Member') ->
      #{name => peerURLs, fnum => 3, rnum => 4,
        type => string, occurrence => repeated, opts => []},
      #{name => clientURLs, fnum => 4, rnum => 5,
-       type => string, occurrence => repeated, opts => []}];
+       type => string, occurrence => repeated, opts => []},
+     #{name => isLearner, fnum => 5, rnum => 6, type => bool,
+       occurrence => optional, opts => []}];
 find_msg_def('Etcd.MemberAddRequest') ->
     [#{name => peerURLs, fnum => 1, rnum => 2,
-       type => string, occurrence => repeated, opts => []}];
+       type => string, occurrence => repeated, opts => []},
+     #{name => isLearner, fnum => 2, rnum => 3, type => bool,
+       occurrence => optional, opts => []}];
 find_msg_def('Etcd.MemberAddResponse') ->
     [#{name => header, fnum => 1, rnum => 2,
        type => {msg, 'Etcd.ResponseHeader'},
@@ -56659,6 +57789,16 @@ find_msg_def('Etcd.MemberUpdateResponse') ->
        opts => []}];
 find_msg_def('Etcd.MemberListRequest') -> [];
 find_msg_def('Etcd.MemberListResponse') ->
+    [#{name => header, fnum => 1, rnum => 2,
+       type => {msg, 'Etcd.ResponseHeader'},
+       occurrence => optional, opts => []},
+     #{name => members, fnum => 2, rnum => 3,
+       type => {msg, 'Etcd.Member'}, occurrence => repeated,
+       opts => []}];
+find_msg_def('Etcd.MemberPromoteRequest') ->
+    [#{name => 'ID', fnum => 1, rnum => 2, type => uint64,
+       occurrence => optional, opts => []}];
+find_msg_def('Etcd.MemberPromoteResponse') ->
     [#{name => header, fnum => 1, rnum => 2,
        type => {msg, 'Etcd.ResponseHeader'},
        occurrence => optional, opts => []},
@@ -56719,7 +57859,9 @@ find_msg_def('Etcd.StatusResponse') ->
      #{name => errors, fnum => 8, rnum => 9, type => string,
        occurrence => repeated, opts => []},
      #{name => dbSizeInUse, fnum => 9, rnum => 10,
-       type => int64, occurrence => optional, opts => []}];
+       type => int64, occurrence => optional, opts => []},
+     #{name => isLearner, fnum => 10, rnum => 11,
+       type => bool, occurrence => optional, opts => []}];
 find_msg_def('Etcd.AuthEnableRequest') -> [];
 find_msg_def('Etcd.AuthDisableRequest') -> [];
 find_msg_def('Etcd.AuthenticateRequest') ->
@@ -56731,7 +57873,10 @@ find_msg_def('Etcd.AuthUserAddRequest') ->
     [#{name => name, fnum => 1, rnum => 2, type => string,
        occurrence => optional, opts => []},
      #{name => password, fnum => 2, rnum => 3,
-       type => string, occurrence => optional, opts => []}];
+       type => string, occurrence => optional, opts => []},
+     #{name => options, fnum => 3, rnum => 4,
+       type => {msg, 'authpb.UserAddOptions'},
+       occurrence => optional, opts => []}];
 find_msg_def('Etcd.AuthUserGetRequest') ->
     [#{name => name, fnum => 1, rnum => 2, type => string,
        occurrence => optional, opts => []}];
@@ -57327,13 +58472,19 @@ find_msg_def('mvccpb.Event') ->
      #{name => prev_kv, fnum => 3, rnum => 4,
        type => {msg, 'mvccpb.KeyValue'},
        occurrence => optional, opts => []}];
+find_msg_def('authpb.UserAddOptions') ->
+    [#{name => no_password, fnum => 1, rnum => 2,
+       type => bool, occurrence => optional, opts => []}];
 find_msg_def('authpb.User') ->
     [#{name => name, fnum => 1, rnum => 2, type => bytes,
        occurrence => optional, opts => []},
      #{name => password, fnum => 2, rnum => 3, type => bytes,
        occurrence => optional, opts => []},
      #{name => roles, fnum => 3, rnum => 4, type => string,
-       occurrence => repeated, opts => []}];
+       occurrence => repeated, opts => []},
+     #{name => options, fnum => 4, rnum => 5,
+       type => {msg, 'authpb.UserAddOptions'},
+       occurrence => optional, opts => []}];
 find_msg_def('authpb.Permission') ->
     [#{name => permType, fnum => 1, rnum => 2,
        type => {enum, 'authpb.Permission.Type'},
@@ -57831,6 +58982,11 @@ get_service_def('Etcd.Cluster') ->
 	input => 'Etcd.MemberListRequest',
 	output => 'Etcd.MemberListResponse',
 	input_stream => false, output_stream => false,
+	opts => []},
+      #{name => 'MemberPromote',
+	input => 'Etcd.MemberPromoteRequest',
+	output => 'Etcd.MemberPromoteResponse',
+	input_stream => false, output_stream => false,
 	opts => []}]};
 get_service_def('Etcd.Maintenance') ->
     {{service, 'Etcd.Maintenance'},
@@ -57949,7 +59105,7 @@ get_rpc_names('Etcd.Lease') ->
      'LeaseTimeToLive', 'LeaseLeases'];
 get_rpc_names('Etcd.Cluster') ->
     ['MemberAdd', 'MemberRemove', 'MemberUpdate',
-     'MemberList'];
+     'MemberList', 'MemberPromote'];
 get_rpc_names('Etcd.Maintenance') ->
     ['Alarm', 'Status', 'Defragment', 'Hash', 'HashKV',
      'Snapshot', 'MoveLeader'];
@@ -58061,6 +59217,12 @@ find_rpc_def(_, _) -> error.
     #{name => 'MemberList',
       input => 'Etcd.MemberListRequest',
       output => 'Etcd.MemberListResponse',
+      input_stream => false, output_stream => false,
+      opts => []};
+'find_rpc_def_Etcd.Cluster'('MemberPromote') ->
+    #{name => 'MemberPromote',
+      input => 'Etcd.MemberPromoteRequest',
+      output => 'Etcd.MemberPromoteResponse',
       input_stream => false, output_stream => false,
       opts => []};
 'find_rpc_def_Etcd.Cluster'(_) -> error.
@@ -58260,6 +59422,8 @@ fqbins_to_service_and_rpc_name(<<"Etcd.Cluster">>, <<"MemberUpdate">>) ->
     {'Etcd.Cluster', 'MemberUpdate'};
 fqbins_to_service_and_rpc_name(<<"Etcd.Cluster">>, <<"MemberList">>) ->
     {'Etcd.Cluster', 'MemberList'};
+fqbins_to_service_and_rpc_name(<<"Etcd.Cluster">>, <<"MemberPromote">>) ->
+    {'Etcd.Cluster', 'MemberPromote'};
 fqbins_to_service_and_rpc_name(<<"Etcd.Maintenance">>, <<"Alarm">>) ->
     {'Etcd.Maintenance', 'Alarm'};
 fqbins_to_service_and_rpc_name(<<"Etcd.Maintenance">>, <<"Status">>) ->
@@ -58353,6 +59517,9 @@ service_and_rpc_name_to_fqbins('Etcd.Cluster',
 service_and_rpc_name_to_fqbins('Etcd.Cluster',
 			       'MemberList') ->
     {<<"Etcd.Cluster">>, <<"MemberList">>};
+service_and_rpc_name_to_fqbins('Etcd.Cluster',
+			       'MemberPromote') ->
+    {<<"Etcd.Cluster">>, <<"MemberPromote">>};
 service_and_rpc_name_to_fqbins('Etcd.Maintenance',
 			       'Alarm') ->
     {<<"Etcd.Maintenance">>, <<"Alarm">>};
@@ -58488,6 +59655,10 @@ fqbin_to_msg_name(<<"Etcd.MemberUpdateResponse">>) ->
     'Etcd.MemberUpdateResponse';
 fqbin_to_msg_name(<<"Etcd.MemberListRequest">>) -> 'Etcd.MemberListRequest';
 fqbin_to_msg_name(<<"Etcd.MemberListResponse">>) -> 'Etcd.MemberListResponse';
+fqbin_to_msg_name(<<"Etcd.MemberPromoteRequest">>) ->
+    'Etcd.MemberPromoteRequest';
+fqbin_to_msg_name(<<"Etcd.MemberPromoteResponse">>) ->
+    'Etcd.MemberPromoteResponse';
 fqbin_to_msg_name(<<"Etcd.DefragmentRequest">>) -> 'Etcd.DefragmentRequest';
 fqbin_to_msg_name(<<"Etcd.DefragmentResponse">>) -> 'Etcd.DefragmentResponse';
 fqbin_to_msg_name(<<"Etcd.MoveLeaderRequest">>) -> 'Etcd.MoveLeaderRequest';
@@ -58604,6 +59775,7 @@ fqbin_to_msg_name(<<"google.protobuf.GeneratedCodeInfo">>) ->
     'google.protobuf.GeneratedCodeInfo';
 fqbin_to_msg_name(<<"mvccpb.KeyValue">>) -> 'mvccpb.KeyValue';
 fqbin_to_msg_name(<<"mvccpb.Event">>) -> 'mvccpb.Event';
+fqbin_to_msg_name(<<"authpb.UserAddOptions">>) -> 'authpb.UserAddOptions';
 fqbin_to_msg_name(<<"authpb.User">>) -> 'authpb.User';
 fqbin_to_msg_name(<<"authpb.Permission">>) -> 'authpb.Permission';
 fqbin_to_msg_name(<<"authpb.Role">>) -> 'authpb.Role';
@@ -58672,6 +59844,10 @@ msg_name_to_fqbin('Etcd.MemberUpdateResponse') ->
     <<"Etcd.MemberUpdateResponse">>;
 msg_name_to_fqbin('Etcd.MemberListRequest') -> <<"Etcd.MemberListRequest">>;
 msg_name_to_fqbin('Etcd.MemberListResponse') -> <<"Etcd.MemberListResponse">>;
+msg_name_to_fqbin('Etcd.MemberPromoteRequest') ->
+    <<"Etcd.MemberPromoteRequest">>;
+msg_name_to_fqbin('Etcd.MemberPromoteResponse') ->
+    <<"Etcd.MemberPromoteResponse">>;
 msg_name_to_fqbin('Etcd.DefragmentRequest') -> <<"Etcd.DefragmentRequest">>;
 msg_name_to_fqbin('Etcd.DefragmentResponse') -> <<"Etcd.DefragmentResponse">>;
 msg_name_to_fqbin('Etcd.MoveLeaderRequest') -> <<"Etcd.MoveLeaderRequest">>;
@@ -58788,6 +59964,7 @@ msg_name_to_fqbin('google.protobuf.GeneratedCodeInfo') ->
     <<"google.protobuf.GeneratedCodeInfo">>;
 msg_name_to_fqbin('mvccpb.KeyValue') -> <<"mvccpb.KeyValue">>;
 msg_name_to_fqbin('mvccpb.Event') -> <<"mvccpb.Event">>;
+msg_name_to_fqbin('authpb.UserAddOptions') -> <<"authpb.UserAddOptions">>;
 msg_name_to_fqbin('authpb.User') -> <<"authpb.User">>;
 msg_name_to_fqbin('authpb.Permission') -> <<"authpb.Permission">>;
 msg_name_to_fqbin('authpb.Role') -> <<"authpb.Role">>;
@@ -58925,6 +60102,8 @@ get_msg_containment("router") ->
      'Etcd.LeaseTimeToLiveResponse', 'Etcd.Member',
      'Etcd.MemberAddRequest', 'Etcd.MemberAddResponse',
      'Etcd.MemberListRequest', 'Etcd.MemberListResponse',
+     'Etcd.MemberPromoteRequest',
+     'Etcd.MemberPromoteResponse',
      'Etcd.MemberRemoveRequest', 'Etcd.MemberRemoveResponse',
      'Etcd.MemberUpdateRequest', 'Etcd.MemberUpdateResponse',
      'Etcd.MoveLeaderRequest', 'Etcd.MoveLeaderResponse',
@@ -58966,7 +60145,8 @@ get_msg_containment("descriptor") ->
 get_msg_containment("kv") ->
     ['mvccpb.Event', 'mvccpb.KeyValue'];
 get_msg_containment("auth") ->
-    ['authpb.Permission', 'authpb.Role', 'authpb.User'];
+    ['authpb.Permission', 'authpb.Role', 'authpb.User',
+     'authpb.UserAddOptions'];
 get_msg_containment(P) ->
     error({gpb_error, {badproto, P}}).
 
@@ -59004,6 +60184,7 @@ get_rpc_containment("router") ->
      {'Etcd.Cluster', 'MemberRemove'},
      {'Etcd.Cluster', 'MemberUpdate'},
      {'Etcd.Cluster', 'MemberList'},
+     {'Etcd.Cluster', 'MemberPromote'},
      {'Etcd.Maintenance', 'Alarm'},
      {'Etcd.Maintenance', 'Status'},
      {'Etcd.Maintenance', 'Defragment'},
@@ -59055,6 +60236,7 @@ get_enum_containment(P) ->
 
 get_proto_by_msg_name_as_fqbin(<<"Etcd.RequestOp">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.AlarmMember">>) -> "router";
+get_proto_by_msg_name_as_fqbin(<<"authpb.UserAddOptions">>) -> "auth";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseStatus">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"google.protobuf.UninterpretedOption.NamePart">>) -> "descriptor";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.WatchRequest">>) -> "router";
@@ -59063,6 +60245,7 @@ get_proto_by_msg_name_as_fqbin(<<"Etcd.WatchCancelRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MoveLeaderRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberUpdateRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberRemoveRequest">>) -> "router";
+get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberPromoteRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberListRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberAddRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseTimeToLiveRequest">>) -> "router";
@@ -59084,6 +60267,7 @@ get_proto_by_msg_name_as_fqbin(<<"Etcd.PutResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MoveLeaderResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberUpdateResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberRemoveResponse">>) -> "router";
+get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberPromoteResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberListResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.MemberAddResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseTimeToLiveResponse">>) -> "router";

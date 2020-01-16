@@ -3,33 +3,22 @@
 
 -include("eetcd.hrl").
 
+-export([whereis/1]).
 -export([check_leader/0]).
--export([open/4, whereis/1, close/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %%====================================================================
 %% API
 %%====================================================================
--spec check_leader() -> ok.
-check_leader() -> gen_server:cast(?MODULE, check_leader).
-
-open(Name, Hosts, Transport, TransportOpts) ->
-    Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    gen_server:start_link(eetcd_conn, [Name, Cluster, Transport, TransportOpts], []).
-
 whereis(Name) ->
     case ets:lookup(?ETCD_CONNS, Name) of
         [#eetcd_conn{gun = Gun, http_header = HttpHeader}] -> {ok, Gun, HttpHeader};
         _ -> {error, unavailable}
     end.
 
-close(Name) ->
-    case ets:lookup(?ETCD_CONNS, Name) of
-        [#eetcd_conn{conn = Pid}] -> erlang:send(Pid, stop);
-        _ -> ok
-    end,
-    ok.
+-spec check_leader() -> ok.
+check_leader() -> gen_server:cast(?MODULE, check_leader).
 
 %%====================================================================
 %% gen_server callbacks
@@ -46,7 +35,7 @@ init([Name, Hosts, Transport, TransportOpts]) ->
         gun => undefined,
         index => undefined,
         gun_ref => undefined,
-        http_header = []
+        http_header => []
     },
     case connect(State) of
         {ok, NewState} -> {ok, NewState};
@@ -126,7 +115,7 @@ connect(State) ->
 
 connect(State = #{cluster := Cluster, name := Name}, RetryN, Errors) when RetryN >= 2 * length(Cluster) ->
     logger:warning("~p connect error (~p) ~n", [{Name, self()}, Errors]),
-    {error, Errors, State#{gun => undefined, index => undefined, gun_ref => undefined}};
+    {error, lists:usort(Errors), State#{gun => undefined, index => undefined, gun_ref => undefined}};
 connect(State, RetryN, Errors) ->
     #{name := Name, cluster := Cluster, index := LastIndex} = State,
     CurIndex =

@@ -1,5 +1,6 @@
 -ifndef(etcd_hrl).
 -define(etcd_hrl, true).
+-include_lib("kernel/include/logger.hrl").
 
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(ETCD_HTTP2_CLIENT, etcd_http2_client).

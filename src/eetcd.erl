@@ -39,7 +39,7 @@ open(Name, Hosts, Transport, TransportOpts) ->
 -spec close(name()) -> ok.
 close(Name) ->
     case ets:lookup(?ETCD_CONNS, Name) of
-        [#eetcd_conn{conn = Pid}] -> erlang:send(Pid, stop);
+        [#eetcd_conn{conn = Pid}] -> eetcd_conn:close(Pid);
         _ -> ok
     end,
     ok.

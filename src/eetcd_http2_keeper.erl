@@ -79,7 +79,7 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 handle_info({'DOWN', Ref, process, Pid, Reason}, State = #state{pid = Pid, ref = Ref}) ->
-    error_logger:warning_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
+    error_?LOG_WARNING_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
     case connect(State) of
         {ok, NewState} -> {noreply, NewState};
         {error, Reason} -> {stop, Reason, State}
@@ -89,7 +89,7 @@ handle_info({'DOWN', _Ref, process, _OldPid, _Reason}, State) ->
 
 handle_info({gun_down, Pid, http2, {error, Reason}, KilledStreams, UnprocessedStreams},
     State = #state{pid = Pid}) ->
-    logger:warning(
+    ?LOG_WARNING(
         "~p connection down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
         [?MODULE, Pid, Reason, KilledStreams, UnprocessedStreams]),
     {noreply, State};
@@ -98,7 +98,7 @@ handle_info({gun_down, Pid, http2, normal, _KilledStreams, _UnprocessedStreams},
     {noreply, State};
 handle_info({gun_down, Pid, http2, closed, KilledStreams, UnprocessedStreams},
     State = #state{pid = Pid}) ->
-    logger:warning(
+    ?LOG_WARNING(
         "~p connection down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
         [?MODULE, Pid, closed, KilledStreams, UnprocessedStreams]),
     {noreply, State};
@@ -107,7 +107,7 @@ handle_info({gun_up, Pid, http2}, State = #state{pid = Pid}) ->
     {noreply, State};
 
 handle_info(Info, State) ->
-    logger:warning("~p Handle info unknown message ~p~n", [?MODULE, Info]),
+    ?LOG_WARNING("~p Handle info unknown message ~p~n", [?MODULE, Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -124,7 +124,7 @@ connect(State) ->
     connect(State, 0, []).
 
 connect(#state{cluster = Cluster}, RetryN, Errors) when RetryN >= 2 * length(Cluster) ->
-    error_logger:warning_msg("~p connect error (~p) ~n", [?MODULE, Errors]),
+    error_?LOG_WARNING_msg("~p connect error (~p) ~n", [?MODULE, Errors]),
     {error, Errors};
 
 connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
@@ -138,7 +138,7 @@ connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
                 rand:uniform(length(Cluster))
         end,
     {IP, Port} = lists:nth(CurIndex, Cluster),
-    logger:info("(~p) connecting to etcd_server (~p)~n", [?MODULE, {IP, Port}]),
+    ?LOG_INFO("(~p) connecting to etcd_server (~p)~n", [?MODULE, {IP, Port}]),
     {ok, Pid} = gun:open(IP, Port, get_default_gun_opts(State)),
     case gun:await_up(Pid, 1000) of
         {ok, http2} ->
@@ -150,7 +150,7 @@ connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
             end,
             true = register(?ETCD_HTTP2_CLIENT, Pid),
             Ref = erlang:monitor(process, Pid),
-            logger:info("(~p) connect to etcd_server (~p) successed~n",
+            ?LOG_INFO("(~p) connect to etcd_server (~p) successed~n",
                 [?MODULE, {IP, Port, CurIndex, Pid, Ref}]),
             {ok, State#state{pid = Pid, index = CurIndex, ref = Ref}};
         {error, Error} ->
@@ -163,7 +163,7 @@ connect(State = #state{cluster = Cluster}, RetryN, Errors) ->
 %%check_leader(State) ->
 %%    case eetcd_maintenance:status(#'Etcd.StatusRequest'{}) of
 %%        #'Etcd.StatusResponse'{leader = Leader} when Leader > 0 ->
-%%            error_logger:warning_msg("Leader(~p) already exist but request timeout~n", [?MODULE, Leader]),
+%%            error_?LOG_WARNING_msg("Leader(~p) already exist but request timeout~n", [?MODULE, Leader]),
 %%            ignore;
 %%        _ -> choose_ready_for_client(State, 1)
 %%    end.

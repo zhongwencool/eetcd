@@ -105,7 +105,7 @@ keep_alive_once(Name, LeaseID) when is_atom(Name) orelse is_reference(Name) ->
 close() ->
     lists:foldl(
         fun({_Id, Pid, _Type, _Modules}, Acc) ->
-            gen_server:cast(Pid, stop),
+            gen_server:cast(Pid, close),
             Acc + 1
         end, 0,
         supervisor:which_children(eetcd_lease_sup)).
@@ -132,9 +132,9 @@ init([Caller, Name, LeaseID]) ->
     end.
 
 handle_call(_Request, _From, State) ->
-    {reply, ok, State, State}.
+    {reply, ignore, State, State}.
 
-handle_cast(stop, State = #{lease_id := ID, caller := Caller}) ->
+handle_cast(close, State = #{lease_id := ID, caller := Caller}) ->
     erlang:send(Caller, ?Event(ID, <<"stream closed manually">>)),
     {stop, normal, State};
 
@@ -145,7 +145,7 @@ handle_info(?TRY_RECONNECTING, State) ->
     try_reconnecting(State);
 
 handle_info({'DOWN', Ref, process, Gun, Reason}, #{gun := Gun, monitor_ref := Ref} = State) ->
-    logger:info("Lease KeepAlive: ~p find gun(~p) process stop ~p~n", [self(), Gun, Reason]),
+    ?LOG_INFO("Lease KeepAlive: ~p find gun(~p) process stop ~p~n", [self(), Gun, Reason]),
     reconnect(State);
 
 handle_info({gun_data, _Pid, Ref, nofin, Data},
@@ -166,7 +166,7 @@ handle_info({gun_error, Gun, _Reason}, State = #{gun := Gun}) ->
     reconnect(State);
 
 handle_info(Info, State) ->
-    logger:error("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",
+    ?LOG_ERROR("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 

@@ -45,7 +45,7 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 handle_info({'DOWN', Ref, process, Pid, Reason}, #state{pid = Pid, monitor_ref = Ref} = State) ->
-    error_logger:warning_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
+    error_?LOG_WARNING_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
     reconnect(State);
 
 handle_info({gun_response, _Pid, Ref, nofin, 200, _Headers}, State = #state{stream_ref = Ref}) ->
@@ -60,16 +60,16 @@ handle_info({update_ttl, Id}, State = #state{stream_ref = Ref, pid = Pid}) ->
     {noreply, State};
 
 handle_info({gun_error, Pid, StreamRef, Reason}, State = #state{pid = Pid}) ->
-    error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
+    error_?LOG_WARNING_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
         [?MODULE, self(), {StreamRef, Reason}, State]),
     reconnect(State);
 handle_info({gun_error, Pid, Reason}, State = #state{pid = Pid}) ->
-    error_logger:warning_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
+    error_?LOG_WARNING_msg("Leaser({~p,~p}) need reconnect gun_error ~p~n state~p~n",
         [?MODULE, self(), Reason, State]),
     reconnect(State);
 
 handle_info(Info, State) ->
-    error_logger:warning_msg("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",
+    error_?LOG_WARNING_msg("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 

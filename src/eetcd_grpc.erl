@@ -26,7 +26,7 @@ grpc_status(RespHeaders) ->
             eetcd_http2_keeper:check_leader();
         _ -> ignore
     end,
-    {GrpcStatus, GrpcMessage}.
+    #{'grpc-status' => GrpcStatus, 'grpc-message' => GrpcMessage}.
 
 %%====================================================================
 %% Internal functions

@@ -89,7 +89,7 @@ handle_info({'DOWN', _Ref, process, _OldPid, _Reason}, State) ->
 
 handle_info({gun_down, Pid, http2, {error, Reason}, KilledStreams, UnprocessedStreams},
     State = #state{pid = Pid}) ->
-    error_logger:warning_msg(
+    logger:warning(
         "~p connection down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
         [?MODULE, Pid, Reason, KilledStreams, UnprocessedStreams]),
     {noreply, State};
@@ -98,7 +98,7 @@ handle_info({gun_down, Pid, http2, normal, _KilledStreams, _UnprocessedStreams},
     {noreply, State};
 handle_info({gun_down, Pid, http2, closed, KilledStreams, UnprocessedStreams},
     State = #state{pid = Pid}) ->
-    error_logger:warning_msg(
+    logger:warning(
         "~p connection down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
         [?MODULE, Pid, closed, KilledStreams, UnprocessedStreams]),
     {noreply, State};
@@ -107,7 +107,7 @@ handle_info({gun_up, Pid, http2}, State = #state{pid = Pid}) ->
     {noreply, State};
 
 handle_info(Info, State) ->
-    error_logger:warning_msg("~p Handle info unknown message ~p~n", [?MODULE, Info]),
+    logger:warning("~p Handle info unknown message ~p~n", [?MODULE, Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->

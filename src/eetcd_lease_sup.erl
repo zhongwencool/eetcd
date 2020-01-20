@@ -1,30 +1,29 @@
--module(eetcd_conn_sup).
+-module(eetcd_lease_sup).
 
 -behaviour(supervisor).
 -include("eetcd.hrl").
 
 %% API
--export([start_link/0, start_child/1]).
+-export([start_link/0, start_child/2]).
 -export([init/1]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_child(Args) ->
-    supervisor:start_child(?MODULE, Args).
+start_child(Name, LeaseID) ->
+    supervisor:start_child(?MODULE, [self(), Name, LeaseID]).
 
 init([]) ->
-    ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.name}]),
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 1200,
+    MaxRestarts = 100,
+    MaxSecondsBetweenRestarts = 10,
     SupFlags = #{strategy => simple_one_for_one,
         intensity => MaxRestarts,
         period => MaxSecondsBetweenRestarts},
     
-    Worker = eetcd_conn,
+    Worker = eetcd_lease,
     Child = #{id => Worker,
-        start => {Worker, open, []},
-        restart => transient,
+        start => {Worker, start_link, []},
+        restart => temporary,
         shutdown => 1000,
         type => worker,
         modules => [Worker]},

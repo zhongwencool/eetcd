@@ -29,12 +29,12 @@
 %%% {@link eetcd:with_key/2}, {@link eetcd:with_value/2}, {@link eetcd:with_lease/2},
 %%% {@link eetcd:with_ignore_value/2}, {@link eetcd:with_ignore_lease/2}, {@link eetcd:with_timeout/2}
 %%% @end
--spec put(router_pb:'Etcd.PutRequest'()) ->
+-spec put(context()) ->
     {ok, router_pb:'Etcd.PutResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 put(Context) -> eetcd_kv_gen:put(Context).
 
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
--spec put(eetcd_conn:name(), key(), value()) ->
+-spec put(name(), key(), value()) ->
     {ok, router_pb:'Etcd.PutResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 put(Context, Key, Value) when is_map(Context) ->
     Context0 = eetcd:with_key(Context, Key),
@@ -82,11 +82,11 @@ put(ConnName, Key, Value) -> put(eetcd:new(ConnName), Key, Value).
 %%% {@link eetcd:with_count_only/1} {@link eetcd:with_min_mod_revision/2}
 %%% {@link eetcd:with_max_mod_revision/2} {@link eetcd:with_min_create_revision/2} {@link eetcd:with_max_create_revision/2}
 %%% @end
--spec get(router_pb:'Etcd.RangeRequest'()) ->
+-spec get(context()) ->
     {ok, router_pb:'Etcd.RangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 %%% @doc Get retrieves keys with options.
--spec get(context()|eetcd_conn:name(), key()) ->
+-spec get(context()|name(), key()) ->
     {ok, router_pb:'Etcd.RangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 get(Context, Key) when is_map(Context) -> eetcd_kv_gen:range(eetcd:with_key(Context, Key));
 get(ConnName, Key) -> eetcd_kv_gen:range(eetcd:with_key(eetcd:new(ConnName), Key)).
@@ -109,11 +109,11 @@ get(ConnName, Key) -> eetcd_kv_gen:range(eetcd:with_key(eetcd:new(ConnName), Key
 %%% </dd> </dl>
 %%% {@link eetcd:with_key/2} {@link eetcd:with_range_end/2} {@link eetcd:with_prev_kv/1}
 %%% @end
--spec delete(key() | router_pb:'Etcd.DeleteRangeRequest'()) ->
+-spec delete(context()) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
--spec delete(key()|context(), key()) ->
+-spec delete(name()|context(), key()) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 delete(Context, Key) when is_map(Context) -> eetcd_kv_gen:delete_range(eetcd:with_key(Context, Key));
 delete(ConnName, Key) -> eetcd_kv_gen:delete_range(eetcd:with_key(eetcd:new(ConnName), Key)).
@@ -135,11 +135,11 @@ delete(ConnName, Key) -> eetcd_kv_gen:delete_range(eetcd:with_key(eetcd:new(Conn
 %%% </dd> </dl>
 %%% {@link eetcd:with_revision/2} {@link eetcd:with_physical/1}
 %%% @end
--spec compact(integer() | router_pb:'Etcd.CompactionRequest'()) ->
+-spec compact(context()) ->
     {ok, router_pb:'Etcd.CompactionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
--spec compact(eetcd_conn:name()|context(), integer()) ->
+-spec compact(name()|context(), integer()) ->
     {ok, router_pb:'Etcd.CompactionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 compact(Context, Revision) when is_map(Context) -> eetcd_kv_gen:compact(eetcd:with_rev(Context, Revision));
 compact(ConnName, Revision) -> eetcd_kv_gen:compact(eetcd:with_rev(eetcd:new(ConnName), Revision)).

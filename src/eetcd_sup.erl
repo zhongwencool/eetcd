@@ -28,19 +28,19 @@ start_link() ->
 init([]) ->
     SupFlags = #{strategy => one_for_one, intensity => 1000, period => 10},
     Http2Sup = eetcd_conn_sup,
-    % LeaserWork = eetcd_lease_server,
+    LeaserSup = eetcd_lease_sup,
     ChildSpecs = [
         #{id => Http2Sup,
             start => {Http2Sup, start_link, []},
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [Http2Sup]}
-        %#{id => LeaserWork,
-        %    start => {LeaserWork, start_link, []},
-        %    restart => permanent,
-        %    shutdown => 5000,
-        %    type => worker,
-        %    modules => [LeaserWork]}
+            modules => [Http2Sup]},
+        #{id => LeaserSup,
+            start => {LeaserSup, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [LeaserSup]}
     ],
     {ok, {SupFlags, ChildSpecs}}.

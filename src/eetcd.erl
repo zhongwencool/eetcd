@@ -33,8 +33,9 @@ test() ->
     [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
     {ok, pid()} | {error, any()}.
 open(Name, Hosts, Transport, TransportOpts) ->
+    logger:error("~p~n", [{Name, Hosts, Transport, TransportOpts}]),
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    gen_server:start_link(eetcd_conn, [Name, Cluster, Transport, TransportOpts], []).
+    eetcd_conn_sup:start_child([Name, Cluster, Transport, TransportOpts]).
 
 -spec close(name()) -> ok.
 close(Name) ->

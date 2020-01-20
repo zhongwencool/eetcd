@@ -3,7 +3,7 @@
 
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(ETCD_HTTP2_CLIENT, etcd_http2_client).
--define(GRPC_ERROR(Status, Message), {'grpc_error', Status, Message}).
+-define(GRPC_ERROR(Status, Message), #{'grpc_error' => Status, reason => Message}).
 
 -export_type([key/0, value/0, context/0, name/0]).
 -type key() :: iodata().

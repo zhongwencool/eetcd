@@ -3,7 +3,7 @@
 
 -include("eetcd.hrl").
 
--export([whereis/1]).
+-export([whereis/1, open/4]).
 -export([check_leader/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -16,6 +16,9 @@ whereis(Name) ->
         [#eetcd_conn{gun = Gun, http_header = HttpHeader}] -> {ok, Gun, HttpHeader};
         _ -> {error, unavailable}
     end.
+
+open(Name, Cluster, Transport, TransportOpts) ->
+    gen_server:start_link(?MODULE, [Name, Cluster, Transport, TransportOpts], []).
 
 -spec check_leader() -> ok.
 check_leader() -> gen_server:cast(?MODULE, check_leader).
@@ -58,7 +61,7 @@ handle_info(stop, State) -> {stop, normal, State};
 handle_info({'DOWN', GunRef, process, Gun, Reason},
     State = #{name := Name, gun := Gun, gun_ref := GunRef, http_header := HttpHeader}) ->
     clean(Name, HttpHeader, Gun),
-    logger:warning("~p gun(~p) process 'DOWN' ~p~n", [{Name, self()}, Gun, Reason]),
+    logger:warning("~p(~p) gun(~p) process 'DOWN' ~p~n", [Name, self(), Gun, Reason]),
     case connect(State) of
         {ok, NewState} -> {noreply, NewState};
         {error, _Reason, State1} ->
@@ -68,13 +71,13 @@ handle_info({'DOWN', GunRef, process, Gun, Reason},
 handle_info({'DOWN', _Ref, process, OldGun, Reason},
     State = #{name := Name, gun := NewGun, http_header := HttpHeader}) ->
     clean(Name, HttpHeader, OldGun),
-    logger:info("~p gun(~p) process 'DOWN' ~p~n", [{Name, self()}, {OldGun, NewGun}, Reason]),
+    logger:info("~p(~p)'s gun(~p) process 'DOWN' ~p~n", [Name, self(), {OldGun, NewGun}, Reason]),
     {noreply, State};
 handle_info({gun_down, Gun, http2, Error, KilledStreams, UnprocessedStreams},
     State = #{gun := Gun, name := Name, http_header := HttpHeader}) ->
     clean(Name, HttpHeader, Gun),
-    logger:warning("~p connection gun_down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
-        [{Name, self()}, Gun, Error, KilledStreams, UnprocessedStreams]),
+    logger:warning("~p(~p) connection gun_down on ~p: ~p (Killed: ~p, Unprocessed: ~p)",
+        [Name, self(), Gun, Error, KilledStreams, UnprocessedStreams]),
     case connect(State) of
         {ok, NewState} -> {noreply, NewState};
         {error, _Reason, NewState} -> {noreply, reconnect_after(NewState)}
@@ -86,7 +89,7 @@ handle_info(reconnect, State = #{gun := undefined}) ->
     end;
 
 handle_info(Info, State = #{name := Name}) ->
-    logger:warning("~p Handle info unknown message ~p ~p ~n", [{Name, self()}, Info, State]),
+    logger:warning("~p(~p) Handle info unknown message ~p ~p ~n", [Name, self(), Info, State]),
     {noreply, State}.
 
 terminate(_Reason, #{name := Name, http_header := HttpHeader, gun := Gun}) ->

@@ -1,11 +1,11 @@
 -module(eetcd_maintenance).
-
+-include("eetcd.hrl").
 %% API
 -export([alarm_list/1, alarm_disarm/3, alarm_disarm_all/1]).
 -export([defragment/3, status/3, hash_kv/4, move_leader/2]).
 
 %%% @doc AlarmList gets all active alarms.
--spec alarm_list(ConnName) ->
+-spec alarm_list(context()) ->
     {ok, router_pb:'Etcd.AlarmResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 alarm_list(ConnName) ->
     C1 = eetcd:new(ConnName),
@@ -15,7 +15,7 @@ alarm_list(ConnName) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarm disarms a given alarm.
--spec alarm_disarm(Context, integer(), integer()) ->
+-spec alarm_disarm(context(), integer(), integer()) ->
     {ok, router_pb:'Etcd.AlarmResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 alarm_disarm(Context, MemberId, Alarm) ->
     C1 = eetcd:new(Context),
@@ -25,7 +25,7 @@ alarm_disarm(Context, MemberId, Alarm) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarmAll disarms all alarm.
--spec alarm_disarm_all(ConnName) ->
+-spec alarm_disarm_all(context()) ->
     {ok, router_pb:'Etcd.AlarmResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 alarm_disarm_all(ConnName) ->
     {ok, Acc0 = #{alarms := List}} = alarm_list(ConnName),

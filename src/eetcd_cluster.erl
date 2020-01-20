@@ -88,6 +88,8 @@ member_add_as_learner(Context, PeerAddrs) when is_list(PeerAddrs) ->
 %%% </dd> </dl>
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
+-spec member_remove(context()|name(), pos_integer()) ->
+    {ok, router_pb:'Etcd.MemberRemoveResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 member_remove(Context, Id) when is_integer(Id) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', Id, C1),
@@ -107,6 +109,8 @@ member_remove(Context, Id) when is_integer(Id) ->
 %%% </dd> </dl>
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
+-spec member_update(context()|name(), pos_integer(), [list()]) ->
+    {ok, router_pb:'Etcd.MemberUpdateResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 member_update(Context, Id, PeerAddrs)
     when is_integer(Id) andalso is_list(PeerAddrs) ->
     C1 = eetcd:new(Context),
@@ -128,6 +132,8 @@ member_update(Context, Id, PeerAddrs)
 %%% </dd> </dl>
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
+-spec member_promote(context()|name(), pos_integer()) ->
+    {ok, router_pb:'Etcd.MemberPromoteResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
 member_promote(Context, Id) when is_integer(Id) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', Id, C1),

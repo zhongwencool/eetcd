@@ -9,7 +9,7 @@
 -include("eetcd.hrl").
 
 -spec new(Name, Path) -> {ok, GunPid, Http2Ref} when
-    Name :: eetcd_conn:name(),
+    Name :: name(),
     Path :: iodata(),
     GunPid :: pid(),
     Http2Ref :: reference().
@@ -22,7 +22,7 @@ new(Name, Path) ->
     end.
 
 -spec new(Name, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
-    Name :: eetcd_conn:name(),
+    Name :: name(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
@@ -31,7 +31,7 @@ new(Name, Msg, MsgName, Path) ->
     case new(Name, Path) of
         {ok, Pid, Ref} ->
             data(Pid, Ref, Msg, MsgName, nofin),
-            {Pid, Ref};
+            {ok, Pid, Ref};
         Err -> Err
     end.
 
@@ -85,8 +85,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                     {error, _} = Error1 -> Error1
                 end;
             {response, fin, 200, RespHeaders} ->
-                {GrpcStatus, GrpcMessage} = eetcd_grpc:grpc_status(RespHeaders),
-                {error, ?GRPC_ERROR(GrpcStatus, GrpcMessage)};
+                {error, eetcd_grpc:grpc_status(RespHeaders)};
             {error, _} = Error2 -> Error2
         end,
     erlang:demonitor(MRef, [flush]),

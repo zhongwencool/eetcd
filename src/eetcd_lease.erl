@@ -31,7 +31,7 @@ test() ->
 
 %% @doc Grant creates a new lease.
 -spec grant(context(), pos_integer()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
 grant(Context, TTL) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('TTL', TTL, C1),
@@ -39,7 +39,7 @@ grant(Context, TTL) ->
 
 %% @doc Revoke revokes the given lease.
 -spec revoke(context(), pos_integer()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
 revoke(Context, LeaseID) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', LeaseID, C1),
@@ -48,7 +48,7 @@ revoke(Context, LeaseID) ->
 %% @doc TimeToLive retrieves the lease information of the given lease ID.
 %% The 3rd argument is a option of `NeedAttachedKeys'.
 -spec time_to_live(context(), pos_integer(), boolean()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
 time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', LeaseID, C1),
@@ -62,7 +62,7 @@ time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
 
 %% @doc Leases retrieves all leases.
 -spec leases(context()) ->
-    {ok, router_pb:'Etcd.LeaseLeasesResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.LeaseLeasesResponse'()}|{error,eetcd_error()}.
 leases(ConnName) ->
     C1 = eetcd:new(ConnName),
     eetcd_lease_gen:lease_leases(C1).
@@ -86,7 +86,7 @@ keep_alive(Name, LeaseID) ->
 %% error, KeepAliveOnce will not retry the RPC with a new keep alive message.
 %% In most of the cases, Keepalive should be used instead of KeepAliveOnce.
 -spec keep_alive_once(name(), pos_integer()) ->
-    {ok, router_pb:'Etcd.LeaseKeepAliveResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.LeaseKeepAliveResponse'()}|{error,eetcd_error()}.
 keep_alive_once(Name, LeaseID) when is_atom(Name) orelse is_reference(Name) ->
     case eetcd_lease_gen:lease_keep_alive(Name) of
         {ok, Gun, StreamRef} ->

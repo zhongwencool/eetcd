@@ -28,7 +28,7 @@
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec auth_enable(name()|context()) ->
-    {ok, router_pb:'Etcd.AuthEnableResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthEnableResponse'()}|{error,eetcd_error()}.
 auth_enable(Context) ->
     eetcd_auth_gen:auth_enable(eetcd:new(Context)).
 
@@ -47,7 +47,7 @@ auth_enable(Context) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec auth_disable(name()|context()) ->
-    {ok, router_pb:'Etcd.AuthDisableResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthDisableResponse'()}|{error,eetcd_error()}.
 auth_disable(Context) ->
     eetcd_auth_gen:auth_disable(eetcd:new(Context)).
 
@@ -66,7 +66,7 @@ auth_disable(Context) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_add(name()|context(), iodata(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserAddResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name, Password) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -88,7 +88,7 @@ user_add(Context, Name, Password) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_add(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserAddResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -110,7 +110,7 @@ user_add(Context, Name) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_delete(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserDeleteResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserDeleteResponse'()}|{error,eetcd_error()}.
 user_delete(Context, Name) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -131,7 +131,7 @@ user_delete(Context, Name) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_change_password(name()|context(), iodata(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserChangePasswordResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserChangePasswordResponse'()}|{error,eetcd_error()}.
 user_change_password(Context, Name, Password) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -153,7 +153,7 @@ user_change_password(Context, Name, Password) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_grant_role(name()|context(), iodata(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserGrantRoleResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserGrantRoleResponse'()}|{error,eetcd_error()}.
 user_grant_role(Context, User, Role) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(user, User, C1),
@@ -175,7 +175,7 @@ user_grant_role(Context, User, Role) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_get(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserGetResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserGetResponse'()}|{error,eetcd_error()}.
 user_get(Context, Name) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -196,7 +196,7 @@ user_get(Context, Name) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_list(name()|context()) ->
-    {ok, router_pb:'Etcd.AuthUserListResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserListResponse'()}|{error,eetcd_error()}.
 user_list(Context) ->
     eetcd_auth_gen:user_list(eetcd:new(Context)).
 
@@ -215,7 +215,7 @@ user_list(Context) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec user_revoke_role(name()|context(), iodata(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthUserRevokeRoleResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthUserRevokeRoleResponse'()}|{error,eetcd_error()}.
 user_revoke_role(Context, Name, Role) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -237,7 +237,7 @@ user_revoke_role(Context, Name, Role) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_add(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthRoleAddResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleAddResponse'()}|{error,eetcd_error()}.
 role_add(Context, Name) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -259,7 +259,7 @@ role_add(Context, Name) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_grant_permission(name()|context(), iodata(), iodata(), iodata(), 'READ' | 'WRITE' | 'READWRITE') ->
-    {ok, router_pb:'Etcd.AuthRoleGrantPermissionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleGrantPermissionResponse'()}|{error,eetcd_error()}.
 role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(name, Name, C1),
@@ -282,7 +282,7 @@ role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_get(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthRoleGetResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleGetResponse'()}|{error,eetcd_error()}.
 role_get(Context, Role) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(role, Role, C1),
@@ -303,7 +303,7 @@ role_get(Context, Role) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_list(name()|context()) ->
-    {ok, router_pb:'Etcd.AuthRoleListResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleListResponse'()}|{error,eetcd_error()}.
 role_list(Context) ->
     eetcd_auth_gen:role_list(eetcd:new(Context)).
 
@@ -322,7 +322,7 @@ role_list(Context) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_revoke_permission(name()|context(), iodata(), iodata(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthRoleRevokePermissionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleRevokePermissionResponse'()}|{error,eetcd_error()}.
 role_revoke_permission(Context, Role, Key, RangeEnd) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(role, Role, C1),
@@ -345,7 +345,7 @@ role_revoke_permission(Context, Role, Key, RangeEnd) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec role_delete(name()|context(), iodata()) ->
-    {ok, router_pb:'Etcd.AuthRoleDeleteResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.AuthRoleDeleteResponse'()}|{error,eetcd_error()}.
 role_delete(Context, Role) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(role, Role, C1),

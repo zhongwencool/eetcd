@@ -23,7 +23,7 @@
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_list(context()|name()) ->
-    {ok, router_pb:'Etcd.MemberListResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.MemberListResponse'()}|{error,eetcd_error()}.
 member_list(Context) -> eetcd_cluster_gen:member_list(Context).
 
 %% @doc MemberAdd adds a new member into the cluster.
@@ -41,7 +41,7 @@ member_list(Context) -> eetcd_cluster_gen:member_list(Context).
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_add(context()|name(), PeerURLs) ->
-    {ok, router_pb:'Etcd.MemberListResponse'()}
+    {ok,router_pb:'Etcd.MemberListResponse'()}
     | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}
     when PeerURLs :: [iodata()].
 member_add(Context, PeerAddrs) when is_list(PeerAddrs) ->
@@ -65,7 +65,7 @@ member_add(Context, PeerAddrs) when is_list(PeerAddrs) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_add_as_learner(context()|name(), PeerURLs) ->
-    {ok, router_pb:'Etcd.MemberListResponse'()}
+    {ok,router_pb:'Etcd.MemberListResponse'()}
     | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}
     when PeerURLs :: [iodata()].
 member_add_as_learner(Context, PeerAddrs) when is_list(PeerAddrs) ->
@@ -89,7 +89,7 @@ member_add_as_learner(Context, PeerAddrs) when is_list(PeerAddrs) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_remove(context()|name(), pos_integer()) ->
-    {ok, router_pb:'Etcd.MemberRemoveResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.MemberRemoveResponse'()}|{error,eetcd_error()}.
 member_remove(Context, Id) when is_integer(Id) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', Id, C1),
@@ -110,7 +110,7 @@ member_remove(Context, Id) when is_integer(Id) ->
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_update(context()|name(), pos_integer(), [list()]) ->
-    {ok, router_pb:'Etcd.MemberUpdateResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.MemberUpdateResponse'()}|{error,eetcd_error()}.
 member_update(Context, Id, PeerAddrs)
     when is_integer(Id) andalso is_list(PeerAddrs) ->
     C1 = eetcd:new(Context),
@@ -133,7 +133,7 @@ member_update(Context, Id, PeerAddrs)
 %%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
 %%% @end
 -spec member_promote(context()|name(), pos_integer()) ->
-    {ok, router_pb:'Etcd.MemberPromoteResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.MemberPromoteResponse'()}|{error,eetcd_error()}.
 member_promote(Context, Id) when is_integer(Id) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', Id, C1),

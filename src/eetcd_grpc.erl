@@ -13,7 +13,7 @@ encode(GrpcType, Msg, MsgName) ->
     PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
--spec decode(identity | gzip, binary(), atom()) -> tuple().
+-spec decode(identity | gzip, binary(), atom()) -> grpc_status().
 decode(Encoding, Frame, PbType) ->
     PbBin = decode_(Frame, Encoding),
     router_pb:decode_msg(PbBin, PbType).

@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-14T03:14:26+00:00 and should not be modified manually
+%% This module was generated on 2020-01-20T06:11:16+00:00 and should not be modified manually
 
 -module(eetcd_watch_gen).
 
@@ -12,7 +12,7 @@
 
 %% @doc Stream RPC 
 -spec watch(router_pb:'Etcd.WatchRequest'()) ->
-    reference() | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    reference()|{error,eetcd:eetcd_error()}.
 watch(Request) ->
     eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>).
 

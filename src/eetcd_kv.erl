@@ -30,12 +30,12 @@
 %%% {@link eetcd:with_ignore_value/2}, {@link eetcd:with_ignore_lease/2}, {@link eetcd:with_timeout/2}
 %%% @end
 -spec put(context()) ->
-    {ok, router_pb:'Etcd.PutResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.PutResponse'()}|{error,eetcd_error()}.
 put(Context) -> eetcd_kv_gen:put(Context).
 
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
 -spec put(name(), key(), value()) ->
-    {ok, router_pb:'Etcd.PutResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.PutResponse'()}|{error,eetcd_error()}.
 put(Context, Key, Value) when is_map(Context) ->
     Context0 = eetcd:with_key(Context, Key),
     Context1 = eetcd:with_value(Context0, Value),
@@ -83,11 +83,11 @@ put(ConnName, Key, Value) -> put(eetcd:new(ConnName), Key, Value).
 %%% {@link eetcd:with_max_mod_revision/2} {@link eetcd:with_min_create_revision/2} {@link eetcd:with_max_create_revision/2}
 %%% @end
 -spec get(context()) ->
-    {ok, router_pb:'Etcd.RangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.RangeResponse'()}|{error,eetcd_error()}.
 get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 %%% @doc Get retrieves keys with options.
 -spec get(context()|name(), key()) ->
-    {ok, router_pb:'Etcd.RangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.RangeResponse'()}|{error,eetcd_error()}.
 get(Context, Key) when is_map(Context) -> eetcd_kv_gen:range(eetcd:with_key(Context, Key));
 get(ConnName, Key) -> eetcd_kv_gen:range(eetcd:with_key(eetcd:new(ConnName), Key)).
 
@@ -110,11 +110,11 @@ get(ConnName, Key) -> eetcd_kv_gen:range(eetcd:with_key(eetcd:new(ConnName), Key
 %%% {@link eetcd:with_key/2} {@link eetcd:with_range_end/2} {@link eetcd:with_prev_kv/1}
 %%% @end
 -spec delete(context()) ->
-    {ok, router_pb:'Etcd.DeleteRangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.DeleteRangeResponse'()}|{error,eetcd_error()}.
 delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
 -spec delete(name()|context(), key()) ->
-    {ok, router_pb:'Etcd.DeleteRangeResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.DeleteRangeResponse'()}|{error,eetcd_error()}.
 delete(Context, Key) when is_map(Context) -> eetcd_kv_gen:delete_range(eetcd:with_key(Context, Key));
 delete(ConnName, Key) -> eetcd_kv_gen:delete_range(eetcd:with_key(eetcd:new(ConnName), Key)).
 
@@ -136,11 +136,11 @@ delete(ConnName, Key) -> eetcd_kv_gen:delete_range(eetcd:with_key(eetcd:new(Conn
 %%% {@link eetcd:with_revision/2} {@link eetcd:with_physical/1}
 %%% @end
 -spec compact(context()) ->
-    {ok, router_pb:'Etcd.CompactionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.CompactionResponse'()}|{error,eetcd_error()}.
 compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
 -spec compact(name()|context(), integer()) ->
-    {ok, router_pb:'Etcd.CompactionResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.CompactionResponse'()}|{error,eetcd_error()}.
 compact(Context, Revision) when is_map(Context) -> eetcd_kv_gen:compact(eetcd:with_rev(Context, Revision));
 compact(ConnName, Revision) -> eetcd_kv_gen:compact(eetcd:with_rev(eetcd:new(ConnName), Revision)).
 
@@ -156,7 +156,7 @@ compact(ConnName, Revision) -> eetcd_kv_gen:compact(eetcd:with_rev(eetcd:new(Con
 %% Else = eetcd_op:delete_range(eetcd:with_key(eetcd:new(), Key))
 %%% @end
 -spec txn(name()|context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
-    {ok, router_pb:'Etcd.TxnResponse'()} | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}.
+    {ok,router_pb:'Etcd.TxnResponse'()}|{error,eetcd_error()}.
 txn(Context, If, Then, Else) when is_map(Context) ->
     Txn = maps:merge(#{compare => If, success => Then, failure => Else}, Context),
     eetcd_kv_gen:txn(Txn);

@@ -14,7 +14,7 @@
 whereis(Name) ->
     case ets:lookup(?ETCD_CONNS, Name) of
         [#eetcd_conn{gun = Gun, http_header = HttpHeader}] -> {ok, Gun, HttpHeader};
-        _ -> {error, unavailable}
+        _ -> {error, eetcd_conn_unavailable}
     end.
 
 open(Name, Cluster, Transport, TransportOpts) ->

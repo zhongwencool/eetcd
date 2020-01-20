@@ -61,7 +61,7 @@ unary(Request, RequestName, Path, ResponseType) ->
                     unary(Pid, NewRequest, RequestName, Path, ResponseType, HttpHeader ++ ?HEADERS);
                 Err -> Err
             end;
-        error -> {error, "eetcd connection name not found"}
+        error -> {error, eetcd_conn_not_found}
     end.
 -spec unary(Pid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
     Pid :: pid(),
@@ -85,7 +85,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                     {error, _} = Error1 -> Error1
                 end;
             {response, fin, 200, RespHeaders} ->
-                {error, eetcd_grpc:grpc_status(RespHeaders)};
+                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}};
             {error, _} = Error2 -> Error2
         end,
     erlang:demonitor(MRef, [flush]),
@@ -102,11 +102,11 @@ await(ServerPid, StreamRef, Timeout, MRef) ->
         {gun_data, ServerPid, StreamRef, IsFin, Data} ->
             {data, IsFin, Data};
         {gun_error, ServerPid, StreamRef, Reason} ->
-            {error, {stream_error, Reason}};
+            {error, {gun_stream_error, Reason}};
         {gun_error, ServerPid, Reason} ->
-            {error, {connection_error, Reason}};
+            {error, {gun_conn_error, Reason}};
         {'DOWN', MRef, process, ServerPid, Reason} ->
-            {error, {down, Reason}}
+            {error, {gun_down, Reason}}
     after Timeout ->
         {error, timeout}
     end.
@@ -122,11 +122,11 @@ await_body(ServerPid, StreamRef, Timeout, MRef, Acc) ->
         {gun_trailers, ServerPid, StreamRef, Trailers} ->
             {ok, Acc, Trailers};
         {gun_error, ServerPid, StreamRef, Reason} ->
-            {error, {stream_error, Reason}};
+            {error, {gun_stream_error, Reason}};
         {gun_error, ServerPid, Reason} ->
-            {error, {connection_error, Reason}};
+            {error, {gun_conn_error, Reason}};
         {'DOWN', MRef, process, ServerPid, Reason} ->
-            {error, {down, Reason}}
+            {error, {gun_down, Reason}}
     after Timeout ->
         {error, timeout}
     end.

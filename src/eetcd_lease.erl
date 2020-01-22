@@ -17,7 +17,8 @@
 test() ->
     application:ensure_all_started(eetcd),
     logger:set_primary_config(level, info),
-    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"], tcp, []),
+    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"], tcp, []),
+    %% {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379"], tcp, []),
     {ok, T1 = #{'ID' := LeaseID}} = eetcd_lease:grant(test, 100),
     io:format("~p~n", [T1]),
     R = eetcd_kv:put(eetcd:with_lease(eetcd:new(test), LeaseID), "test", "test_value"),
@@ -25,13 +26,10 @@ test() ->
     R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),
     eetcd_lease:keep_alive(test, LeaseID).
-%% T = eetcd_lease:keep_alive_once(test, LeaseID),
-%% io:format("~p~n", [T]),
-%% eetcd:close(test),
 
 %% @doc Grant creates a new lease.
 -spec grant(context(), pos_integer()) ->
-    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
+    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 grant(Context, TTL) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('TTL', TTL, C1),
@@ -39,7 +37,7 @@ grant(Context, TTL) ->
 
 %% @doc Revoke revokes the given lease.
 -spec revoke(context(), pos_integer()) ->
-    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
+    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 revoke(Context, LeaseID) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', LeaseID, C1),
@@ -48,7 +46,7 @@ revoke(Context, LeaseID) ->
 %% @doc TimeToLive retrieves the lease information of the given lease ID.
 %% The 3rd argument is a option of `NeedAttachedKeys'.
 -spec time_to_live(context(), pos_integer(), boolean()) ->
-    {ok,router_pb:'Etcd.LeaseGrantResponse'()}|{error,eetcd_error()}.
+    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
     C1 = eetcd:new(Context),
     C2 = maps:put('ID', LeaseID, C1),
@@ -62,7 +60,7 @@ time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
 
 %% @doc Leases retrieves all leases.
 -spec leases(context()) ->
-    {ok,router_pb:'Etcd.LeaseLeasesResponse'()}|{error,eetcd_error()}.
+    {ok, router_pb:'Etcd.LeaseLeasesResponse'()}|{error, eetcd_error()}.
 leases(ConnName) ->
     C1 = eetcd:new(ConnName),
     eetcd_lease_gen:lease_leases(C1).
@@ -86,7 +84,7 @@ keep_alive(Name, LeaseID) ->
 %% error, KeepAliveOnce will not retry the RPC with a new keep alive message.
 %% In most of the cases, Keepalive should be used instead of KeepAliveOnce.
 -spec keep_alive_once(name(), pos_integer()) ->
-    {ok,router_pb:'Etcd.LeaseKeepAliveResponse'()}|{error,eetcd_error()}.
+    {ok, router_pb:'Etcd.LeaseKeepAliveResponse'()}|{error, eetcd_error()}.
 keep_alive_once(Name, LeaseID) when is_atom(Name) orelse is_reference(Name) ->
     case eetcd_lease_gen:lease_keep_alive(Name) of
         {ok, Gun, StreamRef} ->
@@ -158,6 +156,17 @@ handle_info({gun_data, _Pid, Ref, nofin, Data},
         #{'TTL' := _TTL} -> {noreply, State#{ongoing => Ongoing - 1}}
     end;
 
+%% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}
+handle_info({gun_trailers, Gun, StreamRef, Header},
+    State = #{name := Name, stream_ref := StreamRef, gun := Gun}) ->
+    check_leader(Header, Name),
+    reconnect(State);
+%% it will receive another stream_ref gun_response to this process, notifying no leader event.
+%% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}
+handle_info({gun_response, Gun, _StreamRef, _Fin, 200, Header},
+    State = #{name := Name, gun := Gun}) ->
+    check_leader(Header, Name),
+    reconnect(State);
 handle_info({keep_ttl, Next}, State) ->
     keep_ttl(Next, State);
 handle_info({gun_error, Gun, _StreamRef, _Reason}, State = #{gun := Gun}) ->
@@ -263,4 +272,11 @@ try_reconnecting(State) ->
                     erlang:send_after(1000, self(), ?TRY_RECONNECTING),
                     {noreply, State}
             end
+    end.
+check_leader(Header, Name) ->
+    case eetcd_grpc:grpc_status(Header) of
+        #{'grpc-status' := 14} ->
+            ?LOG_ERROR("ETCD NO Leader: ~p~n ", [Name]),
+            eetcd_conn:check_health(Name);
+        _ -> ok
     end.

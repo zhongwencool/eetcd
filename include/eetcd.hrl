@@ -33,9 +33,6 @@
 -define(GRPC_STATUS_DATA_LOSS, 15).
 -define(GRPC_STATUS_UNAUTHENTICATED, 16).
 
-%% TODO
--define(ALL, "\0").
-
 -define(ETCD_CONNS, eetcd_conns).
--record(eetcd_conn, {name, gun, http_header = [], conn}).
+-record(eetcd_conn, {name, gun, conn, http_header = []}).
 -endif.

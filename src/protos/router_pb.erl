@@ -23,6 +23,7 @@
 -export(['enum_symbol_by_value_Etcd.WatchCreateRequest.FilterType'/1, 'enum_value_by_symbol_Etcd.WatchCreateRequest.FilterType'/1]).
 -export(['enum_symbol_by_value_Etcd.AlarmType'/1, 'enum_value_by_symbol_Etcd.AlarmType'/1]).
 -export(['enum_symbol_by_value_Etcd.AlarmRequest.AlarmAction'/1, 'enum_value_by_symbol_Etcd.AlarmRequest.AlarmAction'/1]).
+-export(['enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'/1, 'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'/1]).
 -export(['enum_symbol_by_value_google.protobuf.FieldDescriptorProto.Type'/1, 'enum_value_by_symbol_google.protobuf.FieldDescriptorProto.Type'/1]).
 -export(['enum_symbol_by_value_google.protobuf.FieldDescriptorProto.Label'/1, 'enum_value_by_symbol_google.protobuf.FieldDescriptorProto.Label'/1]).
 -export(['enum_symbol_by_value_google.protobuf.FileOptions.OptimizeMode'/1, 'enum_value_by_symbol_google.protobuf.FileOptions.OptimizeMode'/1]).
@@ -67,6 +68,7 @@
 -type 'Etcd.WatchCreateRequest.FilterType'() :: 'NOPUT' | 'NODELETE'.
 -type 'Etcd.AlarmType'() :: 'NONE' | 'NOSPACE' | 'CORRUPT'.
 -type 'Etcd.AlarmRequest.AlarmAction'() :: 'GET' | 'ACTIVATE' | 'DEACTIVATE'.
+-type 'Etcd.HealthCheckResponse.ServingStatus'() :: 'UNKNOWN' | 'SERVING' | 'NOT_SERVING' | 'SERVICE_UNKNOWN'.
 -type 'google.protobuf.FieldDescriptorProto.Type'() :: 'TYPE_DOUBLE' | 'TYPE_FLOAT' | 'TYPE_INT64' | 'TYPE_UINT64' | 'TYPE_INT32' | 'TYPE_FIXED64' | 'TYPE_FIXED32' | 'TYPE_BOOL' | 'TYPE_STRING' | 'TYPE_GROUP' | 'TYPE_MESSAGE' | 'TYPE_BYTES' | 'TYPE_UINT32' | 'TYPE_ENUM' | 'TYPE_SFIXED32' | 'TYPE_SFIXED64' | 'TYPE_SINT32' | 'TYPE_SINT64'.
 -type 'google.protobuf.FieldDescriptorProto.Label'() :: 'LABEL_OPTIONAL' | 'LABEL_REQUIRED' | 'LABEL_REPEATED'.
 -type 'google.protobuf.FileOptions.OptimizeMode'() :: 'SPEED' | 'CODE_SIZE' | 'LITE_RUNTIME'.
@@ -74,7 +76,7 @@
 -type 'google.protobuf.FieldOptions.JSType'() :: 'JS_NORMAL' | 'JS_STRING' | 'JS_NUMBER'.
 -type 'mvccpb.Event.EventType'() :: 'PUT' | 'DELETE'.
 -type 'authpb.Permission.Type'() :: 'READ' | 'WRITE' | 'READWRITE'.
--export_type(['Etcd.RangeRequest.SortOrder'/0, 'Etcd.RangeRequest.SortTarget'/0, 'Etcd.Compare.CompareResult'/0, 'Etcd.Compare.CompareTarget'/0, 'Etcd.WatchCreateRequest.FilterType'/0, 'Etcd.AlarmType'/0, 'Etcd.AlarmRequest.AlarmAction'/0, 'google.protobuf.FieldDescriptorProto.Type'/0, 'google.protobuf.FieldDescriptorProto.Label'/0, 'google.protobuf.FileOptions.OptimizeMode'/0, 'google.protobuf.FieldOptions.CType'/0, 'google.protobuf.FieldOptions.JSType'/0, 'mvccpb.Event.EventType'/0, 'authpb.Permission.Type'/0]).
+-export_type(['Etcd.RangeRequest.SortOrder'/0, 'Etcd.RangeRequest.SortTarget'/0, 'Etcd.Compare.CompareResult'/0, 'Etcd.Compare.CompareTarget'/0, 'Etcd.WatchCreateRequest.FilterType'/0, 'Etcd.AlarmType'/0, 'Etcd.AlarmRequest.AlarmAction'/0, 'Etcd.HealthCheckResponse.ServingStatus'/0, 'google.protobuf.FieldDescriptorProto.Type'/0, 'google.protobuf.FieldDescriptorProto.Label'/0, 'google.protobuf.FileOptions.OptimizeMode'/0, 'google.protobuf.FieldOptions.CType'/0, 'google.protobuf.FieldOptions.JSType'/0, 'mvccpb.Event.EventType'/0, 'authpb.Permission.Type'/0]).
 
 %% message types
 -type 'Etcd.ResponseHeader'() ::
@@ -549,6 +551,14 @@
       #{header                  => 'Etcd.ResponseHeader'() % = 1
        }.
 
+-type 'Etcd.HealthCheckRequest'() ::
+      #{service                 => iodata()         % = 1
+       }.
+
+-type 'Etcd.HealthCheckResponse'() ::
+      #{status                  => 'UNKNOWN' | 'SERVING' | 'NOT_SERVING' | 'SERVICE_UNKNOWN' | integer() % = 1, enum Etcd.HealthCheckResponse.ServingStatus
+       }.
+
 -type 'google.protobuf.FileDescriptorSet'() ::
       #{file                    => ['google.protobuf.FileDescriptorProto'()] % = 1
        }.
@@ -832,13 +842,13 @@
         keyPermission           => ['authpb.Permission'()] % = 2
        }.
 
--export_type(['Etcd.ResponseHeader'/0, 'Etcd.RangeRequest'/0, 'Etcd.RangeResponse'/0, 'Etcd.PutRequest'/0, 'Etcd.PutResponse'/0, 'Etcd.DeleteRangeRequest'/0, 'Etcd.DeleteRangeResponse'/0, 'Etcd.RequestOp'/0, 'Etcd.ResponseOp'/0, 'Etcd.Compare'/0, 'Etcd.TxnRequest'/0, 'Etcd.TxnResponse'/0, 'Etcd.CompactionRequest'/0, 'Etcd.CompactionResponse'/0, 'Etcd.HashRequest'/0, 'Etcd.HashKVRequest'/0, 'Etcd.HashKVResponse'/0, 'Etcd.HashResponse'/0, 'Etcd.SnapshotRequest'/0, 'Etcd.SnapshotResponse'/0, 'Etcd.WatchRequest'/0, 'Etcd.WatchCreateRequest'/0, 'Etcd.WatchCancelRequest'/0, 'Etcd.WatchProgressRequest'/0, 'Etcd.WatchResponse'/0, 'Etcd.LeaseGrantRequest'/0, 'Etcd.LeaseGrantResponse'/0, 'Etcd.LeaseRevokeRequest'/0, 'Etcd.LeaseRevokeResponse'/0, 'Etcd.LeaseCheckpoint'/0, 'Etcd.LeaseCheckpointRequest'/0, 'Etcd.LeaseCheckpointResponse'/0, 'Etcd.LeaseKeepAliveRequest'/0, 'Etcd.LeaseKeepAliveResponse'/0, 'Etcd.LeaseTimeToLiveRequest'/0, 'Etcd.LeaseTimeToLiveResponse'/0, 'Etcd.LeaseLeasesRequest'/0, 'Etcd.LeaseStatus'/0, 'Etcd.LeaseLeasesResponse'/0, 'Etcd.Member'/0, 'Etcd.MemberAddRequest'/0, 'Etcd.MemberAddResponse'/0, 'Etcd.MemberRemoveRequest'/0, 'Etcd.MemberRemoveResponse'/0, 'Etcd.MemberUpdateRequest'/0, 'Etcd.MemberUpdateResponse'/0, 'Etcd.MemberListRequest'/0, 'Etcd.MemberListResponse'/0, 'Etcd.MemberPromoteRequest'/0, 'Etcd.MemberPromoteResponse'/0, 'Etcd.DefragmentRequest'/0, 'Etcd.DefragmentResponse'/0, 'Etcd.MoveLeaderRequest'/0, 'Etcd.MoveLeaderResponse'/0, 'Etcd.AlarmRequest'/0, 'Etcd.AlarmMember'/0, 'Etcd.AlarmResponse'/0, 'Etcd.StatusRequest'/0, 'Etcd.StatusResponse'/0, 'Etcd.AuthEnableRequest'/0, 'Etcd.AuthDisableRequest'/0, 'Etcd.AuthenticateRequest'/0, 'Etcd.AuthUserAddRequest'/0, 'Etcd.AuthUserGetRequest'/0, 'Etcd.AuthUserDeleteRequest'/0, 'Etcd.AuthUserChangePasswordRequest'/0, 'Etcd.AuthUserGrantRoleRequest'/0, 'Etcd.AuthUserRevokeRoleRequest'/0, 'Etcd.AuthRoleAddRequest'/0, 'Etcd.AuthRoleGetRequest'/0, 'Etcd.AuthUserListRequest'/0, 'Etcd.AuthRoleListRequest'/0, 'Etcd.AuthRoleDeleteRequest'/0, 'Etcd.AuthRoleGrantPermissionRequest'/0, 'Etcd.AuthRoleRevokePermissionRequest'/0, 'Etcd.AuthEnableResponse'/0, 'Etcd.AuthDisableResponse'/0, 'Etcd.AuthenticateResponse'/0, 'Etcd.AuthUserAddResponse'/0, 'Etcd.AuthUserGetResponse'/0, 'Etcd.AuthUserDeleteResponse'/0, 'Etcd.AuthUserChangePasswordResponse'/0, 'Etcd.AuthUserGrantRoleResponse'/0, 'Etcd.AuthUserRevokeRoleResponse'/0, 'Etcd.AuthRoleAddResponse'/0, 'Etcd.AuthRoleGetResponse'/0, 'Etcd.AuthRoleListResponse'/0, 'Etcd.AuthUserListResponse'/0, 'Etcd.AuthRoleDeleteResponse'/0, 'Etcd.AuthRoleGrantPermissionResponse'/0, 'Etcd.AuthRoleRevokePermissionResponse'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0, 'mvccpb.KeyValue'/0, 'mvccpb.Event'/0, 'authpb.UserAddOptions'/0, 'authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0]).
+-export_type(['Etcd.ResponseHeader'/0, 'Etcd.RangeRequest'/0, 'Etcd.RangeResponse'/0, 'Etcd.PutRequest'/0, 'Etcd.PutResponse'/0, 'Etcd.DeleteRangeRequest'/0, 'Etcd.DeleteRangeResponse'/0, 'Etcd.RequestOp'/0, 'Etcd.ResponseOp'/0, 'Etcd.Compare'/0, 'Etcd.TxnRequest'/0, 'Etcd.TxnResponse'/0, 'Etcd.CompactionRequest'/0, 'Etcd.CompactionResponse'/0, 'Etcd.HashRequest'/0, 'Etcd.HashKVRequest'/0, 'Etcd.HashKVResponse'/0, 'Etcd.HashResponse'/0, 'Etcd.SnapshotRequest'/0, 'Etcd.SnapshotResponse'/0, 'Etcd.WatchRequest'/0, 'Etcd.WatchCreateRequest'/0, 'Etcd.WatchCancelRequest'/0, 'Etcd.WatchProgressRequest'/0, 'Etcd.WatchResponse'/0, 'Etcd.LeaseGrantRequest'/0, 'Etcd.LeaseGrantResponse'/0, 'Etcd.LeaseRevokeRequest'/0, 'Etcd.LeaseRevokeResponse'/0, 'Etcd.LeaseCheckpoint'/0, 'Etcd.LeaseCheckpointRequest'/0, 'Etcd.LeaseCheckpointResponse'/0, 'Etcd.LeaseKeepAliveRequest'/0, 'Etcd.LeaseKeepAliveResponse'/0, 'Etcd.LeaseTimeToLiveRequest'/0, 'Etcd.LeaseTimeToLiveResponse'/0, 'Etcd.LeaseLeasesRequest'/0, 'Etcd.LeaseStatus'/0, 'Etcd.LeaseLeasesResponse'/0, 'Etcd.Member'/0, 'Etcd.MemberAddRequest'/0, 'Etcd.MemberAddResponse'/0, 'Etcd.MemberRemoveRequest'/0, 'Etcd.MemberRemoveResponse'/0, 'Etcd.MemberUpdateRequest'/0, 'Etcd.MemberUpdateResponse'/0, 'Etcd.MemberListRequest'/0, 'Etcd.MemberListResponse'/0, 'Etcd.MemberPromoteRequest'/0, 'Etcd.MemberPromoteResponse'/0, 'Etcd.DefragmentRequest'/0, 'Etcd.DefragmentResponse'/0, 'Etcd.MoveLeaderRequest'/0, 'Etcd.MoveLeaderResponse'/0, 'Etcd.AlarmRequest'/0, 'Etcd.AlarmMember'/0, 'Etcd.AlarmResponse'/0, 'Etcd.StatusRequest'/0, 'Etcd.StatusResponse'/0, 'Etcd.AuthEnableRequest'/0, 'Etcd.AuthDisableRequest'/0, 'Etcd.AuthenticateRequest'/0, 'Etcd.AuthUserAddRequest'/0, 'Etcd.AuthUserGetRequest'/0, 'Etcd.AuthUserDeleteRequest'/0, 'Etcd.AuthUserChangePasswordRequest'/0, 'Etcd.AuthUserGrantRoleRequest'/0, 'Etcd.AuthUserRevokeRoleRequest'/0, 'Etcd.AuthRoleAddRequest'/0, 'Etcd.AuthRoleGetRequest'/0, 'Etcd.AuthUserListRequest'/0, 'Etcd.AuthRoleListRequest'/0, 'Etcd.AuthRoleDeleteRequest'/0, 'Etcd.AuthRoleGrantPermissionRequest'/0, 'Etcd.AuthRoleRevokePermissionRequest'/0, 'Etcd.AuthEnableResponse'/0, 'Etcd.AuthDisableResponse'/0, 'Etcd.AuthenticateResponse'/0, 'Etcd.AuthUserAddResponse'/0, 'Etcd.AuthUserGetResponse'/0, 'Etcd.AuthUserDeleteResponse'/0, 'Etcd.AuthUserChangePasswordResponse'/0, 'Etcd.AuthUserGrantRoleResponse'/0, 'Etcd.AuthUserRevokeRoleResponse'/0, 'Etcd.AuthRoleAddResponse'/0, 'Etcd.AuthRoleGetResponse'/0, 'Etcd.AuthRoleListResponse'/0, 'Etcd.AuthUserListResponse'/0, 'Etcd.AuthRoleDeleteResponse'/0, 'Etcd.AuthRoleGrantPermissionResponse'/0, 'Etcd.AuthRoleRevokePermissionResponse'/0, 'Etcd.HealthCheckRequest'/0, 'Etcd.HealthCheckResponse'/0, 'google.protobuf.FileDescriptorSet'/0, 'google.protobuf.FileDescriptorProto'/0, 'google.protobuf.DescriptorProto.ExtensionRange'/0, 'google.protobuf.DescriptorProto.ReservedRange'/0, 'google.protobuf.DescriptorProto'/0, 'google.protobuf.FieldDescriptorProto'/0, 'google.protobuf.OneofDescriptorProto'/0, 'google.protobuf.EnumDescriptorProto'/0, 'google.protobuf.EnumValueDescriptorProto'/0, 'google.protobuf.ServiceDescriptorProto'/0, 'google.protobuf.MethodDescriptorProto'/0, 'google.protobuf.FileOptions'/0, 'google.protobuf.MessageOptions'/0, 'google.protobuf.FieldOptions'/0, 'google.protobuf.EnumOptions'/0, 'google.protobuf.EnumValueOptions'/0, 'google.protobuf.ServiceOptions'/0, 'google.protobuf.MethodOptions'/0, 'google.protobuf.UninterpretedOption.NamePart'/0, 'google.protobuf.UninterpretedOption'/0, 'google.protobuf.SourceCodeInfo.Location'/0, 'google.protobuf.SourceCodeInfo'/0, 'google.protobuf.GeneratedCodeInfo.Annotation'/0, 'google.protobuf.GeneratedCodeInfo'/0, 'mvccpb.KeyValue'/0, 'mvccpb.Event'/0, 'authpb.UserAddOptions'/0, 'authpb.User'/0, 'authpb.Permission'/0, 'authpb.Role'/0]).
 
--spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom()) -> binary().
+-spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'Etcd.HealthCheckRequest'() | 'Etcd.HealthCheckResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom()) -> binary().
 encode_msg(Msg, MsgName) when is_atom(MsgName) ->
     encode_msg(Msg, MsgName, []).
 
--spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom(), list()) -> binary().
+-spec encode_msg('Etcd.ResponseHeader'() | 'Etcd.RangeRequest'() | 'Etcd.RangeResponse'() | 'Etcd.PutRequest'() | 'Etcd.PutResponse'() | 'Etcd.DeleteRangeRequest'() | 'Etcd.DeleteRangeResponse'() | 'Etcd.RequestOp'() | 'Etcd.ResponseOp'() | 'Etcd.Compare'() | 'Etcd.TxnRequest'() | 'Etcd.TxnResponse'() | 'Etcd.CompactionRequest'() | 'Etcd.CompactionResponse'() | 'Etcd.HashRequest'() | 'Etcd.HashKVRequest'() | 'Etcd.HashKVResponse'() | 'Etcd.HashResponse'() | 'Etcd.SnapshotRequest'() | 'Etcd.SnapshotResponse'() | 'Etcd.WatchRequest'() | 'Etcd.WatchCreateRequest'() | 'Etcd.WatchCancelRequest'() | 'Etcd.WatchProgressRequest'() | 'Etcd.WatchResponse'() | 'Etcd.LeaseGrantRequest'() | 'Etcd.LeaseGrantResponse'() | 'Etcd.LeaseRevokeRequest'() | 'Etcd.LeaseRevokeResponse'() | 'Etcd.LeaseCheckpoint'() | 'Etcd.LeaseCheckpointRequest'() | 'Etcd.LeaseCheckpointResponse'() | 'Etcd.LeaseKeepAliveRequest'() | 'Etcd.LeaseKeepAliveResponse'() | 'Etcd.LeaseTimeToLiveRequest'() | 'Etcd.LeaseTimeToLiveResponse'() | 'Etcd.LeaseLeasesRequest'() | 'Etcd.LeaseStatus'() | 'Etcd.LeaseLeasesResponse'() | 'Etcd.Member'() | 'Etcd.MemberAddRequest'() | 'Etcd.MemberAddResponse'() | 'Etcd.MemberRemoveRequest'() | 'Etcd.MemberRemoveResponse'() | 'Etcd.MemberUpdateRequest'() | 'Etcd.MemberUpdateResponse'() | 'Etcd.MemberListRequest'() | 'Etcd.MemberListResponse'() | 'Etcd.MemberPromoteRequest'() | 'Etcd.MemberPromoteResponse'() | 'Etcd.DefragmentRequest'() | 'Etcd.DefragmentResponse'() | 'Etcd.MoveLeaderRequest'() | 'Etcd.MoveLeaderResponse'() | 'Etcd.AlarmRequest'() | 'Etcd.AlarmMember'() | 'Etcd.AlarmResponse'() | 'Etcd.StatusRequest'() | 'Etcd.StatusResponse'() | 'Etcd.AuthEnableRequest'() | 'Etcd.AuthDisableRequest'() | 'Etcd.AuthenticateRequest'() | 'Etcd.AuthUserAddRequest'() | 'Etcd.AuthUserGetRequest'() | 'Etcd.AuthUserDeleteRequest'() | 'Etcd.AuthUserChangePasswordRequest'() | 'Etcd.AuthUserGrantRoleRequest'() | 'Etcd.AuthUserRevokeRoleRequest'() | 'Etcd.AuthRoleAddRequest'() | 'Etcd.AuthRoleGetRequest'() | 'Etcd.AuthUserListRequest'() | 'Etcd.AuthRoleListRequest'() | 'Etcd.AuthRoleDeleteRequest'() | 'Etcd.AuthRoleGrantPermissionRequest'() | 'Etcd.AuthRoleRevokePermissionRequest'() | 'Etcd.AuthEnableResponse'() | 'Etcd.AuthDisableResponse'() | 'Etcd.AuthenticateResponse'() | 'Etcd.AuthUserAddResponse'() | 'Etcd.AuthUserGetResponse'() | 'Etcd.AuthUserDeleteResponse'() | 'Etcd.AuthUserChangePasswordResponse'() | 'Etcd.AuthUserGrantRoleResponse'() | 'Etcd.AuthUserRevokeRoleResponse'() | 'Etcd.AuthRoleAddResponse'() | 'Etcd.AuthRoleGetResponse'() | 'Etcd.AuthRoleListResponse'() | 'Etcd.AuthUserListResponse'() | 'Etcd.AuthRoleDeleteResponse'() | 'Etcd.AuthRoleGrantPermissionResponse'() | 'Etcd.AuthRoleRevokePermissionResponse'() | 'Etcd.HealthCheckRequest'() | 'Etcd.HealthCheckResponse'() | 'google.protobuf.FileDescriptorSet'() | 'google.protobuf.FileDescriptorProto'() | 'google.protobuf.DescriptorProto.ExtensionRange'() | 'google.protobuf.DescriptorProto.ReservedRange'() | 'google.protobuf.DescriptorProto'() | 'google.protobuf.FieldDescriptorProto'() | 'google.protobuf.OneofDescriptorProto'() | 'google.protobuf.EnumDescriptorProto'() | 'google.protobuf.EnumValueDescriptorProto'() | 'google.protobuf.ServiceDescriptorProto'() | 'google.protobuf.MethodDescriptorProto'() | 'google.protobuf.FileOptions'() | 'google.protobuf.MessageOptions'() | 'google.protobuf.FieldOptions'() | 'google.protobuf.EnumOptions'() | 'google.protobuf.EnumValueOptions'() | 'google.protobuf.ServiceOptions'() | 'google.protobuf.MethodOptions'() | 'google.protobuf.UninterpretedOption.NamePart'() | 'google.protobuf.UninterpretedOption'() | 'google.protobuf.SourceCodeInfo.Location'() | 'google.protobuf.SourceCodeInfo'() | 'google.protobuf.GeneratedCodeInfo.Annotation'() | 'google.protobuf.GeneratedCodeInfo'() | 'mvccpb.KeyValue'() | 'mvccpb.Event'() | 'authpb.UserAddOptions'() | 'authpb.User'() | 'authpb.Permission'() | 'authpb.Role'(), atom(), list()) -> binary().
 encode_msg(Msg, MsgName, Opts) ->
     case proplists:get_bool(verify, Opts) of
       true -> verify_msg(Msg, MsgName, Opts);
@@ -1176,6 +1186,14 @@ encode_msg(Msg, MsgName, Opts) ->
 	  'encode_msg_Etcd.AuthRoleRevokePermissionResponse'(id(Msg,
 								TrUserData),
 							     TrUserData);
+      'Etcd.HealthCheckRequest' ->
+	  'encode_msg_Etcd.HealthCheckRequest'(id(Msg,
+						  TrUserData),
+					       TrUserData);
+      'Etcd.HealthCheckResponse' ->
+	  'encode_msg_Etcd.HealthCheckResponse'(id(Msg,
+						   TrUserData),
+						TrUserData);
       'google.protobuf.FileDescriptorSet' ->
 	  'encode_msg_google.protobuf.FileDescriptorSet'(id(Msg,
 							    TrUserData),
@@ -4232,6 +4250,49 @@ encode_msg(Msg, MsgName, Opts) ->
 									   <<Bin/binary,
 									     10>>,
 									   TrUserData)
+	    end
+	  end;
+      _ -> Bin
+    end.
+
+'encode_msg_Etcd.HealthCheckRequest'(Msg, TrUserData) ->
+    'encode_msg_Etcd.HealthCheckRequest'(Msg, <<>>,
+					 TrUserData).
+
+
+'encode_msg_Etcd.HealthCheckRequest'(#{} = M, Bin,
+				     TrUserData) ->
+    case M of
+      #{service := F1} ->
+	  begin
+	    TrF1 = id(F1, TrUserData),
+	    case is_empty_string(TrF1) of
+	      true -> Bin;
+	      false ->
+		  e_type_string(TrF1, <<Bin/binary, 10>>, TrUserData)
+	    end
+	  end;
+      _ -> Bin
+    end.
+
+'encode_msg_Etcd.HealthCheckResponse'(Msg,
+				      TrUserData) ->
+    'encode_msg_Etcd.HealthCheckResponse'(Msg, <<>>,
+					  TrUserData).
+
+
+'encode_msg_Etcd.HealthCheckResponse'(#{} = M, Bin,
+				      TrUserData) ->
+    case M of
+      #{status := F1} ->
+	  begin
+	    TrF1 = id(F1, TrUserData),
+	    if TrF1 =:= 'UNKNOWN'; TrF1 =:= 0 -> Bin;
+	       true ->
+		   'e_enum_Etcd.HealthCheckResponse.ServingStatus'(TrF1,
+								   <<Bin/binary,
+								     8>>,
+								   TrUserData)
 	    end
 	  end;
       _ -> Bin
@@ -8043,6 +8104,22 @@ encode_msg(Msg, MsgName, Opts) ->
 				       _TrUserData) ->
     e_varint(V, Bin).
 
+'e_enum_Etcd.HealthCheckResponse.ServingStatus'('UNKNOWN',
+						Bin, _TrUserData) ->
+    <<Bin/binary, 0>>;
+'e_enum_Etcd.HealthCheckResponse.ServingStatus'('SERVING',
+						Bin, _TrUserData) ->
+    <<Bin/binary, 1>>;
+'e_enum_Etcd.HealthCheckResponse.ServingStatus'('NOT_SERVING',
+						Bin, _TrUserData) ->
+    <<Bin/binary, 2>>;
+'e_enum_Etcd.HealthCheckResponse.ServingStatus'('SERVICE_UNKNOWN',
+						Bin, _TrUserData) ->
+    <<Bin/binary, 3>>;
+'e_enum_Etcd.HealthCheckResponse.ServingStatus'(V, Bin,
+						_TrUserData) ->
+    e_varint(V, Bin).
+
 'e_enum_google.protobuf.FieldDescriptorProto.Type'('TYPE_DOUBLE',
 						   Bin, _TrUserData) ->
     <<Bin/binary, 1>>;
@@ -8721,6 +8798,16 @@ decode_msg_2_doit('Etcd.AuthRoleRevokePermissionResponse',
 		  Bin, TrUserData) ->
     id('decode_msg_Etcd.AuthRoleRevokePermissionResponse'(Bin,
 							  TrUserData),
+       TrUserData);
+decode_msg_2_doit('Etcd.HealthCheckRequest', Bin,
+		  TrUserData) ->
+    id('decode_msg_Etcd.HealthCheckRequest'(Bin,
+					    TrUserData),
+       TrUserData);
+decode_msg_2_doit('Etcd.HealthCheckResponse', Bin,
+		  TrUserData) ->
+    id('decode_msg_Etcd.HealthCheckResponse'(Bin,
+					     TrUserData),
        TrUserData);
 decode_msg_2_doit('google.protobuf.FileDescriptorSet',
 		  Bin, TrUserData) ->
@@ -24931,6 +25018,246 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'dfp_read_field_def_Etcd.AuthRoleRevokePermissionResponse'(Rest,
 							       Z1, Z2, F@_1,
 							       TrUserData).
+
+'decode_msg_Etcd.HealthCheckRequest'(Bin, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Bin, 0, 0,
+						 id(<<>>, TrUserData),
+						 TrUserData).
+
+'dfp_read_field_def_Etcd.HealthCheckRequest'(<<10,
+					       Rest/binary>>,
+					     Z1, Z2, F@_1, TrUserData) ->
+    'd_field_Etcd.HealthCheckRequest_service'(Rest, Z1, Z2,
+					      F@_1, TrUserData);
+'dfp_read_field_def_Etcd.HealthCheckRequest'(<<>>, 0, 0,
+					     F@_1, _) ->
+    #{service => F@_1};
+'dfp_read_field_def_Etcd.HealthCheckRequest'(Other, Z1,
+					     Z2, F@_1, TrUserData) ->
+    'dg_read_field_def_Etcd.HealthCheckRequest'(Other, Z1,
+						Z2, F@_1, TrUserData).
+
+'dg_read_field_def_Etcd.HealthCheckRequest'(<<1:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, F@_1, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_Etcd.HealthCheckRequest'(Rest, N + 7,
+						X bsl N + Acc, F@_1,
+						TrUserData);
+'dg_read_field_def_Etcd.HealthCheckRequest'(<<0:1, X:7,
+					      Rest/binary>>,
+					    N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      10 ->
+	  'd_field_Etcd.HealthCheckRequest_service'(Rest, 0, 0,
+						    F@_1, TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_Etcd.HealthCheckRequest'(Rest, 0, 0, F@_1,
+						      TrUserData);
+	    1 ->
+		'skip_64_Etcd.HealthCheckRequest'(Rest, 0, 0, F@_1,
+						  TrUserData);
+	    2 ->
+		'skip_length_delimited_Etcd.HealthCheckRequest'(Rest, 0,
+								0, F@_1,
+								TrUserData);
+	    3 ->
+		'skip_group_Etcd.HealthCheckRequest'(Rest, Key bsr 3, 0,
+						     F@_1, TrUserData);
+	    5 ->
+		'skip_32_Etcd.HealthCheckRequest'(Rest, 0, 0, F@_1,
+						  TrUserData)
+	  end
+    end;
+'dg_read_field_def_Etcd.HealthCheckRequest'(<<>>, 0, 0,
+					    F@_1, _) ->
+    #{service => F@_1}.
+
+'d_field_Etcd.HealthCheckRequest_service'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.HealthCheckRequest_service'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, TrUserData);
+'d_field_Etcd.HealthCheckRequest_service'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} = begin
+			   Len = X bsl N + Acc,
+			   <<Bytes:Len/binary, Rest2/binary>> = Rest,
+			   {id(binary:copy(Bytes), TrUserData), Rest2}
+			 end,
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(RestF, 0,
+						 0, NewFValue, TrUserData).
+
+'skip_varint_Etcd.HealthCheckRequest'(<<1:1, _:7,
+					Rest/binary>>,
+				      Z1, Z2, F@_1, TrUserData) ->
+    'skip_varint_Etcd.HealthCheckRequest'(Rest, Z1, Z2,
+					  F@_1, TrUserData);
+'skip_varint_Etcd.HealthCheckRequest'(<<0:1, _:7,
+					Rest/binary>>,
+				      Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Rest, Z1,
+						 Z2, F@_1, TrUserData).
+
+'skip_length_delimited_Etcd.HealthCheckRequest'(<<1:1,
+						  X:7, Rest/binary>>,
+						N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_Etcd.HealthCheckRequest'(Rest,
+						    N + 7, X bsl N + Acc, F@_1,
+						    TrUserData);
+'skip_length_delimited_Etcd.HealthCheckRequest'(<<0:1,
+						  X:7, Rest/binary>>,
+						N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Rest2, 0,
+						 0, F@_1, TrUserData).
+
+'skip_group_Etcd.HealthCheckRequest'(Bin, FNum, Z2,
+				     F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Rest, 0,
+						 Z2, F@_1, TrUserData).
+
+'skip_32_Etcd.HealthCheckRequest'(<<_:32, Rest/binary>>,
+				  Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Rest, Z1,
+						 Z2, F@_1, TrUserData).
+
+'skip_64_Etcd.HealthCheckRequest'(<<_:64, Rest/binary>>,
+				  Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckRequest'(Rest, Z1,
+						 Z2, F@_1, TrUserData).
+
+'decode_msg_Etcd.HealthCheckResponse'(Bin,
+				      TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Bin, 0, 0,
+						  id('UNKNOWN', TrUserData),
+						  TrUserData).
+
+'dfp_read_field_def_Etcd.HealthCheckResponse'(<<8,
+						Rest/binary>>,
+					      Z1, Z2, F@_1, TrUserData) ->
+    'd_field_Etcd.HealthCheckResponse_status'(Rest, Z1, Z2,
+					      F@_1, TrUserData);
+'dfp_read_field_def_Etcd.HealthCheckResponse'(<<>>, 0,
+					      0, F@_1, _) ->
+    #{status => F@_1};
+'dfp_read_field_def_Etcd.HealthCheckResponse'(Other, Z1,
+					      Z2, F@_1, TrUserData) ->
+    'dg_read_field_def_Etcd.HealthCheckResponse'(Other, Z1,
+						 Z2, F@_1, TrUserData).
+
+'dg_read_field_def_Etcd.HealthCheckResponse'(<<1:1, X:7,
+					       Rest/binary>>,
+					     N, Acc, F@_1, TrUserData)
+    when N < 32 - 7 ->
+    'dg_read_field_def_Etcd.HealthCheckResponse'(Rest,
+						 N + 7, X bsl N + Acc, F@_1,
+						 TrUserData);
+'dg_read_field_def_Etcd.HealthCheckResponse'(<<0:1, X:7,
+					       Rest/binary>>,
+					     N, Acc, F@_1, TrUserData) ->
+    Key = X bsl N + Acc,
+    case Key of
+      8 ->
+	  'd_field_Etcd.HealthCheckResponse_status'(Rest, 0, 0,
+						    F@_1, TrUserData);
+      _ ->
+	  case Key band 7 of
+	    0 ->
+		'skip_varint_Etcd.HealthCheckResponse'(Rest, 0, 0, F@_1,
+						       TrUserData);
+	    1 ->
+		'skip_64_Etcd.HealthCheckResponse'(Rest, 0, 0, F@_1,
+						   TrUserData);
+	    2 ->
+		'skip_length_delimited_Etcd.HealthCheckResponse'(Rest,
+								 0, 0, F@_1,
+								 TrUserData);
+	    3 ->
+		'skip_group_Etcd.HealthCheckResponse'(Rest, Key bsr 3,
+						      0, F@_1, TrUserData);
+	    5 ->
+		'skip_32_Etcd.HealthCheckResponse'(Rest, 0, 0, F@_1,
+						   TrUserData)
+	  end
+    end;
+'dg_read_field_def_Etcd.HealthCheckResponse'(<<>>, 0, 0,
+					     F@_1, _) ->
+    #{status => F@_1}.
+
+'d_field_Etcd.HealthCheckResponse_status'(<<1:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'd_field_Etcd.HealthCheckResponse_status'(Rest, N + 7,
+					      X bsl N + Acc, F@_1, TrUserData);
+'d_field_Etcd.HealthCheckResponse_status'(<<0:1, X:7,
+					    Rest/binary>>,
+					  N, Acc, _, TrUserData) ->
+    {NewFValue, RestF} =
+	{id('d_enum_Etcd.HealthCheckResponse.ServingStatus'(begin
+							      <<Res:32/signed-native>> =
+								  <<(X bsl N +
+								       Acc):32/unsigned-native>>,
+							      id(Res,
+								 TrUserData)
+							    end),
+	    TrUserData),
+	 Rest},
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(RestF, 0,
+						  0, NewFValue, TrUserData).
+
+'skip_varint_Etcd.HealthCheckResponse'(<<1:1, _:7,
+					 Rest/binary>>,
+				       Z1, Z2, F@_1, TrUserData) ->
+    'skip_varint_Etcd.HealthCheckResponse'(Rest, Z1, Z2,
+					   F@_1, TrUserData);
+'skip_varint_Etcd.HealthCheckResponse'(<<0:1, _:7,
+					 Rest/binary>>,
+				       Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Rest, Z1,
+						  Z2, F@_1, TrUserData).
+
+'skip_length_delimited_Etcd.HealthCheckResponse'(<<1:1,
+						   X:7, Rest/binary>>,
+						 N, Acc, F@_1, TrUserData)
+    when N < 57 ->
+    'skip_length_delimited_Etcd.HealthCheckResponse'(Rest,
+						     N + 7, X bsl N + Acc, F@_1,
+						     TrUserData);
+'skip_length_delimited_Etcd.HealthCheckResponse'(<<0:1,
+						   X:7, Rest/binary>>,
+						 N, Acc, F@_1, TrUserData) ->
+    Length = X bsl N + Acc,
+    <<_:Length/binary, Rest2/binary>> = Rest,
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Rest2, 0,
+						  0, F@_1, TrUserData).
+
+'skip_group_Etcd.HealthCheckResponse'(Bin, FNum, Z2,
+				      F@_1, TrUserData) ->
+    {_, Rest} = read_group(Bin, FNum),
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Rest, 0,
+						  Z2, F@_1, TrUserData).
+
+'skip_32_Etcd.HealthCheckResponse'(<<_:32,
+				     Rest/binary>>,
+				   Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Rest, Z1,
+						  Z2, F@_1, TrUserData).
+
+'skip_64_Etcd.HealthCheckResponse'(<<_:64,
+				     Rest/binary>>,
+				   Z1, Z2, F@_1, TrUserData) ->
+    'dfp_read_field_def_Etcd.HealthCheckResponse'(Rest, Z1,
+						  Z2, F@_1, TrUserData).
 
 'decode_msg_google.protobuf.FileDescriptorSet'(Bin,
 					       TrUserData) ->
@@ -45896,6 +46223,16 @@ decode_msg_2_doit('authpb.Role', Bin, TrUserData) ->
     'DEACTIVATE';
 'd_enum_Etcd.AlarmRequest.AlarmAction'(V) -> V.
 
+'d_enum_Etcd.HealthCheckResponse.ServingStatus'(0) ->
+    'UNKNOWN';
+'d_enum_Etcd.HealthCheckResponse.ServingStatus'(1) ->
+    'SERVING';
+'d_enum_Etcd.HealthCheckResponse.ServingStatus'(2) ->
+    'NOT_SERVING';
+'d_enum_Etcd.HealthCheckResponse.ServingStatus'(3) ->
+    'SERVICE_UNKNOWN';
+'d_enum_Etcd.HealthCheckResponse.ServingStatus'(V) -> V.
+
 'd_enum_google.protobuf.FieldDescriptorProto.Type'(1) ->
     'TYPE_DOUBLE';
 'd_enum_google.protobuf.FieldDescriptorProto.Type'(2) ->
@@ -46290,6 +46627,12 @@ merge_msgs(Prev, New, MsgName, Opts) ->
       'Etcd.AuthRoleRevokePermissionResponse' ->
 	  'merge_msg_Etcd.AuthRoleRevokePermissionResponse'(Prev,
 							    New, TrUserData);
+      'Etcd.HealthCheckRequest' ->
+	  'merge_msg_Etcd.HealthCheckRequest'(Prev, New,
+					      TrUserData);
+      'Etcd.HealthCheckResponse' ->
+	  'merge_msg_Etcd.HealthCheckResponse'(Prev, New,
+					       TrUserData);
       'google.protobuf.FileDescriptorSet' ->
 	  'merge_msg_google.protobuf.FileDescriptorSet'(Prev, New,
 							TrUserData);
@@ -48233,6 +48576,26 @@ merge_msgs(Prev, New, MsgName, Opts) ->
       {_, _} -> S1
     end.
 
+-compile({nowarn_unused_function,'merge_msg_Etcd.HealthCheckRequest'/3}).
+'merge_msg_Etcd.HealthCheckRequest'(PMsg, NMsg, _) ->
+    S1 = #{},
+    case {PMsg, NMsg} of
+      {_, #{service := NFservice}} ->
+	  S1#{service => NFservice};
+      {#{service := PFservice}, _} ->
+	  S1#{service => PFservice};
+      _ -> S1
+    end.
+
+-compile({nowarn_unused_function,'merge_msg_Etcd.HealthCheckResponse'/3}).
+'merge_msg_Etcd.HealthCheckResponse'(PMsg, NMsg, _) ->
+    S1 = #{},
+    case {PMsg, NMsg} of
+      {_, #{status := NFstatus}} -> S1#{status => NFstatus};
+      {#{status := PFstatus}, _} -> S1#{status => PFstatus};
+      _ -> S1
+    end.
+
 -compile({nowarn_unused_function,'merge_msg_google.protobuf.FileDescriptorSet'/3}).
 'merge_msg_google.protobuf.FileDescriptorSet'(PMsg,
 					      NMsg, TrUserData) ->
@@ -50170,6 +50533,12 @@ verify_msg(Msg, MsgName, Opts) ->
       'Etcd.AuthRoleRevokePermissionResponse' ->
 	  'v_msg_Etcd.AuthRoleRevokePermissionResponse'(Msg,
 							[MsgName], TrUserData);
+      'Etcd.HealthCheckRequest' ->
+	  'v_msg_Etcd.HealthCheckRequest'(Msg, [MsgName],
+					  TrUserData);
+      'Etcd.HealthCheckResponse' ->
+	  'v_msg_Etcd.HealthCheckResponse'(Msg, [MsgName],
+					   TrUserData);
       'google.protobuf.FileDescriptorSet' ->
 	  'v_msg_google.protobuf.FileDescriptorSet'(Msg,
 						    [MsgName], TrUserData);
@@ -53427,6 +53796,58 @@ verify_msg(Msg, MsgName, Opts) ->
 		   'Etcd.AuthRoleRevokePermissionResponse'},
 		  X, Path).
 
+-compile({nowarn_unused_function,'v_msg_Etcd.HealthCheckRequest'/3}).
+-dialyzer({nowarn_function,'v_msg_Etcd.HealthCheckRequest'/3}).
+'v_msg_Etcd.HealthCheckRequest'(#{} = M, Path,
+				TrUserData) ->
+    case M of
+      #{service := F1} ->
+	  v_type_string(F1, [service | Path], TrUserData);
+      _ -> ok
+    end,
+    lists:foreach(fun (service) -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_Etcd.HealthCheckRequest'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'Etcd.HealthCheckRequest'},
+		  M, Path);
+'v_msg_Etcd.HealthCheckRequest'(X, Path, _TrUserData) ->
+    mk_type_error({expected_msg, 'Etcd.HealthCheckRequest'},
+		  X, Path).
+
+-compile({nowarn_unused_function,'v_msg_Etcd.HealthCheckResponse'/3}).
+-dialyzer({nowarn_function,'v_msg_Etcd.HealthCheckResponse'/3}).
+'v_msg_Etcd.HealthCheckResponse'(#{} = M, Path,
+				 TrUserData) ->
+    case M of
+      #{status := F1} ->
+	  'v_enum_Etcd.HealthCheckResponse.ServingStatus'(F1,
+							  [status | Path],
+							  TrUserData);
+      _ -> ok
+    end,
+    lists:foreach(fun (status) -> ok;
+		      (OtherKey) ->
+			  mk_type_error({extraneous_key, OtherKey}, M, Path)
+		  end,
+		  maps:keys(M)),
+    ok;
+'v_msg_Etcd.HealthCheckResponse'(M, Path, _TrUserData)
+    when is_map(M) ->
+    mk_type_error({missing_fields, [] -- maps:keys(M),
+		   'Etcd.HealthCheckResponse'},
+		  M, Path);
+'v_msg_Etcd.HealthCheckResponse'(X, Path,
+				 _TrUserData) ->
+    mk_type_error({expected_msg,
+		   'Etcd.HealthCheckResponse'},
+		  X, Path).
+
 -compile({nowarn_unused_function,'v_msg_google.protobuf.FileDescriptorSet'/3}).
 -dialyzer({nowarn_function,'v_msg_google.protobuf.FileDescriptorSet'/3}).
 'v_msg_google.protobuf.FileDescriptorSet'(#{} = M, Path,
@@ -55757,6 +56178,30 @@ verify_msg(Msg, MsgName, Opts) ->
 		   'Etcd.AlarmRequest.AlarmAction'},
 		  X, Path).
 
+-compile({nowarn_unused_function,'v_enum_Etcd.HealthCheckResponse.ServingStatus'/3}).
+-dialyzer({nowarn_function,'v_enum_Etcd.HealthCheckResponse.ServingStatus'/3}).
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'('UNKNOWN',
+						_Path, _TrUserData) ->
+    ok;
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'('SERVING',
+						_Path, _TrUserData) ->
+    ok;
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'('NOT_SERVING',
+						_Path, _TrUserData) ->
+    ok;
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'('SERVICE_UNKNOWN',
+						_Path, _TrUserData) ->
+    ok;
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'(V, Path,
+						TrUserData)
+    when is_integer(V) ->
+    v_type_sint32(V, Path, TrUserData);
+'v_enum_Etcd.HealthCheckResponse.ServingStatus'(X, Path,
+						_TrUserData) ->
+    mk_type_error({invalid_enum,
+		   'Etcd.HealthCheckResponse.ServingStatus'},
+		  X, Path).
+
 -compile({nowarn_unused_function,'v_enum_google.protobuf.FieldDescriptorProto.Type'/3}).
 -dialyzer({nowarn_function,'v_enum_google.protobuf.FieldDescriptorProto.Type'/3}).
 'v_enum_google.protobuf.FieldDescriptorProto.Type'('TYPE_DOUBLE',
@@ -56111,6 +56556,9 @@ get_msg_defs() ->
       [{'NONE', 0}, {'NOSPACE', 1}, {'CORRUPT', 2}]},
      {{enum, 'Etcd.AlarmRequest.AlarmAction'},
       [{'GET', 0}, {'ACTIVATE', 1}, {'DEACTIVATE', 2}]},
+     {{enum, 'Etcd.HealthCheckResponse.ServingStatus'},
+      [{'UNKNOWN', 0}, {'SERVING', 1}, {'NOT_SERVING', 2},
+       {'SERVICE_UNKNOWN', 3}]},
      {{enum, 'google.protobuf.FieldDescriptorProto.Type'},
       [{'TYPE_DOUBLE', 1}, {'TYPE_FLOAT', 2},
        {'TYPE_INT64', 3}, {'TYPE_UINT64', 4},
@@ -56712,6 +57160,14 @@ get_msg_defs() ->
       [#{name => header, fnum => 1, rnum => 2,
 	 type => {msg, 'Etcd.ResponseHeader'},
 	 occurrence => optional, opts => []}]},
+     {{msg, 'Etcd.HealthCheckRequest'},
+      [#{name => service, fnum => 1, rnum => 2,
+	 type => string, occurrence => optional, opts => []}]},
+     {{msg, 'Etcd.HealthCheckResponse'},
+      [#{name => status, fnum => 1, rnum => 2,
+	 type =>
+	     {enum, 'Etcd.HealthCheckResponse.ServingStatus'},
+	 occurrence => optional, opts => []}]},
      {{msg, 'google.protobuf.FileDescriptorSet'},
       [#{name => file, fnum => 1, rnum => 2,
 	 type => {msg, 'google.protobuf.FileDescriptorProto'},
@@ -57274,6 +57730,7 @@ get_msg_names() ->
      'Etcd.AuthRoleDeleteResponse',
      'Etcd.AuthRoleGrantPermissionResponse',
      'Etcd.AuthRoleRevokePermissionResponse',
+     'Etcd.HealthCheckRequest', 'Etcd.HealthCheckResponse',
      'google.protobuf.FileDescriptorSet',
      'google.protobuf.FileDescriptorProto',
      'google.protobuf.DescriptorProto.ExtensionRange',
@@ -57362,6 +57819,7 @@ get_msg_or_group_names() ->
      'Etcd.AuthRoleDeleteResponse',
      'Etcd.AuthRoleGrantPermissionResponse',
      'Etcd.AuthRoleRevokePermissionResponse',
+     'Etcd.HealthCheckRequest', 'Etcd.HealthCheckResponse',
      'google.protobuf.FileDescriptorSet',
      'google.protobuf.FileDescriptorProto',
      'google.protobuf.DescriptorProto.ExtensionRange',
@@ -57397,6 +57855,7 @@ get_enum_names() ->
      'Etcd.Compare.CompareTarget',
      'Etcd.WatchCreateRequest.FilterType', 'Etcd.AlarmType',
      'Etcd.AlarmRequest.AlarmAction',
+     'Etcd.HealthCheckResponse.ServingStatus',
      'google.protobuf.FieldDescriptorProto.Type',
      'google.protobuf.FieldDescriptorProto.Label',
      'google.protobuf.FileOptions.OptimizeMode',
@@ -57997,6 +58456,14 @@ find_msg_def('Etcd.AuthRoleRevokePermissionResponse') ->
     [#{name => header, fnum => 1, rnum => 2,
        type => {msg, 'Etcd.ResponseHeader'},
        occurrence => optional, opts => []}];
+find_msg_def('Etcd.HealthCheckRequest') ->
+    [#{name => service, fnum => 1, rnum => 2,
+       type => string, occurrence => optional, opts => []}];
+find_msg_def('Etcd.HealthCheckResponse') ->
+    [#{name => status, fnum => 1, rnum => 2,
+       type =>
+	   {enum, 'Etcd.HealthCheckResponse.ServingStatus'},
+       occurrence => optional, opts => []}];
 find_msg_def('google.protobuf.FileDescriptorSet') ->
     [#{name => file, fnum => 1, rnum => 2,
        type => {msg, 'google.protobuf.FileDescriptorProto'},
@@ -58519,6 +58986,9 @@ find_enum_def('Etcd.AlarmType') ->
     [{'NONE', 0}, {'NOSPACE', 1}, {'CORRUPT', 2}];
 find_enum_def('Etcd.AlarmRequest.AlarmAction') ->
     [{'GET', 0}, {'ACTIVATE', 1}, {'DEACTIVATE', 2}];
+find_enum_def('Etcd.HealthCheckResponse.ServingStatus') ->
+    [{'UNKNOWN', 0}, {'SERVING', 1}, {'NOT_SERVING', 2},
+     {'SERVICE_UNKNOWN', 3}];
 find_enum_def('google.protobuf.FieldDescriptorProto.Type') ->
     [{'TYPE_DOUBLE', 1}, {'TYPE_FLOAT', 2},
      {'TYPE_INT64', 3}, {'TYPE_UINT64', 4},
@@ -58565,6 +59035,9 @@ enum_symbol_by_value('Etcd.AlarmType', Value) ->
 enum_symbol_by_value('Etcd.AlarmRequest.AlarmAction',
 		     Value) ->
     'enum_symbol_by_value_Etcd.AlarmRequest.AlarmAction'(Value);
+enum_symbol_by_value('Etcd.HealthCheckResponse.ServingStatus',
+		     Value) ->
+    'enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'(Value);
 enum_symbol_by_value('google.protobuf.FieldDescriptorProto.Type',
 		     Value) ->
     'enum_symbol_by_value_google.protobuf.FieldDescriptorProto.Type'(Value);
@@ -58606,6 +59079,9 @@ enum_value_by_symbol('Etcd.AlarmType', Sym) ->
 enum_value_by_symbol('Etcd.AlarmRequest.AlarmAction',
 		     Sym) ->
     'enum_value_by_symbol_Etcd.AlarmRequest.AlarmAction'(Sym);
+enum_value_by_symbol('Etcd.HealthCheckResponse.ServingStatus',
+		     Sym) ->
+    'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'(Sym);
 enum_value_by_symbol('google.protobuf.FieldDescriptorProto.Type',
 		     Sym) ->
     'enum_value_by_symbol_google.protobuf.FieldDescriptorProto.Type'(Sym);
@@ -58741,6 +59217,25 @@ enum_value_by_symbol('authpb.Permission.Type', Sym) ->
     1;
 'enum_value_by_symbol_Etcd.AlarmRequest.AlarmAction'('DEACTIVATE') ->
     2.
+
+'enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'(0) ->
+    'UNKNOWN';
+'enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'(1) ->
+    'SERVING';
+'enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'(2) ->
+    'NOT_SERVING';
+'enum_symbol_by_value_Etcd.HealthCheckResponse.ServingStatus'(3) ->
+    'SERVICE_UNKNOWN'.
+
+
+'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'('UNKNOWN') ->
+    0;
+'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'('SERVING') ->
+    1;
+'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'('NOT_SERVING') ->
+    2;
+'enum_value_by_symbol_Etcd.HealthCheckResponse.ServingStatus'('SERVICE_UNKNOWN') ->
+    3.
 
 'enum_symbol_by_value_google.protobuf.FieldDescriptorProto.Type'(1) ->
     'TYPE_DOUBLE';
@@ -58906,7 +59401,7 @@ enum_value_by_symbol('authpb.Permission.Type', Sym) ->
 
 get_service_names() ->
     ['Etcd.KV', 'Etcd.Watch', 'Etcd.Lease', 'Etcd.Cluster',
-     'Etcd.Maintenance', 'Etcd.Auth'].
+     'Etcd.Maintenance', 'Etcd.Auth', 'Etcd.Health'].
 
 
 get_service_def('Etcd.KV') ->
@@ -59094,6 +59589,16 @@ get_service_def('Etcd.Auth') ->
 	output => 'Etcd.AuthRoleRevokePermissionResponse',
 	input_stream => false, output_stream => false,
 	opts => []}]};
+get_service_def('Etcd.Health') ->
+    {{service, 'Etcd.Health'},
+     [#{name => 'Check', input => 'Etcd.HealthCheckRequest',
+	output => 'Etcd.HealthCheckResponse',
+	input_stream => false, output_stream => false,
+	opts => []},
+      #{name => 'Watch', input => 'Etcd.HealthCheckRequest',
+	output => 'Etcd.HealthCheckResponse',
+	input_stream => false, output_stream => true,
+	opts => []}]};
 get_service_def(_) -> error.
 
 
@@ -59115,6 +59620,7 @@ get_rpc_names('Etcd.Auth') ->
      'UserChangePassword', 'UserGrantRole', 'UserRevokeRole',
      'RoleAdd', 'RoleGet', 'RoleList', 'RoleDelete',
      'RoleGrantPermission', 'RoleRevokePermission'];
+get_rpc_names('Etcd.Health') -> ['Check', 'Watch'];
 get_rpc_names(_) -> error.
 
 
@@ -59130,6 +59636,8 @@ find_rpc_def('Etcd.Maintenance', RpcName) ->
     'find_rpc_def_Etcd.Maintenance'(RpcName);
 find_rpc_def('Etcd.Auth', RpcName) ->
     'find_rpc_def_Etcd.Auth'(RpcName);
+find_rpc_def('Etcd.Health', RpcName) ->
+    'find_rpc_def_Etcd.Health'(RpcName);
 find_rpc_def(_, _) -> error.
 
 
@@ -59356,6 +59864,18 @@ find_rpc_def(_, _) -> error.
       opts => []};
 'find_rpc_def_Etcd.Auth'(_) -> error.
 
+'find_rpc_def_Etcd.Health'('Check') ->
+    #{name => 'Check', input => 'Etcd.HealthCheckRequest',
+      output => 'Etcd.HealthCheckResponse',
+      input_stream => false, output_stream => false,
+      opts => []};
+'find_rpc_def_Etcd.Health'('Watch') ->
+    #{name => 'Watch', input => 'Etcd.HealthCheckRequest',
+      output => 'Etcd.HealthCheckResponse',
+      input_stream => false, output_stream => true,
+      opts => []};
+'find_rpc_def_Etcd.Health'(_) -> error.
+
 
 fetch_rpc_def(ServiceName, RpcName) ->
     case find_rpc_def(ServiceName, RpcName) of
@@ -59373,6 +59893,7 @@ fqbin_to_service_name(<<"Etcd.Lease">>) -> 'Etcd.Lease';
 fqbin_to_service_name(<<"Etcd.Cluster">>) -> 'Etcd.Cluster';
 fqbin_to_service_name(<<"Etcd.Maintenance">>) -> 'Etcd.Maintenance';
 fqbin_to_service_name(<<"Etcd.Auth">>) -> 'Etcd.Auth';
+fqbin_to_service_name(<<"Etcd.Health">>) -> 'Etcd.Health';
 fqbin_to_service_name(X) ->
     error({gpb_error, {badservice, X}}).
 
@@ -59385,6 +59906,7 @@ service_name_to_fqbin('Etcd.Lease') -> <<"Etcd.Lease">>;
 service_name_to_fqbin('Etcd.Cluster') -> <<"Etcd.Cluster">>;
 service_name_to_fqbin('Etcd.Maintenance') -> <<"Etcd.Maintenance">>;
 service_name_to_fqbin('Etcd.Auth') -> <<"Etcd.Auth">>;
+service_name_to_fqbin('Etcd.Health') -> <<"Etcd.Health">>;
 service_name_to_fqbin(X) ->
     error({gpb_error, {badservice, X}}).
 
@@ -59470,6 +59992,10 @@ fqbins_to_service_and_rpc_name(<<"Etcd.Auth">>, <<"RoleGrantPermission">>) ->
     {'Etcd.Auth', 'RoleGrantPermission'};
 fqbins_to_service_and_rpc_name(<<"Etcd.Auth">>, <<"RoleRevokePermission">>) ->
     {'Etcd.Auth', 'RoleRevokePermission'};
+fqbins_to_service_and_rpc_name(<<"Etcd.Health">>, <<"Check">>) ->
+    {'Etcd.Health', 'Check'};
+fqbins_to_service_and_rpc_name(<<"Etcd.Health">>, <<"Watch">>) ->
+    {'Etcd.Health', 'Watch'};
 fqbins_to_service_and_rpc_name(S, R) ->
     error({gpb_error, {badservice_or_rpc, {S, R}}}).
 
@@ -59589,6 +60115,12 @@ service_and_rpc_name_to_fqbins('Etcd.Auth',
 service_and_rpc_name_to_fqbins('Etcd.Auth',
 			       'RoleRevokePermission') ->
     {<<"Etcd.Auth">>, <<"RoleRevokePermission">>};
+service_and_rpc_name_to_fqbins('Etcd.Health',
+			       'Check') ->
+    {<<"Etcd.Health">>, <<"Check">>};
+service_and_rpc_name_to_fqbins('Etcd.Health',
+			       'Watch') ->
+    {<<"Etcd.Health">>, <<"Watch">>};
 service_and_rpc_name_to_fqbins(S, R) ->
     error({gpb_error, {badservice_or_rpc, {S, R}}}).
 
@@ -59725,6 +60257,9 @@ fqbin_to_msg_name(<<"Etcd.AuthRoleGrantPermissionResponse">>) ->
     'Etcd.AuthRoleGrantPermissionResponse';
 fqbin_to_msg_name(<<"Etcd.AuthRoleRevokePermissionResponse">>) ->
     'Etcd.AuthRoleRevokePermissionResponse';
+fqbin_to_msg_name(<<"Etcd.HealthCheckRequest">>) -> 'Etcd.HealthCheckRequest';
+fqbin_to_msg_name(<<"Etcd.HealthCheckResponse">>) ->
+    'Etcd.HealthCheckResponse';
 fqbin_to_msg_name(<<"google.protobuf.FileDescriptorSet">>) ->
     'google.protobuf.FileDescriptorSet';
 fqbin_to_msg_name(<<"google.protobuf.FileDescriptorProto">>) ->
@@ -59914,6 +60449,9 @@ msg_name_to_fqbin('Etcd.AuthRoleGrantPermissionResponse') ->
     <<"Etcd.AuthRoleGrantPermissionResponse">>;
 msg_name_to_fqbin('Etcd.AuthRoleRevokePermissionResponse') ->
     <<"Etcd.AuthRoleRevokePermissionResponse">>;
+msg_name_to_fqbin('Etcd.HealthCheckRequest') -> <<"Etcd.HealthCheckRequest">>;
+msg_name_to_fqbin('Etcd.HealthCheckResponse') ->
+    <<"Etcd.HealthCheckResponse">>;
 msg_name_to_fqbin('google.protobuf.FileDescriptorSet') ->
     <<"google.protobuf.FileDescriptorSet">>;
 msg_name_to_fqbin('google.protobuf.FileDescriptorProto') ->
@@ -59984,6 +60522,8 @@ fqbin_to_enum_name(<<"Etcd.WatchCreateRequest.FilterType">>) ->
 fqbin_to_enum_name(<<"Etcd.AlarmType">>) -> 'Etcd.AlarmType';
 fqbin_to_enum_name(<<"Etcd.AlarmRequest.AlarmAction">>) ->
     'Etcd.AlarmRequest.AlarmAction';
+fqbin_to_enum_name(<<"Etcd.HealthCheckResponse.ServingStatus">>) ->
+    'Etcd.HealthCheckResponse.ServingStatus';
 fqbin_to_enum_name(<<"google.protobuf.FieldDescriptorProto.Type">>) ->
     'google.protobuf.FieldDescriptorProto.Type';
 fqbin_to_enum_name(<<"google.protobuf.FieldDescriptorProto.Label">>) ->
@@ -60013,6 +60553,8 @@ enum_name_to_fqbin('Etcd.WatchCreateRequest.FilterType') ->
 enum_name_to_fqbin('Etcd.AlarmType') -> <<"Etcd.AlarmType">>;
 enum_name_to_fqbin('Etcd.AlarmRequest.AlarmAction') ->
     <<"Etcd.AlarmRequest.AlarmAction">>;
+enum_name_to_fqbin('Etcd.HealthCheckResponse.ServingStatus') ->
+    <<"Etcd.HealthCheckResponse.ServingStatus">>;
 enum_name_to_fqbin('google.protobuf.FieldDescriptorProto.Type') ->
     <<"google.protobuf.FieldDescriptorProto.Type">>;
 enum_name_to_fqbin('google.protobuf.FieldDescriptorProto.Label') ->
@@ -60090,7 +60632,8 @@ get_msg_containment("router") ->
      'Etcd.DefragmentResponse', 'Etcd.DeleteRangeRequest',
      'Etcd.DeleteRangeResponse', 'Etcd.HashKVRequest',
      'Etcd.HashKVResponse', 'Etcd.HashRequest',
-     'Etcd.HashResponse', 'Etcd.LeaseCheckpoint',
+     'Etcd.HashResponse', 'Etcd.HealthCheckRequest',
+     'Etcd.HealthCheckResponse', 'Etcd.LeaseCheckpoint',
      'Etcd.LeaseCheckpointRequest',
      'Etcd.LeaseCheckpointResponse',
      'Etcd.LeaseGrantRequest', 'Etcd.LeaseGrantResponse',
@@ -60161,8 +60704,8 @@ get_pkg_containment(P) ->
 
 
 get_service_containment("router") ->
-    ['Etcd.Auth', 'Etcd.Cluster', 'Etcd.KV', 'Etcd.Lease',
-     'Etcd.Maintenance', 'Etcd.Watch'];
+    ['Etcd.Auth', 'Etcd.Cluster', 'Etcd.Health', 'Etcd.KV',
+     'Etcd.Lease', 'Etcd.Maintenance', 'Etcd.Watch'];
 get_service_containment("gogo") -> [];
 get_service_containment("descriptor") -> [];
 get_service_containment("kv") -> [];
@@ -60203,7 +60746,8 @@ get_rpc_containment("router") ->
      {'Etcd.Auth', 'RoleAdd'}, {'Etcd.Auth', 'RoleGet'},
      {'Etcd.Auth', 'RoleList'}, {'Etcd.Auth', 'RoleDelete'},
      {'Etcd.Auth', 'RoleGrantPermission'},
-     {'Etcd.Auth', 'RoleRevokePermission'}];
+     {'Etcd.Auth', 'RoleRevokePermission'},
+     {'Etcd.Health', 'Check'}, {'Etcd.Health', 'Watch'}];
 get_rpc_containment("gogo") -> [];
 get_rpc_containment("descriptor") -> [];
 get_rpc_containment("kv") -> [];
@@ -60216,6 +60760,7 @@ get_enum_containment("router") ->
     ['Etcd.AlarmRequest.AlarmAction', 'Etcd.AlarmType',
      'Etcd.Compare.CompareResult',
      'Etcd.Compare.CompareTarget',
+     'Etcd.HealthCheckResponse.ServingStatus',
      'Etcd.RangeRequest.SortOrder',
      'Etcd.RangeRequest.SortTarget',
      'Etcd.WatchCreateRequest.FilterType'];
@@ -60323,6 +60868,7 @@ get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseKeepAliveRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseGrantRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseCheckpointRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseCheckpoint">>) -> "router";
+get_proto_by_msg_name_as_fqbin(<<"Etcd.HealthCheckRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.HashKVRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.DeleteRangeRequest">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.AuthenticateRequest">>) -> "router";
@@ -60343,6 +60889,7 @@ get_proto_by_msg_name_as_fqbin(<<"Etcd.SnapshotResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseKeepAliveResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseGrantResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.LeaseCheckpointResponse">>) -> "router";
+get_proto_by_msg_name_as_fqbin(<<"Etcd.HealthCheckResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.HashKVResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.DeleteRangeResponse">>) -> "router";
 get_proto_by_msg_name_as_fqbin(<<"Etcd.CompactionResponse">>) -> "router";
@@ -60364,12 +60911,14 @@ get_proto_by_service_name_as_fqbin(<<"Etcd.Maintenance">>) -> "router";
 get_proto_by_service_name_as_fqbin(<<"Etcd.Lease">>) -> "router";
 get_proto_by_service_name_as_fqbin(<<"Etcd.KV">>) -> "router";
 get_proto_by_service_name_as_fqbin(<<"Etcd.Watch">>) -> "router";
+get_proto_by_service_name_as_fqbin(<<"Etcd.Health">>) -> "router";
 get_proto_by_service_name_as_fqbin(<<"Etcd.Auth">>) -> "router";
 get_proto_by_service_name_as_fqbin(E) ->
     error({gpb_error, {badservice, E}}).
 
 
 get_proto_by_enum_name_as_fqbin(<<"Etcd.RangeRequest.SortOrder">>) -> "router";
+get_proto_by_enum_name_as_fqbin(<<"Etcd.HealthCheckResponse.ServingStatus">>) -> "router";
 get_proto_by_enum_name_as_fqbin(<<"Etcd.RangeRequest.SortTarget">>) -> "router";
 get_proto_by_enum_name_as_fqbin(<<"Etcd.Compare.CompareTarget">>) -> "router";
 get_proto_by_enum_name_as_fqbin(<<"Etcd.Compare.CompareResult">>) -> "router";

@@ -79,7 +79,7 @@ handle_cast(_Request, State) ->
     {noreply, State}.
 
 handle_info({'DOWN', Ref, process, Pid, Reason}, State = #state{pid = Pid, ref = Ref}) ->
-    error_?LOG_WARNING_msg("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
+    ?LOG_WARNING("~p gun(~p) process stop ~p~n", [?MODULE, Pid, Reason]),
     case connect(State) of
         {ok, NewState} -> {noreply, NewState};
         {error, Reason} -> {stop, Reason, State}
@@ -124,7 +124,7 @@ connect(State) ->
     connect(State, 0, []).
 
 connect(#state{cluster = Cluster}, RetryN, Errors) when RetryN >= 2 * length(Cluster) ->
-    error_?LOG_WARNING_msg("~p connect error (~p) ~n", [?MODULE, Errors]),
+    ?LOG_WARNING("~p connect error (~p) ~n", [?MODULE, Errors]),
     {error, Errors};
 
 connect(State = #state{cluster = Cluster}, RetryN, Errors) ->

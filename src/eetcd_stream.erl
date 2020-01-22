@@ -72,7 +72,7 @@ unary(Request, RequestName, Path, ResponseType) ->
     Http2Headers :: list(),
     EtcdResponse :: tuple().
 unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) ->
-    Timeout = maps:get(eetcd_reply_timeout, Request, 5000),
+    Timeout = maps:get(eetcd_reply_timeout, Request, 9000),
     EncodeBody = eetcd_grpc:encode(identity, maps:remove(eetcd_reply_timeout, Request), RequestName),
     MRef = erlang:monitor(process, Pid),
     StreamRef = gun:request(Pid, <<"POST">>, Path, Headers, EncodeBody),

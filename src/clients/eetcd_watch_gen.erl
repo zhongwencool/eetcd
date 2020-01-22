@@ -4,7 +4,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-20T06:11:16+00:00 and should not be modified manually
+%% This module was generated on 2020-01-21T08:28:48+00:00 and should not be modified manually
 
 -module(eetcd_watch_gen).
 

@@ -24,7 +24,7 @@
 %%% @end
 -spec member_list(context()|name()) ->
     {ok,router_pb:'Etcd.MemberListResponse'()}|{error,eetcd_error()}.
-member_list(Context) -> eetcd_cluster_gen:member_list(Context).
+member_list(Context) -> eetcd_cluster_gen:member_list(eetcd:new(Context)).
 
 %% @doc MemberAdd adds a new member into the cluster.
 %%% <dl>

@@ -4,7 +4,7 @@
 -include("eetcd.hrl").
 
 %% API
--export([start_link/0, start_child/1]).
+-export([start_link/0, start_child/1, info/0]).
 -export([init/1]).
 
 start_link() ->
@@ -12,6 +12,17 @@ start_link() ->
 
 start_child(Args) ->
     supervisor:start_child(?MODULE, Args).
+
+info() ->
+    lists:foldl(fun({_, Pid, _, _}, Acc) ->
+        {_StateName,
+            #{
+                name := Name,
+                active_conns := Actives,
+                freeze_conns := Freezes
+            }} = sys:get_state(Pid),
+        [{Name, #{active_conns => Actives, freeze_conns => Freezes}} | Acc]
+                end, [], supervisor:which_children(?MODULE)).
 
 init([]) ->
     ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.name}]),

@@ -11,7 +11,7 @@
 -type value() :: iodata().
 -type context() :: map().
 -type name() :: atom() | reference().
--type eetcd_error() :: timeout|{grpc_error,grpc_status()}|{gun_down,any()}|{gun_conn_error,any()}|{gun_stream_error,any()}|eetcd_conn_not_found|eetcd_conn_unavailable.
+-type eetcd_error() :: timeout|{grpc_error,grpc_status()}|{gun_down,any()}|{gun_conn_error,any()}|{gun_stream_error,any()}|eetcd_conn_unavailable.
 -type grpc_status() :: #{'grpc-status' => integer(), 'grpc-message' => binary()}.
 
 %% Grpc status code

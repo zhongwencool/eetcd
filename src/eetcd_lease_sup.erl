@@ -4,7 +4,7 @@
 -include("eetcd.hrl").
 
 %% API
--export([start_link/0, start_child/2]).
+-export([start_link/0, start_child/2, info/0]).
 -export([init/1]).
 
 start_link() ->
@@ -12,6 +12,12 @@ start_link() ->
 
 start_child(Name, LeaseID) ->
     supervisor:start_child(?MODULE, [self(), Name, LeaseID]).
+
+info() ->
+    lists:foldl(fun({_, Pid, _, _}, Acc) ->
+        #{gun := Gun} = sys:get_state(Pid),
+        maps:update_with(Gun, fun(C) -> C + 1 end, 1, Acc)
+                end, #{}, supervisor:which_children(?MODULE)).
 
 init([]) ->
     MaxRestarts = 100,

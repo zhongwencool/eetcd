@@ -3,6 +3,7 @@
 %% API
 -export([test/0]).
 -export([open/4, close/1]).
+-export([info/0]).
 -export([
     new/1, with_timeout/2, with_key/2,
     with_value/2, with_prefix/1, with_range_end/2,
@@ -34,17 +35,42 @@ test() ->
     {ok, pid()} | {error, any()}.
 open(Name, Hosts, Transport, TransportOpts) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    eetcd_conn_sup:start_child([Name, Cluster, Transport, TransportOpts]).
+    eetcd_conn_sup:start_child([{Name, Cluster, Transport, TransportOpts}]).
 
--spec close(name()) -> ok.
+-spec close(name()) -> ok | {error, eetcd_conn_unavailable}.
 close(Name) ->
-    case ets:lookup(?ETCD_CONNS, Name) of
-        [#eetcd_conn{conn = Pid}] -> eetcd_conn:close(Pid);
-        _ -> ok
-    end,
+    case eetcd_conn:find_by_name(Name) of
+        {ok, Pid} -> eetcd_conn:close(Pid);
+        Err -> Err
+    end.
+
+%%% @doc etcd's overview.
+-spec info() -> any().
+info() ->
+    Leases = eetcd_lease_sup:info(),
+    Conns = eetcd_conn_sup:info(),
+    [begin
+         {Name, #{active_conns := Actives, freeze_conns := Freezes }} = Conn,
+         case Actives =/= [] of
+             true ->
+                 io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Gun      |LeaseNum\e[0m|~n");
+             false -> ignore
+         end,
+         [begin
+              io:format("| ~-15.15s| Active |~s:~w|~p |~7.7w | ~n", [Name, IP, Port, Gun, maps:get(Gun, Leases, 0)])
+          end || {{IP, Port}, Gun, _GRef} <- Actives],
+         case Freezes =/= [] of
+             true ->
+                 io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | ReconnectSecond   \e[49m\e[0m|~n");
+             false -> ignore
+         end,
+         [begin
+              io:format("| ~-15.15s| Freeze |~s:~w|   ~-15.15w | ~n", [Name, IP, Port, Ms/1000])
+          end || {{IP, Port}, Ms} <- Freezes]
+     end || Conn <- Conns],
     ok.
 
-%%% @doc Create options for request.
+%%% @doc Create context for request.
 -spec new(atom()|reference()) -> context().
 new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) -> #{eetcd_conn_name => ConnName};
 new(Context) when is_map(Context) -> Context.

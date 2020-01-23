@@ -4,28 +4,29 @@
 -behaviour(gen_statem).
 
 %% API
--export([open/4, whereis/1, close/1, check_health/1]).
--export([check_health/2]).
+-export([open/1, pick_by_round_robin/1, close/1, find_by_name/1, check_health/1]).
 -export([init/1, format_status/2, handle_event/4, terminate/3,
     code_change/4, callback_mode/0]).
 
 -define(ready, ready).
 -define(reconnect, reconnect).
 -define(check_health, check_health).
--define(INTERVAL, 400).
--define(MAX_RECONN, 60000).
+
+%%% 200 400 800 1600 3200 6400 12800 25600 51200
+-define(MIN_RECONN, 200).
+-define(MAX_RECONN, 51200).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-open(Name, Cluster, Transport, TransportOpts) ->
-    case gen_statem:start_link(?MODULE, [Name, Cluster, Transport, TransportOpts], []) of
+open(Args) ->
+    case gen_statem:start_link(?MODULE, Args, []) of
         {ok, Pid} -> {ok, Pid};
         {error, {shutdown, Err}} -> Err
     end.
 
-whereis(Name) ->
+pick_by_round_robin(Name) ->
     %% ets:fun2ms(fun(#eetcd_conn{name = {_, N}, _ = '_', http_header = H, gun = G})when N =:= Name ->  {H, G} end),
     MS = [{#eetcd_conn{name = {'_', '$1'}, gun = '$2', http_header = '$3', _ = '_'},
         [{'=:=', '$1', {const, Name}}],
@@ -43,34 +44,27 @@ whereis(Name) ->
 close(Pid) ->
     gen_statem:stop(Pid).
 
-%% UNKNOWN = 0;
-%% SERVING = 1;
-%% NOT_SERVING = 2;
-%% SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
-check_health(Gun, Headers) ->
-    Path = <<"/grpc.health.v1.Health/Check">>,
-    H = Headers ++ ?HEADERS,
-    case eetcd_stream:unary(Gun, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', H) of
-        {ok, #{status := 'SERVING'}} -> ok;
-        {ok, #{status := Status}} -> {error, {unhealthy, Status}};
-        {error, _Reason} = Err -> Err
-    end.
-
-check_health(Name) when is_atom(Name) orelse is_reference(Name) ->
+find_by_name(Name) when is_atom(Name) orelse is_reference(Name) ->
     %% ets:fun2ms(fun(#eetcd_conn{name = {_, N}, _ = '_', conn = G})when N =:= Name -> G end),
     MS = [{#eetcd_conn{name = {'_', '$1'}, conn = '$2', _ = '_'},
         [{'=:=', '$1', {const, Name}}],
         ['$2']}],
     case ets:select(?ETCD_CONNS, MS) of
         [] -> {error, eetcd_conn_unavailable};
-        [Pid | _] -> erlang:send(Pid, ?check_health)
+        [Pid | _] -> {ok, Pid}
+    end.
+
+check_health(Name) ->
+    case find_by_name(Name) of
+        {ok, Pid} -> erlang:send(Pid, ?check_health);
+        Err -> Err
     end.
 
 %%%===================================================================
 %%% gen_statem callbacks
 %%%===================================================================
 %% @private
-init([Name, Hosts, Transport, TransportOpts]) ->
+init({Name, Hosts, Transport, TransportOpts}) ->
     erlang:process_flag(trap_exit, true),
     GunOpts = #{protocols => [http2],
         http2_opts => #{keepalive => 45000},
@@ -95,8 +89,8 @@ init([Name, Hosts, Transport, TransportOpts]) ->
                 health_ref => next_check_health(),
                 active_conns => Ok}};
         length(Ok) > length(Failed) ->
-            ?LOG_WARNING("Failed to connect ETCD host (~p) ~n OK: ~p", [Failed, Ok]),
-            FreezeConns = [begin {Host, ?INTERVAL} end || {Host, _R} <- Failed],
+            ?LOG_WARNING("Failed to connect ETCD host: ~p ~n OK: ~p~n", [Failed, Ok]),
+            FreezeConns = [begin {Host, ?MIN_RECONN} end || {Host, _R} <- Failed],
             {ok, ?reconnect, Data#{
                 health_ref => next_check_health(),
                 active_conns => Ok,
@@ -120,7 +114,7 @@ handle_event(info, {'DOWN', _GunRef, process, Gun, _Reason}, _StateName, Data) -
 handle_event(info, {gun_down, Gun, http2, _Error, _KilledStreams, _UnprocessedStreams}, _StateName, Data) ->
     freeze_conns(Gun, Data);
 handle_event(internal, ?ready, ?ready, Data = #{name := Name}) ->
-    ?LOG_INFO("~p:~p(~p)'s all connection is ok.~n", [?MODULE, Name, self()]),
+    ?LOG_INFO("~p:~p(~p)'s all connections is ok.~n", [?MODULE, Name, self()]),
     {keep_state, Data};
 handle_event(EventType, reconnecting, _StateName, Data)
     when EventType =:= internal orelse EventType =:= info ->
@@ -171,37 +165,37 @@ connect(Name, IP, Port, GunOpts, Headers) ->
                 ok ->
                     case check_leader_status(Gun, Headers) of
                         ok ->
-                            Conn = #eetcd_conn{name = {{IP, Port}, Name},
-                                gun = Gun, http_header = Headers,
-                                conn = self()},
-                            case ets:insert_new(?ETCD_CONNS, Conn) of
-                                false ->
-                                    gun:close(Gun),
-                                    {error, already_started};
-                                true ->
-                                    GunRef = erlang:monitor(process, Gun),
-                                    ?LOG_INFO("~p connect to ~p:~p gun(~p) successed~n",
-                                        [Name, IP, Port, Gun]),
-                                    {ok, Gun, GunRef}
-                            end;
+                            try_update_connection(IP, Port, Name, Gun, Headers);
                         {error, LeaderReason} ->
-                            gun:close(Gun),
-                            ?LOG_WARNING("(~p) check leader status (~p:~p) failed by ~p~n",
-                                [Name, IP, Port, LeaderReason]),
-                            {error, LeaderReason}
+                            exit_connection("No Leader", Gun, LeaderReason, Name, IP, Port)
                     end;
                 {error, HealthReason} ->
-                    gun:close(Gun),
-                    ?LOG_WARNING("(~p) check_health (~p:~p) failed by ~p~n",
-                        [Name, IP, Port, HealthReason]),
-                    {error, HealthReason}
+                    exit_connection("GRPC Unhealthy", Gun, HealthReason, Name, IP, Port)
             end;
         {error, GunReason} ->
-            gun:close(Gun),
-            ?LOG_WARNING("(~p) connect (~p:~p) failed by ~p~n",
-                [Name, IP, Port, GunReason]),
-            {error, GunReason}
+            exit_connection("Gun Connection", Gun, GunReason, Name, IP, Port)
     end.
+
+try_update_connection(IP, Port, Name, Gun, Headers) ->
+    Conn = #eetcd_conn{name = {{IP, Port}, Name},
+        gun = Gun, http_header = Headers,
+        conn = self()},
+    case ets:insert_new(?ETCD_CONNS, Conn) of
+        false ->
+            gun:close(Gun),
+            {error, already_started};
+        true ->
+            GunRef = erlang:monitor(process, Gun),
+            ?LOG_INFO("~p connect to ~p:~p gun(~p) successed~n",
+                [Name, IP, Port, Gun]),
+            {ok, Gun, GunRef}
+    end.
+
+exit_connection(Log, Gun, Reason, Name, IP, Port) ->
+    gun:close(Gun),
+    ?LOG_WARNING("~p failed to connect [~s:~p] by <~s> ~p~n",
+        [Name, IP, Port, Log, Reason]),
+    {error, Reason}.
 
 freeze_conns(Gun, Data) ->
     #{active_conns := Actives, freeze_conns := Freezes,
@@ -210,7 +204,7 @@ freeze_conns(Gun, Data) ->
         {value, {Endpoint, _, _}, NewActives} ->
             ets:delete(?ETCD_CONNS, {Endpoint, Name}),
             gun:close(Gun),
-            NewData = Data#{active_conns => NewActives, freeze_conns => [{Endpoint, ?INTERVAL} | Freezes]},
+            NewData = Data#{active_conns => NewActives, freeze_conns => [{Endpoint, ?MIN_RECONN} | Freezes]},
             {next_state, ?reconnect, NewData, {next_event, internal, reconnecting}};
         false when Freezes =:= [] ->
             {next_state, ?ready, Data};
@@ -234,17 +228,16 @@ reconnect_conns(Data) ->
                 {ok, Gun, GunRef} ->
                     {[{Host, Gun, GunRef} | Ok], Failed};
                 {error, _Reason} ->
-                    NewMs = case Ms >= ?MAX_RECONN of true -> ?MAX_RECONN; false -> Ms * 2 end,
-                    {Ok, [{Host, NewMs} | Failed]}
+                    {Ok, [{Host, Ms bsl 1} | Failed]}
             end end,
             {[], []}, Freezes),
     NewData = Data#{active_conns => NewActives ++ Actives, freeze_conns => NewFreezes},
     case NewFreezes =:= [] of
         true -> {next_state, ?ready, NewData, {next_event, internal, ?ready}};
         false ->
-            NextReConnMs = lists:min([T || {_, T} <- NewFreezes]),
-            NewRef = erlang:send_after(NextReConnMs, self(), reconnecting),
-            {next_state, ?reconnect, NewData#{reconnect_ref => NewRef}}
+            NextReconnMs = next_reconnect_ms(NewFreezes),
+            NewRef = erlang:send_after(NextReconnMs, self(), reconnecting),
+            {next_state, ?reconnect, NewData#{reconn_ref => NewRef}}
     end.
 
 next_check_health() ->
@@ -269,16 +262,30 @@ do_check_health(Data) ->
                             ets:delete(?ETCD_CONNS, {Host, Name}),
                             gun:close(Gun),
                             ?LOG_ERROR("~p check (~p) leader_status failed by ~p ", [Name, Host, Reason]),
-                            {Health, [{Host, ?INTERVAL} | Freeze]}
+                            {Health, [{Host, ?MIN_RECONN} | Freeze]}
                     end;
                 {error, Reason1} ->
                     ets:delete(?ETCD_CONNS, {Host, Name}),
                     gun:close(Gun),
                     ?LOG_ERROR("~p check (~p) health failed by ~p ", [Name, Host, Reason1]),
-                    {Health, [{Host, ?INTERVAL} | Freeze]}
+                    {Health, [{Host, ?MIN_RECONN} | Freeze]}
             end
                     end, {[], Freezes}, Actives),
     Data#{active_conns => NewActives, freeze_conns => NewFreezes}.
+
+%% UNKNOWN = 0;
+%% SERVING = 1;
+%% NOT_SERVING = 2;
+%% SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
+check_health(Gun, Headers) ->
+    Path = <<"/grpc.health.v1.Health/Check">>,
+    H = Headers ++ ?HEADERS,
+    case eetcd_stream:unary(Gun, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', H) of
+        {ok, #{status := 'SERVING'}} -> ok;
+        {ok, #{status := 'UNKNOWN'}} -> ok;
+        {ok, #{status := Status}} -> {error, {unhealthy, Status}};
+        {error, _Reason} = Err -> Err
+    end.
 
 check_leader_status(Gun, Header) ->
     Path = <<"/etcdserverpb.Maintenance/Status">>,
@@ -289,4 +296,11 @@ check_leader_status(Gun, Header) ->
         {ok, #{errors := Errors, leader := 0}} -> {error, {no_leader, Errors}};
         {error, _Reason} = Err -> Err
     end.
-    
+
+next_reconnect_ms(Freezes) ->
+    Ms = lists:min([T || {_, T} <- Freezes]),
+    case Ms > ?MAX_RECONN of
+        true -> ?MIN_RECONN;
+        false -> Ms
+    end.
+

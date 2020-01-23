@@ -14,7 +14,7 @@
     GunPid :: pid(),
     Http2Ref :: reference().
 new(Name, Path) ->
-    case eetcd_conn:whereis(Name) of
+    case eetcd_conn:pick_by_round_robin(Name) of
         {ok, Pid, Headers} ->
             Ref = gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>),
             {ok, Pid, Ref};
@@ -55,13 +55,13 @@ data(Pid, Ref, Msg, MsgName, IsFin) ->
 unary(Request, RequestName, Path, ResponseType) ->
     case maps:find(eetcd_conn_name, Request) of
         {ok, Name} ->
-            case eetcd_conn:whereis(Name) of
+            case eetcd_conn:pick_by_round_robin(Name) of
                 {ok, Pid, HttpHeader} ->
                     NewRequest = maps:remove(eetcd_conn_name, Request),
                     unary(Pid, NewRequest, RequestName, Path, ResponseType, HttpHeader ++ ?HEADERS);
                 Err -> Err
             end;
-        error -> {error, eetcd_conn_not_found}
+        error -> {error, eetcd_conn_unavailable}
     end.
 -spec unary(Pid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
     Pid :: pid(),

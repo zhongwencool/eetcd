@@ -217,9 +217,9 @@ keep_alive_once(Gun, StreamRef, LeaseID, MRef) ->
             case eetcd_stream:await(Gun, StreamRef, 5000, MRef) of
                 {data, nofin, ResBody} ->
                     case eetcd_grpc:decode(identity, ResBody, 'Etcd.LeaseKeepAliveResponse') of
-                        {ok, #{'TTL' := TTL}} when TTL =< 0 ->
+                        {ok, #{'TTL' := TTL}, <<>>} when TTL =< 0 ->
                             {error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}};
-                        {ok, Resp} -> {ok, Resp}
+                        {ok, Resp, <<>>} -> {ok, Resp}
                     end;
                 {error, _Reason} = Err1 -> Err1
             end;

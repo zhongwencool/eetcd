@@ -5,7 +5,7 @@
         {registered, [eetcd_sup]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},
-        {env, [
+        {env, []},
         {modules, []},
         
         {licenses, ["Apache 2.0"]},

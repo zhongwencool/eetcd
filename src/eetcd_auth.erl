@@ -20,9 +20,9 @@
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:auth_enable()
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.auth_enable()
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -39,9 +39,9 @@ auth_enable(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:auth_disable()
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.auth_disable()
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -58,9 +58,9 @@ auth_disable(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_add(name, password)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_add(name, password)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -80,9 +80,9 @@ user_add(Context, Name, Password) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_add(name)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_add(name)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -102,9 +102,9 @@ user_add(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_delete(name)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_delete(name)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -123,9 +123,9 @@ user_delete(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_change_password(name, password)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_change_password(name, password)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -145,9 +145,9 @@ user_change_password(Context, Name, Password) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_grant_role(user, role)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_grant_role(user, role)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -167,9 +167,9 @@ user_grant_role(Context, User, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_get(name)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_get(name)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -188,8 +188,8 @@ user_get(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
 %%% |> eetcd_auth:user_list()
 %%% '''
 %%% </dd> </dl>
@@ -207,9 +207,9 @@ user_list(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_revoke_role(name, role)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_revoke_role(name, role)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -229,9 +229,9 @@ user_revoke_role(Context, Name, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:role_add(name)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.role_add(name)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -251,9 +251,9 @@ role_add(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:user_add(name, key, rangeEnd, :'WRITE')
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.user_add(name, key, rangeEnd, :'WRITE')
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -274,9 +274,9 @@ role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:role_get(role)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.role_get(role)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -295,9 +295,9 @@ role_get(Context, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:role_list()
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.role_list()
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -314,9 +314,9 @@ role_list(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:role_revoke_permission(role, key, rangeEnd)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.role_revoke_permission(role, key, rangeEnd)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
@@ -337,9 +337,9 @@ role_revoke_permission(Context, Role, Key, RangeEnd) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% :eetcd_auth:new(connName)
-%%% |> :eetcd_auth:with_timeout(6000)
-%%% |> :eetcd_auth:role_delete(role)
+%%% :eetcd_auth.new(connName)
+%%% |> :eetcd_auth.with_timeout(6000)
+%%% |> :eetcd_auth.role_delete(role)
 %%% '''
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}

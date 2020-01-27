@@ -74,7 +74,6 @@ init({Name, Hosts, Transport, TransportOpts}) ->
     },
     Data = #{
         name => Name,
-        endpoints => Hosts,
         gun_opts => GunOpts,
         http_header => [],
         health_ref => undefined,
@@ -153,7 +152,7 @@ multi_connect([{IP, Port} = Host | Hosts], Name, GunOpts, Headers, Ok, Fail) ->
             NewOk = [{Host, Gun, GunRef} | Ok],
             multi_connect(Hosts, Name, GunOpts, Headers, NewOk, Fail);
         {error, Reason} ->
-            NewFail = [{Host, Reason} | Fail],
+            NewFail = [{Name, Host, Reason} | Fail],
             multi_connect(Hosts, Name, GunOpts, Headers, Ok, NewFail)
     end.
 

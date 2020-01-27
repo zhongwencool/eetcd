@@ -81,7 +81,8 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
             {response, nofin, 200, _Headers} ->
                 case await_body(Pid, StreamRef, Timeout, MRef, <<>>) of
                     {ok, ResBody, _Trailers} ->
-                        {ok, eetcd_grpc:decode(identity, ResBody, ResponseType)};
+                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
+                        {ok, Resp};
                     {error, _} = Error1 -> Error1
                 end;
             {response, fin, 200, RespHeaders} ->

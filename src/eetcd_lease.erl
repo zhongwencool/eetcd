@@ -149,11 +149,11 @@ handle_info({'DOWN', Ref, process, Gun, Reason}, #{gun := Gun, monitor_ref := Re
 handle_info({gun_data, _Pid, Ref, nofin, Data},
     State = #{stream_ref := Ref, ongoing := Ongoing, caller := Caller}) ->
     case eetcd_grpc:decode(identity, Data, 'Etcd.LeaseKeepAliveResponse') of
-        #{'ID' := ID, 'TTL' := TTL} when TTL =< 0 ->
+        {ok, #{'ID' := ID, 'TTL' := TTL}, <<>>} when TTL =< 0 ->
             Event = ?Event(ID, ?LeaseNotFound),
             erlang:send(Caller, Event),
             {stop, {shutdown, Event}, State};
-        #{'TTL' := _TTL} -> {noreply, State#{ongoing => Ongoing - 1}}
+        {ok,#{'TTL' := _TTL}, <<>>} -> {noreply, State#{ongoing => Ongoing - 1}}
     end;
 
 %% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}
@@ -207,9 +207,9 @@ keep_alive_once(Gun, StreamRef, LeaseID, MRef) ->
             case eetcd_stream:await(Gun, StreamRef, 5000, MRef) of
                 {data, nofin, ResBody} ->
                     case eetcd_grpc:decode(identity, ResBody, 'Etcd.LeaseKeepAliveResponse') of
-                        #{'TTL' := TTL} when TTL =< 0 ->
+                        {ok, #{'TTL' := TTL}} when TTL =< 0 ->
                             {error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}};
-                        Resp -> {ok, Resp}
+                        {ok, Resp} -> {ok, Resp}
                     end;
                 {error, _Reason} = Err1 -> Err1
             end;
@@ -275,8 +275,6 @@ try_reconnecting(State) ->
     end.
 check_leader(Header, Name) ->
     case eetcd_grpc:grpc_status(Header) of
-        #{'grpc-status' := 14} ->
-            ?LOG_ERROR("ETCD NO Leader: ~p~n ", [Name]),
-            eetcd_conn:check_health(Name);
+        #{'grpc-status' := 14} -> eetcd_conn:check_health(Name);
         _ -> ok
     end.

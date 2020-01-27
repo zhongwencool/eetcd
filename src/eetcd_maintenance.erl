@@ -59,7 +59,7 @@ status(Endpoint, Transport, TransportOpts) ->
     {ok,router_pb:'Etcd.HashKVResponse'()}|{error,eetcd_error()}.
 hash_kv(Endpoint, Transport, TransportOpts, Rev) ->
     Fun = fun(Conn) ->
-        Context = eetcd:with_rev(eetcd:new(Conn), Rev),
+        Context = maps:put(revision, Rev, eetcd:new(Conn)),
         eetcd_maintenance_gen:hash_kv(Context)
           end,
     dial(Endpoint, Transport, TransportOpts, Fun).

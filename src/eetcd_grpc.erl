@@ -18,8 +18,7 @@ decode(Encoding, Frame, PbType) ->
     case decode_(Frame, Encoding) of
         {ok, PbBin, Fragment} ->
             {ok, router_pb:decode_msg(PbBin, PbType), Fragment};
-        {more, LackLen} ->
-            {more, Frame, LackLen}
+        more -> more
     end.
 
 
@@ -48,7 +47,7 @@ encode_(Encoding, _) ->
     throw({error, {unknown_encoding, Encoding}}).
 
 decode_(<<0, Length:32, Encoded:Length/binary, Rest/binary>>, _Encoding) -> {ok, Encoded, Rest};
-decode_(<<0, Length:32, Binary/binary>>, _Encoding) -> {more, Binary, Length - byte_size(Binary)};
+decode_(<<0, _Length:32, _Binary/binary>>, _Encoding) -> more;
 decode_(<<1, Length:32, Compressed:Length/binary>>, gzip) ->
     try
         zlib:gunzip(Compressed)

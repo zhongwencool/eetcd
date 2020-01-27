@@ -2,6 +2,7 @@
 -include("eetcd.hrl").
 -behaviour(gen_server).
 -export([test/0]).
+-export([new/1, with_timeout/2]).
 -export([grant/2, revoke/2, time_to_live/3, leases/1]).
 -export([keep_alive/2, keep_alive_once/2]).
 -export([close/0]).
@@ -21,17 +22,26 @@ test() ->
     %% {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379"], tcp, []),
     {ok, T1 = #{'ID' := LeaseID}} = eetcd_lease:grant(test, 100),
     io:format("~p~n", [T1]),
-    R = eetcd_kv:put(eetcd:with_lease(eetcd:new(test), LeaseID), "test", "test_value"),
+    R = eetcd_kv:put(eetcd_kv:with_lease(eetcd:new(test), LeaseID), "test", "test_value"),
     io:format("~p~n", [R]),
     R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),
     eetcd_lease:keep_alive(test, LeaseID).
+%%% @doc Create context for request.
+-spec new(atom()|reference()) -> context().
+new(Context) -> eetcd:new(Context).
+
+%% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
+%% or the atom infinity to wait indefinitely. Default value is 5000.
+%% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
+-spec with_timeout(context(), pos_integer()) -> context().
+with_timeout(Context, Timeout) -> eetcd:with_timeout(Context, Timeout).
 
 %% @doc Grant creates a new lease.
 -spec grant(context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 grant(Context, TTL) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put('TTL', TTL, C1),
     eetcd_lease_gen:lease_grant(C2).
 
@@ -39,7 +49,7 @@ grant(Context, TTL) ->
 -spec revoke(context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 revoke(Context, LeaseID) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put('ID', LeaseID, C1),
     eetcd_lease_gen:lease_revoke(C2).
 
@@ -48,7 +58,7 @@ revoke(Context, LeaseID) ->
 -spec time_to_live(context(), pos_integer(), boolean()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put('ID', LeaseID, C1),
     C3 = maps:put(keys, WithKeys, C2),
     case eetcd_lease_gen:lease_time_to_live(C3) of
@@ -62,7 +72,7 @@ time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
 -spec leases(context()) ->
     {ok, router_pb:'Etcd.LeaseLeasesResponse'()}|{error, eetcd_error()}.
 leases(ConnName) ->
-    C1 = eetcd:new(ConnName),
+    C1 = new(ConnName),
     eetcd_lease_gen:lease_leases(C1).
 
 %% @doc KeepAlive attempts to keep the given lease alive forever.

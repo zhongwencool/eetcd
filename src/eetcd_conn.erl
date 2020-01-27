@@ -302,4 +302,3 @@ next_reconnect_ms(Freezes) ->
         true -> ?MIN_RECONN;
         false -> Ms
     end.
-

@@ -26,18 +26,18 @@ info() ->
 
 init([]) ->
     ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.name}]),
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 1200,
-    SupFlags = #{strategy => simple_one_for_one,
+    MaxRestarts = 300,
+    MaxSecondsBetweenRestarts = 60,
+    SupFlags = #{
+        strategy => simple_one_for_one,
         intensity => MaxRestarts,
         period => MaxSecondsBetweenRestarts},
-    
     Worker = eetcd_conn,
-    Child = #{id => Worker,
+    Child = #{
+        id => Worker,
         start => {Worker, open, []},
         restart => transient,
         shutdown => 1000,
         type => worker,
         modules => [Worker]},
-    
     {ok, {SupFlags, [Child]}}.

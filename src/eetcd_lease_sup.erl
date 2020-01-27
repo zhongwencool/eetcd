@@ -20,18 +20,18 @@ info() ->
                 end, #{}, supervisor:which_children(?MODULE)).
 
 init([]) ->
-    MaxRestarts = 100,
+    MaxRestarts = 300,
     MaxSecondsBetweenRestarts = 10,
-    SupFlags = #{strategy => simple_one_for_one,
+    SupFlags = #{
+        strategy => simple_one_for_one,
         intensity => MaxRestarts,
         period => MaxSecondsBetweenRestarts},
-    
     Worker = eetcd_lease,
-    Child = #{id => Worker,
+    Child = #{
+        id => Worker,
         start => {Worker, start_link, []},
         restart => temporary,
         shutdown => 1000,
         type => worker,
         modules => [Worker]},
-    
     {ok, {SupFlags, [Child]}}.

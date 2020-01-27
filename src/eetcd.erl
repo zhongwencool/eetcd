@@ -2,7 +2,7 @@
 -include("eetcd.hrl").
 %% API
 -export([test/0]).
--export([open/4, close/1]).
+-export([open/2, open/4, close/1]).
 -export([info/0]).
 -export([new/1, with_timeout/2, with_key/2, with_value/2]).
 
@@ -16,6 +16,16 @@ test() ->
     eetcd:close(test),
     ok.
 
+%% @doc Connects to a etcd server on TCP port
+%% Port on the host with IP address Address, such as:
+%% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
+-spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
+open(Name, Hosts) ->
+    open(Name, Hosts, tcp, []).
+
+%% @doc Connects to a etcd server.
+%% ssl:connect_option() see all options in ssl_api.hrl
+%% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]
 -spec open(name(),
     [string()],
     tcp | tls | ssl,
@@ -38,7 +48,7 @@ info() ->
     Leases = eetcd_lease_sup:info(),
     Conns = eetcd_conn_sup:info(),
     [begin
-         {Name, #{active_conns := Actives, freeze_conns := Freezes }} = Conn,
+         {Name, #{active_conns := Actives, freeze_conns := Freezes}} = Conn,
          case Actives =/= [] of
              true ->
                  io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Gun      |LeaseNum\e[0m|~n");
@@ -53,7 +63,7 @@ info() ->
              false -> ignore
          end,
          [begin
-              io:format("| ~-15.15s| Freeze |~s:~w|   ~-15.15w | ~n", [Name, IP, Port, Ms/1000])
+              io:format("| ~-15.15s| Freeze |~s:~w|   ~-15.15w | ~n", [Name, IP, Port, Ms / 1000])
           end || {{IP, Port}, Ms} <- Freezes]
      end || Conn <- Conns],
     ok.

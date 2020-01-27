@@ -2,9 +2,8 @@
 -include("eetcd.hrl").
 
 %% API
+-export([new/1, with_timeout/2]).
 -export([auth_enable/1, auth_disable/1]).
-
-%% -export([authenticate/1]).
 -export([user_add/2, user_add/3, user_get/2,
     user_list/1, user_delete/2, user_change_password/3,
     user_grant_role/3, user_revoke_role/3
@@ -12,6 +11,7 @@
 -export([role_add/2, role_get/2, role_list/1, role_delete/2,
     role_grant_permission/5, role_revoke_permission/4
 ]).
+%% -export([authenticate/1]).
 
 %%% @doc AuthEnable enables auth of an etcd cluster.
 %%% <dl>
@@ -20,17 +20,17 @@
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:auth_enable()
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:auth_enable()
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec auth_enable(name()|context()) ->
     {ok,router_pb:'Etcd.AuthEnableResponse'()}|{error,eetcd_error()}.
 auth_enable(Context) ->
-    eetcd_auth_gen:auth_enable(eetcd:new(Context)).
+    eetcd_auth_gen:auth_enable(new(Context)).
 
 %%% @doc AuthDisable disables auth of an etcd cluster.
 %%% <dl>
@@ -39,17 +39,17 @@ auth_enable(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:auth_disable()
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:auth_disable()
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec auth_disable(name()|context()) ->
     {ok,router_pb:'Etcd.AuthDisableResponse'()}|{error,eetcd_error()}.
 auth_disable(Context) ->
-    eetcd_auth_gen:auth_disable(eetcd:new(Context)).
+    eetcd_auth_gen:auth_disable(new(Context)).
 
 %%% @doc UserAdd adds a new user with password to an etcd cluster.
 %%% <dl>
@@ -58,17 +58,17 @@ auth_disable(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_add(name, password)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_add(name, password)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_add(name()|context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name, Password) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     C3 = maps:put(password, Password, C2),
     eetcd_auth_gen:user_add(C3).
@@ -80,12 +80,12 @@ user_add(Context, Name, Password) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_add(name)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_add(name)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_add(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
@@ -102,12 +102,12 @@ user_add(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_delete(name)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_delete(name)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_delete(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserDeleteResponse'()}|{error,eetcd_error()}.
@@ -123,12 +123,12 @@ user_delete(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_change_password(name, password)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_change_password(name, password)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_change_password(name()|context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserChangePasswordResponse'()}|{error,eetcd_error()}.
@@ -145,12 +145,12 @@ user_change_password(Context, Name, Password) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_grant_role(user, role)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_grant_role(user, role)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_grant_role(name()|context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserGrantRoleResponse'()}|{error,eetcd_error()}.
@@ -167,12 +167,12 @@ user_grant_role(Context, User, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_get(name)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_get(name)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_get(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserGetResponse'()}|{error,eetcd_error()}.
@@ -188,12 +188,12 @@ user_get(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_list()
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> eetcd_auth:user_list()
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_list(name()|context()) ->
     {ok,router_pb:'Etcd.AuthUserListResponse'()}|{error,eetcd_error()}.
@@ -207,12 +207,12 @@ user_list(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_revoke_role(name, role)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_revoke_role(name, role)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_revoke_role(name()|context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserRevokeRoleResponse'()}|{error,eetcd_error()}.
@@ -229,12 +229,12 @@ user_revoke_role(Context, Name, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:role_add(name)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:role_add(name)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_add(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleAddResponse'()}|{error,eetcd_error()}.
@@ -251,12 +251,12 @@ role_add(Context, Name) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:user_add(name, key, rangeEnd, :'WRITE')
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:user_add(name, key, rangeEnd, :'WRITE')
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_grant_permission(name()|context(), iodata(), iodata(), iodata(), 'READ' | 'WRITE' | 'READWRITE') ->
     {ok,router_pb:'Etcd.AuthRoleGrantPermissionResponse'()}|{error,eetcd_error()}.
@@ -274,12 +274,12 @@ role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:role_get(role)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:role_get(role)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_get(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleGetResponse'()}|{error,eetcd_error()}.
@@ -295,12 +295,12 @@ role_get(Context, Role) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:role_list()
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:role_list()
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_list(name()|context()) ->
     {ok,router_pb:'Etcd.AuthRoleListResponse'()}|{error,eetcd_error()}.
@@ -314,12 +314,12 @@ role_list(Context) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(ConnName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:role_revoke_permission(role, key, rangeEnd)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:role_revoke_permission(role, key, rangeEnd)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_revoke_permission(name()|context(), iodata(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleRevokePermissionResponse'()}|{error,eetcd_error()}.
@@ -337,12 +337,12 @@ role_revoke_permission(Context, Role, Key, RangeEnd) ->
 %%% <dt> 2.elixir </dt>
 %%% <dd>
 %%% ```
-%%% eetcd:new(connName)
-%%% |> eetcd:with_timeout(6000)
-%%% |> eetcd_cluster:role_delete(role)
+%%% :eetcd_auth:new(connName)
+%%% |> :eetcd_auth:with_timeout(6000)
+%%% |> :eetcd_auth:role_delete(role)
 %%% '''
 %%% </dd> </dl>
-%%% {@link eetcd:with_timeout/2} {@link eetcd:new/1}
+%%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_delete(name()|context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleDeleteResponse'()}|{error,eetcd_error()}.
@@ -350,3 +350,13 @@ role_delete(Context, Role) ->
     C1 = eetcd:new(Context),
     C2 = maps:put(role, Role, C1),
     eetcd_auth_gen:role_delete(C2).
+
+%%% @doc Create context for request.
+-spec new(atom()|reference()) -> context().
+new(Context) -> eetcd:new(Context).
+
+%% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
+%% or the atom infinity to wait indefinitely. Default value is 5000.
+%% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
+-spec with_timeout(context(), pos_integer()) -> context().
+with_timeout(Context, Timeout) -> eetcd:with_timeout(Context, Timeout).

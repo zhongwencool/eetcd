@@ -5,6 +5,10 @@
 -type watch_conn() :: #{http2_pid => pid(),
 monitor_ref => reference(),
 stream_ref => reference(),
+unprocessed => binary(),
+revision => integer(), %% Revision is the revision of the KV when the watchResponse is created. For a normal response, the revision should be the same as the last modified revision inside Events.
+compact_revision => integer(), %% CompactRevision is set when the watcher is cancelled due to compaction.
+watch_id => integer(),
 response => router_pb:'Etcd.WatchResponse'()}.
 
 %% API
@@ -20,6 +24,7 @@ response => router_pb:'Etcd.WatchResponse'()}.
 -export([watch/2, watch/3]).
 -export([watch_stream/2]).
 -export([unwatch/2]).
+-export([rev/1]).
 -export([test/0]).
 
 test() ->
@@ -105,7 +110,7 @@ with_key(Context, Key) ->
 with_prefix(Context) ->
     with_range_end(Context, "\0").
 
-%%  @doc Specifies the range of `get', `delete', `watch' requests
+%%  @doc Specifies the range of `get', `delete' requests
 %% to be equal or greater than the key in the argument.
 -spec with_from_key(context()) -> context().
 with_from_key(Context) ->
@@ -126,6 +131,15 @@ watch(Name, CreateReq) ->
 %% the input stream is for creating watchers and the output stream sends events.
 %% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
 %% The entire event history can be watched starting from the last compaction revision.
+%%
+%% Watch creates a watcher. The watcher watches the events happening or
+%% happened on the given key or range [key, end) from the given startRev.
+%%
+%%	The whole event history can be watched unless compacted.
+%%	If "startRev" <=0, watch observes events after currentRev.
+%%
+%%	The returned "id" is the ID of this watcher. It appears as WatchID
+%%  in events that are sent to the created watcher through stream channel.
 -spec watch(name(), context(), pos_integer()) ->
     {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq, Timeout) ->
@@ -137,15 +151,23 @@ watch(Name, CreateReq, Timeout) ->
         {response, nofin, 200, _Headers} ->
             case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
                 {data, nofin, Body} ->
-                    {ok, Response =
-                        #{created := true, canceled := false}, <<>>}
+                    {ok,
+                        #{
+                            created := true,
+                            canceled := false,
+                            compact_revision := CompactRev,
+                            header := #{revision := Rev},
+                            watch_id := WatchId
+                        }, <<>>}
                         = eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse'),
                     {ok,
                         #{
                             http2_pid => Gun,
                             monitor_ref => MRef,
                             stream_ref => StreamRef,
-                            response => Response,
+                            revision => Rev,
+                            compact_revision => CompactRev,
+                            watch_id => WatchId,
                             unprocessed => <<>>
                         }
                     };
@@ -160,6 +182,7 @@ watch(Name, CreateReq, Timeout) ->
             erlang:demonitor(MRef, [flush]),
             Err2
     end.
+
 %% @doc Streams the next batch of events from the given message.
 %%This function processes a "message" which can be any term, but should be a message received by the process that owns the stream_ref.
 %%Processing a message means that this function will parse it and check if it's a message that is directed to this connection,
@@ -179,8 +202,18 @@ watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed} 
     {gun_data, Pid, Ref, nofin, Data}) ->
     Bin = <<Unprocessed/binary, Data/binary>>,
     case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse') of
-        {ok, Resp, NewUnprocessed} -> {ok, Conn#{Unprocessed => NewUnprocessed}, Resp};
-        more -> {more, Conn#{Unprocessed => Bin}}
+        {ok, Resp, NewUnprocessed} ->
+            #{compact_revision := CompactRev,
+                header := #{revision := Rev},
+                watch_id := WatchId} = Resp,
+            {ok,
+                Conn#{
+                    revision => Rev,
+                    compact_revision => CompactRev,
+                    watch_id => WatchId,
+                    unprocessed => NewUnprocessed},
+                Resp};
+        more -> {more, Conn#{unprocessed => Bin}}
     end;
 watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error
     {error, {stream_error, Reason}};
@@ -189,6 +222,10 @@ watch_stream(#{http2_pid := Pid}, {gun_error, Pid, Reason}) -> %% gun connection
 watch_stream(#{monitor_ref := MRef, http2_pid := Pid}, {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
     {error, {http2_down, Reason}};
 watch_stream(_Conn, _UnKnow) -> unknown.
+
+%% @doc Rev returns the current revision of the KV the stream watches on.
+
+rev(#{revision := Rev}) -> Rev.
 
 %% @doc  Cancel watching so that no more events are transmitted.
 %% This is a synchronous operation.
@@ -203,32 +240,35 @@ unwatch(WatchConn, Timeout) ->
         http2_pid := Gun,
         monitor_ref := MRef,
         stream_ref := StreamRef,
-        response := #{watch_id := WatchId},
+        watch_id := WatchId,
         unprocessed := Unprocessed
     } = WatchConn,
-    case Unprocessed of
-        <<>> ->
-            Request = #{request_union => {cancel_request, #{watch_id => WatchId}}},
-            eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', fin),
-            await_unwatch_resp(Gun, StreamRef, WatchId, Timeout, MRef, []);
-        _ -> {error, unprocessed_data}
-    end.
+    Request = #{request_union => {cancel_request, #{watch_id => WatchId}}},
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', fin),
+    await_unwatch_resp(Gun, StreamRef, Unprocessed, WatchId, Timeout, MRef, []).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-await_unwatch_resp(Gun, StreamRef, WatchId, Timeout, MRef, Acc) ->
+await_unwatch_resp(Gun, StreamRef, Unprocessed, WatchId, Timeout, MRef, Acc) ->
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {data, nofin, Data} ->
-            {ok, Reps, <<>>} = eetcd_grpc:decode(identity, Data, 'Etcd.WatchResponse'),
-            case Reps of
-                #{created := false, watch_id := WatchId, canceled := true} ->
-                    gun:cancel(Gun, StreamRef),
-                    erlang:demonitor(MRef, [flush]),
-                    {ok, Reps, lists:reverse(Acc)};
-                OtherEvent ->
-                    await_unwatch_resp(Gun, StreamRef, WatchId, Timeout, MRef, [OtherEvent | Acc])
+            Bin = <<Unprocessed/binary, Data/binary>>,
+            case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse') of
+                {ok, Resp, NewUnprocessed} ->
+                    case Resp of
+                        #{created := false, watch_id := WatchId, canceled := true} ->
+                            gun:cancel(Gun, StreamRef),
+                            erlang:demonitor(MRef, [flush]),
+                            {ok, Resp, lists:reverse(Acc)};
+                        OtherEvent ->
+                            await_unwatch_resp(Gun, StreamRef, NewUnprocessed, WatchId, Timeout, MRef, [OtherEvent | Acc])
+                    end;
+                more ->
+                    await_unwatch_resp(Gun, StreamRef, Bin, WatchId, Timeout, MRef, Acc)
             end;
+        {error, {gun_stream_error, {badstate, "The stream cannot be found."}}, Acc} ->
+            {error, "mvcc: watcher does not exist", lists:reverse(Acc)};
         {error, Reason} -> {error, Reason, lists:reverse(Acc)}
     end.

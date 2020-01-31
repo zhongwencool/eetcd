@@ -217,13 +217,13 @@ with_physical(Context) ->
 put(Context) -> eetcd_kv_gen:put(Context).
 
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
--spec put(name(), key(), value()) ->
+-spec put(name()|context(), key(), value()) ->
     {ok, router_pb:'Etcd.PutResponse'()}|{error, eetcd_error()}.
-put(Context, Key, Value) when is_map(Context) ->
-    Context0 = with_key(Context, Key),
-    Context1 = with_value(Context0, Value),
-    eetcd_kv_gen:put(Context1);
-put(ConnName, Key, Value) -> put(new(ConnName), Key, Value).
+put(Context, Key, Value)  ->
+    C1 = new(Context),
+    C2 = with_key(C1, Key),
+    C3 = with_value(C2, Value),
+    eetcd_kv_gen:put(C3).
 
 %%% @doc Get retrieves keys.
 %%% By default, Get will return the value for Key, if any.
@@ -270,8 +270,10 @@ get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 %%% @doc Get retrieves keys with options.
 -spec get(context()|name(), key()) ->
     {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
-get(Context, Key) when is_map(Context) -> eetcd_kv_gen:range(with_key(Context, Key));
-get(ConnName, Key) -> eetcd_kv_gen:range(with_key(new(ConnName), Key)).
+get(Context, Key)  ->
+    C0 = new(Context),
+    C1 = with_key(C0, Key),
+    eetcd_kv_gen:range(C1).
 
 %%% @doc Delete deletes a key, or optionally using eetcd_kv:with_range(End), [Key, End).
 %%% <dl>
@@ -297,8 +299,10 @@ delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
 -spec delete(name()|context(), key()) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
-delete(Context, Key) when is_map(Context) -> eetcd_kv_gen:delete_range(with_key(Context, Key));
-delete(ConnName, Key) -> eetcd_kv_gen:delete_range(with_key(new(ConnName), Key)).
+delete(Context, Key)  ->
+    C0 = new(Context),
+    C1 = with_key(C0, Key),
+    eetcd_kv_gen:delete_range(C1).
 
 %% @doc Compact compacts etcd KV history before the given revision.
 %%% <dl>
@@ -323,8 +327,10 @@ compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
 -spec compact(name()|context(), integer()) ->
     {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
-compact(Context, Revision) when is_map(Context) -> eetcd_kv_gen:compact(with_rev(Context, Revision));
-compact(ConnName, Revision) -> eetcd_kv_gen:compact(with_rev(new(ConnName), Revision)).
+compact(Context, Revision)  ->
+    C0 = new(Context),
+    C1 = with_rev(C0, Revision),
+    eetcd_kv_gen:compact(C1).
 
 %%% TODO compare
 %%% @doc Txn creates a transaction.
@@ -340,8 +346,7 @@ compact(ConnName, Revision) -> eetcd_kv_gen:compact(with_rev(new(ConnName), Revi
 %%% @end
 -spec txn(name()|context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
     {ok, router_pb:'Etcd.TxnResponse'()}|{error, eetcd_error()}.
-txn(Context, If, Then, Else) when is_map(Context) ->
-    Txn = maps:merge(#{compare => If, success => Then, failure => Else}, Context),
-    eetcd_kv_gen:txn(Txn);
-txn(ConnName, If, Then, Else) ->
-    txn(new(ConnName), If, Then, Else).
+txn(Context, If, Then, Else)  ->
+    C1 = new(Context),
+    Txn = maps:merge(#{compare => If, success => Then, failure => Else}, C1),
+    eetcd_kv_gen:txn(Txn).

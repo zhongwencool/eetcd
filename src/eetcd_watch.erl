@@ -268,7 +268,5 @@ await_unwatch_resp(Gun, StreamRef, Unprocessed, WatchId, Timeout, MRef, Acc) ->
                 more ->
                     await_unwatch_resp(Gun, StreamRef, Bin, WatchId, Timeout, MRef, Acc)
             end;
-        {error, {gun_stream_error, {badstate, "The stream cannot be found."}}, Acc} ->
-            {error, "mvcc: watcher does not exist", lists:reverse(Acc)};
         {error, Reason} -> {error, Reason, lists:reverse(Acc)}
     end.

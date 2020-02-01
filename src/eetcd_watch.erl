@@ -121,7 +121,7 @@ with_from_key(Context) ->
 with_range_end(Context, End) ->
     maps:put(range_end, End, Context).
 
-%% @doc {@equiv watch(name(), context(), 5000)}.
+%% @doc @equiv watch(name(), context(), 5000).
 -spec watch(name(), context()) ->
     {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq) ->
@@ -136,7 +136,7 @@ watch(Name, CreateReq) ->
 %% happened on the given key or range [key, end) from the given startRev.
 %%
 %%	The whole event history can be watched unless compacted.
-%%	If "startRev" <=0, watch observes events after currentRev.
+%%	If `startRev <= 0', watch observes events after currentRev.
 %%
 %%	The returned "id" is the ID of this watcher. It appears as WatchID
 %%  in events that are sent to the created watcher through stream channel.

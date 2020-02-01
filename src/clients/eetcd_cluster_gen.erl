@@ -1,10 +1,11 @@
 %%%-------------------------------------------------------------------
 %% @doc Behaviour to implement for eectd Etcd.Cluster.
+%% @private
 %%  All detail documents please visit https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-21T08:28:49+00:00 and should not be modified manually
+%% This module was generated on 2020-02-01T07:44:31+00:00 and should not be modified manually
 
 -module(eetcd_cluster_gen).
 

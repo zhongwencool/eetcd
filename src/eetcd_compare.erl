@@ -1,16 +1,22 @@
 -module(eetcd_compare).
-%% API
--compile(export_all).
 
--export([]).
+-export([new/1, with_range/2]).
+-export([value/3, version/3,
+    mod_revision/3, create_revision/3,
+    lease/3]).
+
+new(Key) -> #{key => Key}.
+
+%% WithRange sets the comparison to scan the range [key, end).
+with_range(Cmp, End) -> Cmp#{range_end => End}.
 
 value(Cmp, Result, Value) ->
     maps:merge(Cmp,
-    #{
-        result => to_result(Result),
-        target => 'VALUE',
-        target_union => {value, Value}
-    }).
+        #{
+            result => to_result(Result),
+            target => 'VALUE',
+            target_union => {value, Value}
+        }).
 
 version(Cmp, Result, Version) ->
     maps:merge(Cmp,
@@ -46,6 +52,9 @@ lease(Cmp, Result, Version) ->
 
 
 to_result("=") -> 'EQUAL';
+to_result("==") -> 'EQUAL';
 to_result("!=") -> 'NOT_EQUAL';
+to_result("=/=") -> 'NOT_EQUAL';
 to_result(">") -> 'GREATER';
 to_result("<") -> 'LESS'.
+

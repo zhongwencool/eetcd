@@ -3,18 +3,25 @@
 %% API
 -export([test/0]).
 -export([open/2, open/4, close/1]).
+-export([new/1, with_timeout/2]).
 -export([info/0]).
--export([new/1, with_timeout/2, with_key/2, with_value/2]).
 
 test() ->
+    application:ensure_all_started(eetcd),
     logger:set_primary_config(level, info),
     {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"], tcp, []),
-    R = eetcd_kv:put(test, "test", "test_value"),
+    R = eetcd_kv:put(test, "test", <<"2">>),
     io:format("~p~n", [R]),
     R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),
-    eetcd:close(test),
-    ok.
+    Key = "test",
+    Cmp = eetcd_compare:new(Key),
+    If = eetcd_compare:value(Cmp, "=", <<"2">>),
+    Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), <<"1000">>)),
+    Else = eetcd_op:delete(eetcd_kv:with_key(eetcd_kv:new(), Key)),
+    eetcd_kv:txn(test, [If], [Then], [Else]).
+    %% eetcd:close(test),
+    %%ok.
 
 %% @doc Connects to a etcd server on TCP port
 %% Port on the host with IP address Address, such as:
@@ -79,13 +86,3 @@ new(Context) when is_map(Context) -> Context.
 -spec with_timeout(context(), pos_integer()) -> context().
 with_timeout(Context, Timeout) when is_integer(Timeout) ->
     maps:put(eetcd_reply_timeout, Timeout, Context).
-
-%%% @doc Sets the byte slice for the Op's `key'.
--spec with_key(context(), key()) -> context().
-with_key(Context, Key) ->
-    maps:put(key, Key, Context).
-
-%% @doc Sets the byte slice for the Op's `value'.
--spec with_value(context(), key()) -> context().
-with_value(Context, Key) ->
-    maps:put(value, Key, Context).

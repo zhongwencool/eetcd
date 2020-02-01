@@ -1,3 +1,4 @@
+%% @private
 -module(eetcd_lease_sup).
 
 -behaviour(supervisor).

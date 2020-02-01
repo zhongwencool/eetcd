@@ -64,7 +64,7 @@ hash_kv(Endpoint, Transport, TransportOpts, Rev) ->
           end,
     dial(Endpoint, Transport, TransportOpts, Fun).
 
-%%% @doc Snapshot provides a reader for a point-in-time snapshot of etcd.
+%%% Snapshot provides a reader for a point-in-time snapshot of etcd.
 %%% If the context "ctx" is canceled or timed out, reading from returned
 %%% "io.ReadCloser" would error out (e.g. context.Canceled, context.DeadlineExceeded).
 %% snapshot(Context) (io.ReadCloser, error)

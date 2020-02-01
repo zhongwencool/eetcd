@@ -1,3 +1,4 @@
+%% @private
 -module(eetcd_conn_sup).
 
 -behaviour(supervisor).

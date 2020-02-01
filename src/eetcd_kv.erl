@@ -8,7 +8,7 @@
 -export([txn/4]).
 
 -export([
-    new/1, with_timeout/2,
+    new/1, new/0, with_timeout/2,
     with_key/2, with_value/2, with_prefix/1,
     with_lease/2, with_ignore_value/1, with_ignore_lease/1,
     with_from_key/1, with_range_end/2, with_limit/2,
@@ -23,6 +23,8 @@
 %%% @doc Create context for request.
 -spec new(atom()|reference()) -> context().
 new(Context) -> eetcd:new(Context).
+-spec new() -> context().
+new() -> #{}.
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely. Default value is 5000.
@@ -219,7 +221,7 @@ put(Context) -> eetcd_kv_gen:put(Context).
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
 -spec put(name()|context(), key(), value()) ->
     {ok, router_pb:'Etcd.PutResponse'()}|{error, eetcd_error()}.
-put(Context, Key, Value)  ->
+put(Context, Key, Value) ->
     C1 = new(Context),
     C2 = with_key(C1, Key),
     C3 = with_value(C2, Value),
@@ -270,7 +272,7 @@ get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 %%% @doc Get retrieves keys with options.
 -spec get(context()|name(), key()) ->
     {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
-get(Context, Key)  ->
+get(Context, Key) ->
     C0 = new(Context),
     C1 = with_key(C0, Key),
     eetcd_kv_gen:range(C1).
@@ -299,7 +301,7 @@ delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
 -spec delete(name()|context(), key()) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
-delete(Context, Key)  ->
+delete(Context, Key) ->
     C0 = new(Context),
     C1 = with_key(C0, Key),
     eetcd_kv_gen:delete_range(C1).
@@ -327,26 +329,40 @@ compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
 -spec compact(name()|context(), integer()) ->
     {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
-compact(Context, Revision)  ->
+compact(Context, Revision) ->
     C0 = new(Context),
     C1 = with_rev(C0, Revision),
     eetcd_kv_gen:compact(C1).
 
-%%% TODO compare
 %%% @doc Txn creates a transaction.
 %% <dd>If takes a list of comparison. If all comparisons passed in succeed,</dd>
 %% <dd>the operations passed into Then() will be executed.</dd>
 %% <dd>Or the operations passed into Else() will be executed.</dd>
 %% <dd>Then takes a list of operations. The Ops list will be executed, if the comparisons passed in If() succeed.</dd>
 %% <dd> Else takes a list of operations. The Ops list will be executed, if the comparisons passed in If() fail.</dd>
-%% Cmp = eetcd_kv:with_key(#{}, Key),
-%% If = eetcd_compare:value(Cmp, ">", Value),
-%% Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), "NewValue")),
-%% Else = eetcd_op:delete_range(eetcd_kv:with_key(eetcd_kv:new(), Key))
+%%% <dl>
+%%% <dd>
+%%% ```
+%%% Cmp = eetcd_compare:new(Key),
+%%% If = eetcd_compare:value(Cmp, ">", Value),
+%%% Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), NewValue)),
+%%% Else = eetcd_op:delete(eetcd_kv:with_key(eetcd_kv:new(), Key)),
+%%% eetcd_kv:txn(EtcdConnName, If, Then, Else).
+%%% '''
+%%% </dd> </dl>
+%%% {@link eetcd_compare:new/1} {@link eetcd_compare:with_range/2}
+%%% {@link eetcd_compare:value/3} {@link eetcd_compare:version/3}
+%%% {@link eetcd_compare:mod_revision/3} {@link eetcd_compare:create_revision/3}
+%%% {@link eetcd_compare:lease/3}
+%%% {@link eetcd_op:put/1} {@link eetcd_op:get/1}
+%%% {@link eetcd_op:delete/1} {@link eetcd_op:txn/1}
 %%% @end
 -spec txn(name()|context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
     {ok, router_pb:'Etcd.TxnResponse'()}|{error, eetcd_error()}.
-txn(Context, If, Then, Else)  ->
+txn(Context, If, Then, Else) ->
     C1 = new(Context),
-    Txn = maps:merge(#{compare => If, success => Then, failure => Else}, C1),
+    Compare = case is_list(If) of true -> If; false -> [If] end,
+    Success = case is_list(Then) of true -> Then; false -> [Then] end,
+    Failure = case is_list(Else) of true -> Else; false -> [Else] end,
+    Txn = maps:merge(#{compare => Compare, success => Success, failure => Failure}, C1),
     eetcd_kv_gen:txn(Txn).

@@ -1,10 +1,11 @@
 %%%-------------------------------------------------------------------
 %% @doc Behaviour to implement for eectd Etcd.Health.
+%% @private
 %%  All detail documents please visit https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-01-21T08:28:49+00:00 and should not be modified manually
+%% This module was generated on 2020-02-01T07:44:32+00:00 and should not be modified manually
 
 -module(eetcd_health_gen).
 
@@ -15,11 +16,11 @@
 -spec check(router_pb:'Etcd.HealthCheckRequest'()) ->
     {ok, router_pb:'Etcd.HealthCheckResponse'()}|{error,eetcd:eetcd_error()}.
 check(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.HealthCheckRequest', <<"/grpc.health.v1.Health/Check">>, 'Etcd.HealthCheckResponse').
+    eetcd_stream:unary(Request, 'Etcd.HealthCheckRequest', <<"/etcdserverpb.Health/Check">>, 'Etcd.HealthCheckResponse').
 
 %% @doc Unary RPC 
 -spec watch(router_pb:'Etcd.HealthCheckRequest'()) ->
     {ok, router_pb:'Etcd.HealthCheckResponse'()}|{error,eetcd:eetcd_error()}.
 watch(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.HealthCheckRequest', <<"/grpc.health.v1..Health/Watch">>, 'Etcd.HealthCheckResponse').
+    eetcd_stream:unary(Request, 'Etcd.HealthCheckRequest', <<"/etcdserverpb.Health/Watch">>, 'Etcd.HealthCheckResponse').
 

@@ -1,6 +1,6 @@
 -module(eetcd_compare).
 
--export([new/1, with_range/2]).
+-export([new/1, with_range_end/2]).
 -export([value/3, version/3,
     mod_revision/3, create_revision/3,
     lease/3]).
@@ -8,7 +8,7 @@
 new(Key) -> #{key => Key}.
 
 %% WithRange sets the comparison to scan the range [key, end).
-with_range(Cmp, End) -> Cmp#{range_end => End}.
+with_range_end(Cmp, End) -> Cmp#{range_end => End}.
 
 value(Cmp, Result, Value) ->
     maps:merge(Cmp,

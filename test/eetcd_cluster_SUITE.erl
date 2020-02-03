@@ -7,7 +7,7 @@
 
 -export([member/1]).
 
--include("router_pb.hrl").
+-define(Name, ?MODULE).
 
 suite() ->
     [{timetrap, {minutes, 1}}].
@@ -22,9 +22,11 @@ groups() ->
 
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
+    {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
     Config.
 
 end_per_suite(_Config) ->
+    eetcd:close(?Name),
     application:stop(eetcd),
     ok.
 
@@ -43,8 +45,7 @@ member(_Config) ->
     
     %% list
     %% members is a list of all members associated with the cluster.
-    {ok,#'Etcd.MemberListResponse'{members = Members}}
-        = eetcd_cluster:member_list(#'Etcd.MemberListRequest'{}),
+    {ok,#{members := Members}} = eetcd_cluster:member_list(?Name),
     true = (length(Members) >= 1),
     %% #'Etcd.Member'{'ID' = ID} = lists:keyfind(FakePeerURLs, #'Etcd.Member'.peerURLs, Members),
     

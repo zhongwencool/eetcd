@@ -12,7 +12,7 @@ watch_id => integer(),
 response => router_pb:'Etcd.WatchResponse'()}.
 
 %% API
--export([with_key/2,
+-export([new/0, with_key/2,
     with_range_end/2, with_prefix/1, with_from_key/1,
     with_start_revision/2,
     with_filter_delete/1, with_filter_put/1,
@@ -49,6 +49,10 @@ test() ->
         io:format("unwatch:~p~n", [T2])
     end,
     ok.
+
+%%% @doc init watch request
+-spec new() -> context().
+new() -> #{}.
 
 %% @doc AutoWatchID is the watcher ID passed in WatchStream.Watch when no
 %% user-provided ID is available, an ID will automatically be assigned.

@@ -2,9 +2,9 @@
 
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
 
--export([auth/1, authenticate/1, user/1]).
+-export([auth/1, user/1]).
 
--include("router_pb.hrl").
+-define(Name, ?MODULE).
 
 %% First create root user with root role
 %% ETCDCTL_API=3 etcdctl user add root
@@ -13,52 +13,43 @@
 suite() ->
     [{timetrap, {minutes, 3}}].
 
-all() ->
-    %% [auth, authenticate, user].
-    [].
+%% all() -> [auth, user].
+all() -> [].
 
 groups() ->
     [].
 
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
+    {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
     Config.
 
 end_per_suite(_Config) ->
+    eetcd:close(?Name),
     application:stop(eetcd),
     ok.
 
-auth(_Config) ->
-    {ok, #'Etcd.AuthEnableResponse'{}} = eetcd_auth:auth_enable(#'Etcd.AuthEnableRequest'{}),
-    {ok, #'Etcd.AuthDisableResponse'{}} = eetcd_auth:auth_disable(#'Etcd.AuthDisableRequest'{}),
+auth(Name) ->
+    {ok, #{}} = eetcd_auth:auth_enable(Name),
+    {ok, #{}} = eetcd_auth:auth_disable(Name),
     ok.
 
-authenticate(_Config) ->
-    Request = #'Etcd.AuthenticateRequest'{name = <<"NoExist">>, password = <<"123">>},
-    {error, {grpc_error, 9, _}} =
-        eetcd_auth:authenticate(Request),
-    {ok, #'Etcd.AuthEnableResponse'{}} = eetcd_auth:auth_enable(#'Etcd.AuthEnableRequest'{}),
-    {ok, #'Etcd.AuthenticateResponse'{}} = eetcd_auth:authenticate(Request),
-    {ok, #'Etcd.AuthDisableResponse'{}} = eetcd_auth:auth_disable(#'Etcd.AuthDisableRequest'{}),
-    ok.
-
-user(_Config) ->
-    {ok, #'Etcd.AuthEnableResponse'{}} = eetcd_auth:auth_enable(#'Etcd.AuthEnableRequest'{}),
+user(Name) ->
+    {ok, #{}} = eetcd_auth:auth_enable(Name),
     %% list
-    {ok, #'Etcd.AuthRoleListResponse'{roles = []}} = eetcd_auth:user_list(#'Etcd.AuthRoleListRequest'{}),
+    {ok, AuthRoleListResponse} = eetcd_auth:user_list(Name),
     %% add
-    {ok, #'Etcd.AuthRoleAddResponse'{}} = eetcd_auth:user_add(#'Etcd.AuthUserAddRequest'{name = <<"name1">>, password = <<"12345">>}),
+    {ok, AuthRoleAddResponse} = eetcd_auth:user_add(Name, <<"name1">>, <<"12345">>),
     %% get
-    {ok, #'Etcd.AuthUserGetResponse'{roles = [<<"name1">>]}} = eetcd_auth:user_get(#'Etcd.AuthUserGetRequest'{name = <<"name1">>}),
+    {ok, AuthUserGetResponse} = eetcd_auth:user_get(Name, <<"name1">>),
     %% change password
-    {ok, #'Etcd.AuthUserChangePasswordResponse'{}}
-        = eetcd_auth:user_get(#'Etcd.AuthUserChangePasswordRequest'{name = <<"name1">>, password = <<"54321">>}),
+    {ok, AuthUserChangePasswordResponse} = eetcd_auth:user_change_password(Name, <<"name1">>,<<"54321">>),
     %% get
-    {ok, #'Etcd.AuthUserGetResponse'{roles = [<<"name1">>]}} = eetcd_auth:user_get(#'Etcd.AuthUserGetRequest'{name = <<"name1">>}),
+    {ok, AuthUserGetResponse1} = eetcd_auth:user_get(Name, <<"name1">>),
     %% delete
-    {ok, #'Etcd.AuthUserDeleteResponse'{}} = eetcd_auth:user_delete(#'Etcd.AuthUserDeleteRequest'{name = <<"name1">>}),
+    {ok, AuthUserDeleteResponse} = eetcd_auth:user_delete(Name, <<"name1">>),
     %% list
-    {ok, #'Etcd.AuthRoleListResponse'{roles = []}} = eetcd_auth:user_list(#'Etcd.AuthRoleListRequest'{}),
-    {ok, #'Etcd.AuthDisableResponse'{}} = eetcd_auth:auth_disable(#'Etcd.AuthDisableRequest'{}),
+    {ok, AuthRoleListResponse2} = eetcd_auth:user_list(Name),
+    {ok, AuthDisableResponse2} = eetcd_auth:auth_disable(Name),
     ok.
 

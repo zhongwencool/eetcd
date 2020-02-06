@@ -26,7 +26,7 @@ info() ->
                 end, [], supervisor:which_children(?MODULE)).
 
 init([]) ->
-    ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.name}]),
+    ets:new(?ETCD_CONNS, [named_table, {read_concurrency, true}, public, {keypos, #eetcd_conn.id}]),
     MaxRestarts = 300,
     MaxSecondsBetweenRestarts = 60,
     SupFlags = #{

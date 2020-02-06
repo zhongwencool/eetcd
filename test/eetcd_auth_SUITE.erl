@@ -13,8 +13,7 @@
 suite() ->
     [{timetrap, {minutes, 3}}].
 
-%% all() -> [auth, user].
-all() -> [].
+all() -> [auth, user].
 
 groups() ->
     [].
@@ -22,6 +21,8 @@ groups() ->
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
     {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
+    eetcd_auth:user_add(?Name, "root"),
+    eetcd_auth:user_grant_role(?Name, "root", "root"),
     Config.
 
 end_per_suite(_Config) ->
@@ -29,9 +30,9 @@ end_per_suite(_Config) ->
     application:stop(eetcd),
     ok.
 
-auth(Name) ->
-    {ok, #{}} = eetcd_auth:auth_enable(Name),
-    {ok, #{}} = eetcd_auth:auth_disable(Name),
+auth(_Config) ->
+    {ok, #{}} = eetcd_auth:auth_enable(?Name),
+    {ok, #{}} = eetcd_auth:auth_disable(?Name),
     ok.
 
 user(Name) ->

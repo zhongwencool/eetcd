@@ -1,3 +1,4 @@
+%% @private
 -module(eetcd_conn).
 -include("eetcd.hrl").
 
@@ -27,8 +28,8 @@ open(Args) ->
     end.
 
 pick_by_round_robin(Name) ->
-    %% ets:fun2ms(fun(#eetcd_conn{name = {_, N}, _ = '_', http_header = H, gun = G})when N =:= Name ->  {H, G} end),
-    MS = [{#eetcd_conn{name = {'_', '$1'}, gun = '$2', http_header = '$3', _ = '_'},
+    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_', http_header = H, gun = G})when N =:= Name ->  {H, G} end),
+    MS = [{#eetcd_conn{id = {'_', '$1'}, gun = '$2', http_header = '$3', _ = '_'},
         [{'=:=', '$1', {const, Name}}],
         [{{'$2', '$3'}}]}],
     case ets:select(?ETCD_CONNS, MS) of
@@ -45,8 +46,8 @@ close(Pid) ->
     gen_statem:stop(Pid).
 
 find_by_name(Name) when is_atom(Name) orelse is_reference(Name) ->
-    %% ets:fun2ms(fun(#eetcd_conn{name = {_, N}, _ = '_', conn = G})when N =:= Name -> G end),
-    MS = [{#eetcd_conn{name = {'_', '$1'}, conn = '$2', _ = '_'},
+    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_', conn = G})when N =:= Name -> G end),
+    MS = [{#eetcd_conn{id = {'_', '$1'}, conn = '$2', _ = '_'},
         [{'=:=', '$1', {const, Name}}],
         ['$2']}],
     case ets:select(?ETCD_CONNS, MS) of
@@ -63,8 +64,7 @@ check_health(Name) ->
 %%%===================================================================
 %%% gen_statem callbacks
 %%%===================================================================
-%% @private
-init({Name, Hosts, Transport, TransportOpts}) ->
+init({Name, Hosts, Transport, TransportOpts, Options}) ->
     erlang:process_flag(trap_exit, true),
     GunOpts = #{protocols => [http2],
         http2_opts => #{keepalive => 45000},
@@ -72,15 +72,36 @@ init({Name, Hosts, Transport, TransportOpts}) ->
         transport => Transport,
         transport_opts => TransportOpts
     },
-    Data = #{
-        name => Name,
-        gun_opts => GunOpts,
-        http_header => [],
-        health_ref => undefined,
-        reconn_ref => undefined,
-        active_conns => [],
-        freeze_conns => []
-    },
+    case proplists:get_value(mode, Options, connect_all) of
+        connect_all ->
+            Data = #{
+                name => Name,
+                gun_opts => GunOpts,
+                http_header => [],
+                mode => connect_all,
+                health_ref => undefined,
+                reconn_ref => undefined,
+                active_conns => [],
+                freeze_conns => []
+            },
+            connect_all(Hosts, Name, GunOpts, Data);
+        random ->
+            Data = #{
+                endpoints => Hosts,
+                name => Name,
+                gun_opts => GunOpts,
+                http_header => [],
+                mode => random,
+                index => rand:uniform(length(Hosts)),
+                health_ref => undefined,
+                reconn_ref => undefined,
+                active_conns => []
+            },
+            Length = erlang:length(Hosts),
+            connect_random(Hosts, Name, GunOpts, Data, Length, 2 * Length)
+    end.
+
+connect_all(Hosts, Name, GunOpts, Data) ->
     {Ok, Failed} = multi_connect(Hosts, Name, GunOpts, [], [], []),
     if
         Failed =:= [] ->
@@ -100,20 +121,40 @@ init({Name, Hosts, Transport, TransportOpts}) ->
             {stop, {shutdown, Failed}}
     end.
 
-%% @private
+connect_random(Hosts, Name, GunOpts, Data, Len, Retry) ->
+    case find_by_name(Name) of
+        {ok, _Pid} ->
+            {stop, {shutdown, {error, already_started}}};
+        {error, eetcd_conn_unavailable} ->
+            #{http_header := Headers, index := Index} = Data,
+            Host = {IP, Port} = lists:nth(Index, Hosts),
+            case connect(Name, IP, Port, GunOpts, Headers) of
+                {ok, Gun, GunRef} ->
+                    {ok, ?ready, Data#{
+                        health_ref => next_check_health(),
+                        active_conns => [{Host, Gun, GunRef}]}};
+                {error, Reason} when Retry =< 0 ->
+                    {stop, {shutdown, Reason}};
+                {error, Reason} ->
+                    ?LOG_WARNING("~p failed to connect ETCD host: ~p ~p~n",
+                        [Name, Host, Reason]),
+                    NewIndex = (Index + 1) rem Len + 1,
+                    NewData = Data#{index => NewIndex},
+                    connect_random(Hosts, Name, GunOpts, NewData, Len, Retry - 1)
+            end
+    end.
+
 callback_mode() -> [handle_event_function].
 
-%% @private
 format_status(_Opt, [_PDict, StateName, Data]) ->
     #{'StateName' => StateName, 'StateData' => Data}.
 
-%% @private
 handle_event(info, {'DOWN', _GunRef, process, Gun, _Reason}, _StateName, Data) ->
-    freeze_conns(Gun, Data);
+    connection_down_event(Gun, Data);
 handle_event(info, {gun_down, Gun, http2, _Error, _KilledStreams, _UnprocessedStreams}, _StateName, Data) ->
-    freeze_conns(Gun, Data);
+    connection_down_event(Gun, Data);
 handle_event(internal, ?ready, ?ready, Data = #{name := Name}) ->
-    ?LOG_INFO("~p:~p(~p)'s all connections is ok.~n", [?MODULE, Name, self()]),
+    ?LOG_INFO("~p:~p(~p)'s connections is ok.~n", [?MODULE, Name, self()]),
     {keep_state, Data};
 handle_event(EventType, reconnecting, _StateName, Data)
     when EventType =:= internal orelse EventType =:= info ->
@@ -128,17 +169,15 @@ handle_event(EventType, EventContent, StateName, Data) ->
         [{?MODULE, self()}, {EventType, EventContent}, StateName, Data]),
     {keep_state, Data}.
 
-%% @private
 terminate(_Reason, _StateName, Data) ->
     #{name := Name, active_conns := Actives} = Data,
-    %% ets:fun2ms(fun(#eetcd_conn{name = {_, N}, _ = '_'})->  N =:= Name end),
-    MS = [{#eetcd_conn{name = {'_', '$1'}, _ = '_'}, [], [{'=:=', '$1', {const, Name}}]}],
+    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_'})->  N =:= Name end),
+    MS = [{#eetcd_conn{id = {'_', '$1'}, _ = '_'}, [], [{'=:=', '$1', {const, Name}}]}],
     ets:select_delete(?ETCD_CONNS, MS),
     ets:match_delete(?ETCD_CONNS, {'_', Name}),
     [begin gun:close(Gun) end || {_Host, Gun, _GunRef} <- Actives],
     ok.
 
-%% @private
 code_change(_OldVsn, StateName, Data, _Extra) ->
     {ok, StateName, Data}.
 
@@ -176,7 +215,7 @@ connect(Name, IP, Port, GunOpts, Headers) ->
     end.
 
 try_update_connection(IP, Port, Name, Gun, Headers) ->
-    Conn = #eetcd_conn{name = {{IP, Port}, Name},
+    Conn = #eetcd_conn{id = {{IP, Port}, Name},
         gun = Gun, http_header = Headers,
         conn = self()},
     case ets:insert_new(?ETCD_CONNS, Conn) of
@@ -196,6 +235,9 @@ exit_connection(Log, Gun, Reason, Name, IP, Port) ->
         [Name, IP, Port, Log, Reason]),
     {error, Reason}.
 
+connection_down_event(Gun, Data = #{mode := connect_all}) -> freeze_conns(Gun, Data);
+connection_down_event(Gun, Data) -> pick_next_conns(Gun, Data).
+
 freeze_conns(Gun, Data) ->
     #{active_conns := Actives, freeze_conns := Freezes,
         name := Name} = Data,
@@ -211,7 +253,19 @@ freeze_conns(Gun, Data) ->
             {next_state, ?reconnect, Data, {next_event, internal, reconnecting}}
     end.
 
-reconnect_conns(Data) ->
+pick_next_conns(Gun, Data) ->
+    #{active_conns := Actives, name := Name} = Data,
+    case lists:keytake(Gun, 2, Actives) of
+        {value, {Endpoint, _, _}, NewActives} ->
+            ets:delete(?ETCD_CONNS, {Endpoint, Name}),
+            gun:close(Gun),
+            NewData = Data#{active_conns => NewActives},
+            {next_state, ?reconnect, NewData, {next_event, internal, reconnecting}};
+        false ->
+            {next_state, ?reconnect, Data, {next_event, internal, reconnecting}}
+    end.
+
+reconnect_conns(Data = #{mode := connect_all}) ->
     #{
         name := Name,
         freeze_conns := Freezes,
@@ -237,13 +291,31 @@ reconnect_conns(Data) ->
             NextReconnMs = next_reconnect_ms(NewFreezes),
             NewRef = erlang:send_after(NextReconnMs, self(), reconnecting),
             {next_state, ?reconnect, NewData#{reconn_ref => NewRef}}
-    end.
+    end;
+reconnect_conns(Data = #{mode := random, active_conns := []}) ->
+    #{
+        endpoints := Hosts,
+        name := Name,
+        gun_opts := GunOpts,
+        reconn_ref := ReConnRef
+    } = Data,
+    is_reference(ReConnRef) andalso erlang:cancel_timer(ReConnRef),
+    Len = erlang:length(Hosts),
+    case connect_random(Hosts, Name, GunOpts, Data, Len, Len) of
+        {ok, ?ready, NewData} ->
+            {next_state, ?ready, NewData, {next_event, internal, ?ready}};
+        {stop, {shutdown, _Reason}} ->
+            NewRef = erlang:send_after(1000, self(), reconnecting),
+            {next_state, ?reconnect, Data#{reconn_ref => NewRef}}
+    
+    end;
+reconnect_conns(Data) -> {keep_state, Data}.
 
 next_check_health() ->
     Ms = application:get_env(eetcd, health_check_ms, 10000),
     erlang:send_after(Ms, self(), ?check_health).
 
-do_check_health(Data) ->
+do_check_health(Data = #{mode := connect_all}) ->
     #{
         name := Name,
         active_conns := Actives,
@@ -270,7 +342,33 @@ do_check_health(Data) ->
                     {Health, [{Host, ?MIN_RECONN} | Freeze]}
             end
                     end, {[], Freezes}, Actives),
-    Data#{active_conns => NewActives, freeze_conns => NewFreezes}.
+    Data#{active_conns => NewActives, freeze_conns => NewFreezes};
+do_check_health(Data = #{mode := random}) ->
+    #{
+        name := Name,
+        active_conns := ActiveConns,
+        http_header := Header
+    } = Data,
+    case ActiveConns of
+        [{Host, Gun, _GunRef}] ->
+            case check_health(Gun, Header) of
+                ok ->
+                    case check_leader_status(Gun, Header) of
+                        ok -> Data;
+                        {error, Reason} ->
+                            ets:delete(?ETCD_CONNS, {Host, Name}),
+                            gun:close(Gun),
+                            ?LOG_ERROR("~p check (~p) leader_status failed by ~p ", [Name, Host, Reason]),
+                            Data#{active_conns => []}
+                    end;
+                {error, Reason1} ->
+                    ets:delete(?ETCD_CONNS, {Host, Name}),
+                    gun:close(Gun),
+                    ?LOG_ERROR("~p check (~p) health failed by ~p ", [Name, Host, Reason1]),
+                    Data#{active_conns => []}
+            end;
+        [] -> Data
+    end.
 
 %% UNKNOWN = 0;
 %% SERVING = 1;

@@ -2,7 +2,7 @@
 -include("eetcd.hrl").
 %% API
 -export([test/0]).
--export([open/2, open/4, close/1]).
+-export([open/2, open/4, open/5, close/1]).
 -export([new/1, with_timeout/2]).
 -export([info/0]).
 
@@ -28,19 +28,32 @@ test() ->
 %% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
 -spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
 open(Name, Hosts) ->
-    open(Name, Hosts, tcp, []).
+    open(Name, Hosts, tcp, [], []).
 
 %% @doc Connects to a etcd server.
-%% ssl:connect_option() see all options in ssl_api.hrl
-%% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]
+%%
 -spec open(name(),
     [string()],
     tcp | tls | ssl,
     [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
     {ok, pid()} | {error, any()}.
 open(Name, Hosts, Transport, TransportOpts) ->
+    open(Name, Hosts, Transport, TransportOpts, []).
+
+%% @doc Connects to a etcd server.
+%% ssl:connect_option() see all options in ssl_api.hrl
+%% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}].
+%% Default mode is `connect_all', it creates multiple sub-connections (one sub-connection per each endpoint).
+%% `{mode, random}' creates only one connection to a random endpoint.
+-spec open(name(),
+    [string()],
+    tcp | tls | ssl,
+    [gen_tcp:connect_option()] | [ssl:connect_option()],
+    [{mode, connect_all|random}]) ->
+    {ok, pid()} | {error, any()}.
+open(Name, Hosts, Transport, TransportOpts, Options) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    eetcd_conn_sup:start_child([{Name, Cluster, Transport, TransportOpts}]).
+    eetcd_conn_sup:start_child([{Name, Cluster, Transport, TransportOpts, Options}]).
 
 -spec close(name()) -> ok | {error, eetcd_conn_unavailable}.
 close(Name) ->

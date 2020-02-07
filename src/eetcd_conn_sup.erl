@@ -19,9 +19,9 @@ info() ->
         {_StateName,
             #{
                 name := Name,
-                active_conns := Actives,
-                freeze_conns := Freezes
-            }} = sys:get_state(Pid),
+                active_conns := Actives
+            } = Data} = sys:get_state(Pid),
+        Freezes = maps:get(freeze_conns, Data, []),
         [{Name, #{active_conns => Actives, freeze_conns => Freezes}} | Acc]
                 end, [], supervisor:which_children(?MODULE)).
 

@@ -15,7 +15,7 @@
     GunPid :: pid(),
     Http2Ref :: reference().
 new(Name, Path) ->
-    case eetcd_conn:pick_by_round_robin(Name) of
+    case eetcd_conn:round_robin_select(Name) of
         {ok, Pid, Headers} ->
             Ref = gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>),
             {ok, Pid, Ref};
@@ -56,7 +56,7 @@ data(Pid, Ref, Msg, MsgName, IsFin) ->
 unary(Request, RequestName, Path, ResponseType) ->
     case maps:find(eetcd_conn_name, Request) of
         {ok, Name} ->
-            case eetcd_conn:pick_by_round_robin(Name) of
+            case eetcd_conn:round_robin_select(Name) of
                 {ok, Pid, HttpHeader} ->
                     NewRequest = maps:remove(eetcd_conn_name, Request),
                     unary(Pid, NewRequest, RequestName, Path, ResponseType, HttpHeader ++ ?HEADERS);
@@ -87,7 +87,24 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                     {error, _} = Error1 -> Error1
                 end;
             {response, fin, 200, RespHeaders} ->
-                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}};
+                case eetcd_grpc:grpc_status(RespHeaders) of
+                    #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
+                        'grpc-message' := <<"etcdserver: invalid auth token">>} ->
+                        NewHeaders = eetcd_conn:update_token(Pid, Headers),
+                        StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
+                        case await(Pid, StreamRef1, Timeout, MRef) of
+                            {response, nofin, 200, _Headers} ->
+                                case await_body(Pid, StreamRef1, Timeout, MRef, <<>>) of
+                                    {ok, ResBody, _Trailers} ->
+                                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
+                                        {ok, Resp};
+                                    {error, _} = Error1 -> Error1
+                                end;
+                            {response, fin, 200, RespHeaders} ->
+                                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}}
+                        end;
+                    Error3 -> {error, {grpc_error, Error3}}
+                end;
             {error, _} = Error2 -> Error2
         end,
     erlang:demonitor(MRef, [flush]),

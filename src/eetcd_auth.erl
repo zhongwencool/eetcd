@@ -11,7 +11,6 @@
 -export([role_add/2, role_get/2, role_list/1, role_delete/2,
     role_grant_permission/5, role_revoke_permission/4
 ]).
-%% -export([authenticate/1]).
 
 %%% @doc AuthEnable enables auth of an etcd cluster.
 %%% <dl>

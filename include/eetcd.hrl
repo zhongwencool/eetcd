@@ -2,7 +2,7 @@
 -define(etcd_hrl, true).
 -include_lib("kernel/include/logger.hrl").
 
--define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}, {<<"authorization">>,<<"JnPUuaBJSEriOmmD.1348">>}]).
+-define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(GRPC_ERROR(Status, Message), {grpc_error, #{'grpc-status' => Status, 'grpc-message' => Message}}).
 
 -export_type([key/0, value/0, context/0, name/0, grpc_status/0, eetcd_error/0]).

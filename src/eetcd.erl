@@ -1,27 +1,9 @@
 -module(eetcd).
 -include("eetcd.hrl").
 %% API
--export([test/0]).
 -export([open/2, open/4, open/5, close/1]).
--export([new/1, with_timeout/2]).
 -export([info/0]).
-
-test() ->
-    application:ensure_all_started(eetcd),
-    logger:set_primary_config(level, info),
-    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"], tcp, []),
-    R = eetcd_kv:put(test, "test", <<"2">>),
-    io:format("~p~n", [R]),
-    R1 = eetcd_kv:get(test, "test"),
-    io:format("~p~n", [R1]),
-    Key = "test",
-    Cmp = eetcd_compare:new(Key),
-    If = eetcd_compare:value(Cmp, "=", <<"2">>),
-    Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), <<"1000">>)),
-    Else = eetcd_op:delete(eetcd_kv:with_key(eetcd_kv:new(), Key)),
-    eetcd_kv:txn(test, [If], [Then], [Else]).
-    %% eetcd:close(test),
-    %%ok.
+-export([new/1, with_timeout/2]).
 
 %% @doc Connects to a etcd server on TCP port
 %% Port on the host with IP address Address, such as:
@@ -31,7 +13,6 @@ open(Name, Hosts) ->
     open(Name, Hosts, tcp, [], []).
 
 %% @doc Connects to a etcd server.
-%%
 -spec open(name(),
     [string()],
     tcp | tls | ssl,
@@ -43,8 +24,18 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% @doc Connects to a etcd server.
 %% ssl:connect_option() see all options in ssl_api.hrl
 %% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}].
+%%
 %% Default mode is `connect_all', it creates multiple sub-connections (one sub-connection per each endpoint).
-%% `{mode, random}' creates only one connection to a random endpoint.
+%% The balancing policy is round robin.
+%% For instance, in 5-node cluster, `connect_all' would require 5 TCP connections,
+%% This may consume more resources but provide more flexible load balance with better failover performance.
+%%
+%% `{mode, random}' creates only one connection to a random endpoint,
+%% it would pick one address and use it to send all client requests.
+%% The pinned address is maintained until the client connection is closed.
+%% When the client receives an error, it randomly picks another.
+%%
+%% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
 -spec open(name(),
     [string()],
     tcp | tls | ssl,
@@ -55,9 +46,10 @@ open(Name, Hosts, Transport, TransportOpts, Options) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
     eetcd_conn_sup:start_child([{Name, Cluster, Transport, TransportOpts, Options}]).
 
+%% @doc close connections with etcd server.
 -spec close(name()) -> ok | {error, eetcd_conn_unavailable}.
 close(Name) ->
-    case eetcd_conn:find_by_name(Name) of
+    case eetcd_conn:select(Name) of
         {ok, Pid} -> eetcd_conn:close(Pid);
         Err -> Err
     end.
@@ -67,21 +59,16 @@ close(Name) ->
 info() ->
     Leases = eetcd_lease_sup:info(),
     Conns = eetcd_conn_sup:info(),
+    io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Gun      |LeaseNum\e[0m|~n"),
     [begin
-         {Name, #{active_conns := Actives, freeze_conns := Freezes}} = Conn,
-         case Actives =/= [] of
-             true ->
-                 io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Gun      |LeaseNum\e[0m|~n");
-             false -> ignore
-         end,
+         {Name, #{active_conns := Actives}} = Conn,
          [begin
               io:format("| ~-15.15s| Active |~s:~w|~p |~7.7w | ~n", [Name, IP, Port, Gun, maps:get(Gun, Leases, 0)])
-          end || {{IP, Port}, Gun, _GRef} <- Actives],
-         case Freezes =/= [] of
-             true ->
-                 io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | ReconnectSecond   \e[49m\e[0m|~n");
-             false -> ignore
-         end,
+          end || {{IP, Port}, Gun, _Token} <- Actives]
+     end || Conn <- Conns],
+    io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | ReconnectSecond   \e[49m\e[0m|~n"),
+    [begin
+         {Name, #{freeze_conns := Freezes}} = Conn,
          [begin
               io:format("| ~-15.15s| Freeze |~s:~w|   ~-15.15w | ~n", [Name, IP, Port, Ms / 1000])
           end || {{IP, Port}, Ms} <- Freezes]

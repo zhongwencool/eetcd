@@ -30,7 +30,7 @@ response => router_pb:'Etcd.WatchResponse'()}.
 test() ->
     application:ensure_all_started(eetcd),
     logger:set_primary_config(level, info),
-    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"], tcp, []),
+    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"], tcp, [], [{name, "root"}]),
     %% {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379"], tcp, []),
     R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),

@@ -22,7 +22,7 @@ info() ->
                 active_conns := Actives
             } = Data} = sys:get_state(Pid),
         Freezes = maps:get(freeze_conns, Data, []),
-        [{Name, #{active_conns => Actives, freeze_conns => Freezes}} | Acc]
+        [{Name, #{etcd => Pid, active_conns => Actives, freeze_conns => Freezes}} | Acc]
                 end, [], supervisor:which_children(?MODULE)).
 
 init([]) ->

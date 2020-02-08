@@ -17,7 +17,7 @@
 new(Name, Path) ->
     case eetcd_conn:round_robin_select(Name) of
         {ok, Pid, Headers} ->
-            Ref = gun:request(Pid, <<"POST">>, Path, Headers ++ ?HEADERS, <<>>),
+            Ref = gun:request(Pid, <<"POST">>, Path, Headers, <<>>),
             {ok, Pid, Ref};
         Err -> Err
     end.
@@ -57,9 +57,9 @@ unary(Request, RequestName, Path, ResponseType) ->
     case maps:find(eetcd_conn_name, Request) of
         {ok, Name} ->
             case eetcd_conn:round_robin_select(Name) of
-                {ok, Pid, HttpHeader} ->
+                {ok, Pid, Headers} ->
                     NewRequest = maps:remove(eetcd_conn_name, Request),
-                    unary(Pid, NewRequest, RequestName, Path, ResponseType, HttpHeader ++ ?HEADERS);
+                    unary(Pid, NewRequest, RequestName, Path, ResponseType, Headers);
                 Err -> Err
             end;
         error -> {error, eetcd_conn_unavailable}
@@ -90,7 +90,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                 case eetcd_grpc:grpc_status(RespHeaders) of
                     #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
                         'grpc-message' := <<"etcdserver: invalid auth token">>} ->
-                        NewHeaders = eetcd_conn:update_token(Pid, Headers),
+                        NewHeaders = eetcd_conn:flush_token(Pid, Headers),
                         StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->

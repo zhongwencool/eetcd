@@ -33,5 +33,5 @@
 -define(GRPC_STATUS_UNAUTHENTICATED, 16).
 
 -define(ETCD_CONNS, eetcd_conns).
--record(eetcd_conn, {id, gun, conn, http_header = []}).
+-record(eetcd_conn, {id, gun, conn, token = []}).
 -endif.

@@ -4,7 +4,8 @@
 
 -export([watch_one_key/1, watch_multi_keys/1,
     watch_with_start_revision/1, watch_with_filters/1,
-    watch_with_prev_kv/1, watch_with_watch_id/1]).
+    watch_with_prev_kv/1, watch_with_watch_id/1,
+    watch_with_huge_value/1]).
 
 -define(Name, ?MODULE).
 
@@ -14,7 +15,7 @@ suite() ->
 all() ->
     [
         watch_one_key, watch_multi_keys, watch_with_start_revision, watch_with_filters,
-        watch_with_prev_kv, watch_with_watch_id
+        watch_with_prev_kv, watch_with_watch_id, watch_with_huge_value
     ].
 
 groups() ->
@@ -195,7 +196,7 @@ watch_with_watch_id(_Config) ->
     Timeout = 3000,
     Ctx = eetcd_kv:new(?Name),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Value)),
-    
+    timer:sleep(200),
     WatchReq1 = eetcd_watch:with_key(eetcd_watch:new(), Key),
     {ok, WatchConn1} = eetcd_watch:watch(?Name, WatchReq1, Timeout),
     
@@ -233,6 +234,42 @@ watch_with_watch_id(_Config) ->
                 events := []}, []} = eetcd_watch:unwatch(Conn2, Timeout)
     end,
     ok.
+
+watch_with_huge_value(_Config) ->
+    Key = <<"etcd_huge_key">>,
+    {ok, WatchConn} = eetcd_watch:watch(?Name, eetcd_watch:with_key(eetcd_watch:new(), Key)),
+    List = [233333, 1, 13, 99, 122, 1222, 40000, 12345, 67890, 999999, 3, 4, 5, 33, 57, 157, 999, 99999, 2],
+    {ok, Conn} = watch_loop(List, WatchConn, Key),
+    {ok, #{created := false, canceled := true,
+        events := []}, []} = eetcd_watch:unwatch(Conn, 5000),
+    ok.
+
+watch_loop([], Conn, _) -> {ok, Conn};
+watch_loop([Head | Tail], Conn, Key) ->
+    Value = list_to_binary([100 || _ <- lists:seq(1, Head)]),
+    Ctx = eetcd_kv:new(?Name),
+    eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Value)),
+    Message = flush(),
+    case eetcd_watch:watch_stream(Conn, Message) of
+        {ok, Conn1, #{created := false,
+            events := [#{type := 'PUT',
+                kv := #{key := Key, value := Value}}]}} ->
+            watch_loop(Tail, Conn1, Key);
+        {more, Conn1} ->
+            {ok, Conn2} = receive_fragment(Conn1, Key, Value),
+            watch_loop(Tail, Conn2, Key)
+    end.
+
+receive_fragment(Conn, Key, Value) ->
+    Message = flush(),
+    case eetcd_watch:watch_stream(Conn, Message) of
+        {ok, Conn1, #{created := false,
+            events := [#{type := 'PUT',
+                kv := #{key := Key, value := Value}}]}} ->
+            {ok, Conn1};
+        {more, Conn1} ->
+            receive_fragment(Conn1, Key, Value)
+    end.
 
 %% fragment enables splitting large revisions into multiple watch responses.
 %%watch_with_fragment(_Config) ->

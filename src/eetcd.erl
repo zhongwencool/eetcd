@@ -10,7 +10,7 @@
 %% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
 -spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
 open(Name, Hosts) ->
-    open(Name, Hosts, tcp, [], []).
+    open(Name, Hosts, [], tcp, []).
 
 %% @doc Connects to a etcd server.
 -spec open(name(),
@@ -19,7 +19,7 @@ open(Name, Hosts) ->
     [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
     {ok, pid()} | {error, any()}.
 open(Name, Hosts, Transport, TransportOpts) ->
-    open(Name, Hosts, Transport, TransportOpts, []).
+    open(Name, Hosts, [], Transport, TransportOpts).
 
 %% @doc Connects to a etcd server.
 %% ssl:connect_option() see all options in ssl_api.hrl
@@ -38,18 +38,18 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
 -spec open(name(),
     [string()],
+    [{mode, connect_all|random} |{name, string()} | {password, string()}],
     tcp | tls | ssl,
-    [gen_tcp:connect_option()] | [ssl:connect_option()],
-    [{mode, connect_all|random}]) ->
+    [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
     {ok, pid()} | {error, any()}.
-open(Name, Hosts, Transport, TransportOpts, Options) ->
+open(Name, Hosts, Options, Transport, TransportOpts) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    eetcd_conn_sup:start_child([{Name, Cluster, Transport, TransportOpts, Options}]).
+    eetcd_conn_sup:start_child([{Name, Cluster, Options, Transport, TransportOpts}]).
 
 %% @doc close connections with etcd server.
 -spec close(name()) -> ok | {error, eetcd_conn_unavailable}.
 close(Name) ->
-    case eetcd_conn:select(Name) of
+    case eetcd_conn:lookup(Name) of
         {ok, Pid} -> eetcd_conn:close(Pid);
         Err -> Err
     end.
@@ -59,18 +59,18 @@ close(Name) ->
 info() ->
     Leases = eetcd_lease_sup:info(),
     Conns = eetcd_conn_sup:info(),
-    io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Gun      |LeaseNum\e[0m|~n"),
+    io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Conn     | Gun      |LeaseNum\e[0m|~n"),
     [begin
-         {Name, #{active_conns := Actives}} = Conn,
+         {Name, #{etcd := Etcd, active_conns := Actives}} = Conn,
          [begin
-              io:format("| ~-15.15s| Active |~s:~w|~p |~7.7w | ~n", [Name, IP, Port, Gun, maps:get(Gun, Leases, 0)])
+              io:format("| ~-15.15s| Active |~s:~w|~p |~p |~7.7w | ~n", [Name, IP, Port, Etcd, Gun, maps:get(Gun, Leases, 0)])
           end || {{IP, Port}, Gun, _Token} <- Actives]
      end || Conn <- Conns],
-    io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | ReconnectSecond   \e[49m\e[0m|~n"),
+    io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | Conn     | ReconnectSecond   \e[49m\e[0m|~n"),
     [begin
-         {Name, #{freeze_conns := Freezes}} = Conn,
+         {Name, #{etcd := Etcd, freeze_conns := Freezes}} = Conn,
          [begin
-              io:format("| ~-15.15s| Freeze |~s:~w|   ~-15.15w | ~n", [Name, IP, Port, Ms / 1000])
+              io:format("| ~-15.15s| Freeze |~s:~w|~p |   ~-15.15w | ~n", [Name, IP, Port, Etcd, Ms / 1000])
           end || {{IP, Port}, Ms} <- Freezes]
      end || Conn <- Conns],
     ok.

@@ -159,11 +159,12 @@ connect_all(Hosts, Name, GunOpts, Data) ->
                 active_conns => Ok,
                 freeze_conns => []}};
         {Ok, Failed} when length(Ok) > length(Failed) ->
+            Freezes = [{Host, ?MIN_RECONN} || {Host, _Reason} <- Failed],
             {ok, ?reconnect, Data#{
                 mode => connect_all,
                 health_ref => next_check_health(),
                 active_conns => Ok,
-                freeze_conns => Failed},
+                freeze_conns => Freezes},
                 {next_event, internal, reconnecting}};
         {Ok, Failed} ->
             [begin gun:close(G) end || {_Host, G, _Auth} <- Ok],
@@ -202,7 +203,7 @@ fold_connect([Host | Hosts], Name, GunOpts, Auth, Ok, Fail) ->
             fold_connect(Hosts, Name, GunOpts, Auth, NewOk, Fail);
         {error, Reason} ->
             ?LOG_ERROR("Failed to connect ETCD: ~p by ~p", [Host, Reason]),
-            NewFail = [{Host, ?MIN_RECONN} | Fail],
+            NewFail = [{Host, Reason} | Fail],
             fold_connect(Hosts, Name, GunOpts, Auth, Ok, NewFail)
     end.
 

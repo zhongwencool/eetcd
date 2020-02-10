@@ -30,17 +30,26 @@ response => router_pb:'Etcd.WatchResponse'()}.
 test() ->
     application:ensure_all_started(eetcd),
     logger:set_primary_config(level, info),
-    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"], [], tcp, []),
-    R1 = eetcd_kv:get(test, "test"),
-    io:format("~p~n", [R1]),
+    Registers = ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"],
+    Name = register,
+    {ok, _Pid} = eetcd:open(Name, Registers),
+    {ok, #{'ID' := LeaseID}} = eetcd_lease:grant(Name, 15),
+    {ok, _} = eetcd_lease:keep_alive(Name, LeaseID),
+    Key = <<"heartbeat|query|10.4.3.1|8756">>,
+    CtxInit = eetcd_kv:new(Name),
+    CtxKey = eetcd_kv:with_key(CtxInit, Key),
+    CtxVal = eetcd_kv:with_value(CtxKey, <<"ok">>),
+    CtxLease = eetcd_kv:with_lease(CtxVal, LeaseID),
+    {ok, #{}} = eetcd_kv:put(CtxLease),
+    eetcd_lease:revoke(Name, LeaseID),
     Request = with_key(#{}, "test"),
-    {ok, Conn} = eetcd_watch:watch(test, Request, 5000),
+    {ok, Conn} = eetcd_watch:watch(Name, Request, 5000),
     io:format("~p~n", [Conn]),
-    eetcd_kv:put(test, "test", "goodv1"),
+    eetcd_kv:put(Name, "test", "goodv1"),
     receive X ->
         io:format("put:~p~n", [eetcd_watch:watch_stream(Conn, X)])
     end,
-    eetcd_kv:delete(test, "test"),
+    eetcd_kv:delete(Name, "test"),
     receive Y ->
         {ok, Conn1, Resp} = eetcd_watch:watch_stream(Conn, Y),
         io:format("delete:~p~n", [Resp]),
@@ -70,7 +79,6 @@ with_prev_kv(Context) ->
 %%when the total size of watch events exceed server-side request limit.
 %%The default server-side request limit is 1.5 MiB, which can be configured
 %%as "--max-request-bytes" flag value + gRPC-overhead 512 bytes.
-%%See "watch.erl" for more details.
 -spec with_fragment(context()) -> context().
 with_fragment(Context) ->
     maps:put(fragment, true, Context).
@@ -218,11 +226,19 @@ watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed} 
                 Resp};
         more -> {more, Conn#{unprocessed => Bin}}
     end;
-watch_stream(#{stream_ref := Ref, http2_pid := Pid}, {gun_error, Pid, Ref, Reason}) -> %% stream error
+watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
+    {gun_error, Pid, SRef, Reason}) -> %% stream error
+    erlang:demonitor(MRef, [flush]),
+    gun:cancel(Pid, SRef),
     {error, {stream_error, Reason}};
-watch_stream(#{http2_pid := Pid}, {gun_error, Pid, Reason}) -> %% gun connection process state error
+watch_stream(#{http2_pid := Pid, stream_ref := SRef, monitor_ref := MRef},
+    {gun_error, Pid, Reason}) -> %% gun connection process state error
+    erlang:demonitor(MRef, [flush]),
+    gun:cancel(Pid, SRef),
     {error, {conn_error, Reason}};
-watch_stream(#{monitor_ref := MRef, http2_pid := Pid}, {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
+watch_stream(#{http2_pid := Pid, monitor_ref := MRef},
+    {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
+    erlang:demonitor(MRef, [flush]),
     {error, {http2_down, Reason}};
 watch_stream(_Conn, _UnKnow) -> unknown.
 
@@ -262,8 +278,8 @@ await_unwatch_resp(Gun, StreamRef, Unprocessed, WatchId, Timeout, MRef, Acc) ->
                 {ok, Resp, NewUnprocessed} ->
                     case Resp of
                         #{created := false, watch_id := WatchId, canceled := true} ->
-                            gun:cancel(Gun, StreamRef),
                             erlang:demonitor(MRef, [flush]),
+                            gun:cancel(Gun, StreamRef),
                             {ok, Resp, lists:reverse(Acc)};
                         OtherEvent ->
                             await_unwatch_resp(Gun, StreamRef, NewUnprocessed, WatchId, Timeout, MRef, [OtherEvent | Acc])

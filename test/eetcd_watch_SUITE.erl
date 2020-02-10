@@ -175,7 +175,7 @@ watch_with_prev_kv(_Config) ->
     Timeout = 3000,
     Ctx = eetcd_kv:new(?Name),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Value)),
-    
+    timer:sleep(200),
     WatchReq = eetcd_watch:with_prev_kv(eetcd_watch:with_key(eetcd_watch:new(), Key)),
     {ok, WatchConn} = eetcd_watch:watch(?Name, WatchReq, Timeout),
     

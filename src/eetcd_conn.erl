@@ -413,6 +413,9 @@ check_health_remote(Gun) ->
     case eetcd_stream:unary(Gun, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', ?HEADERS) of
         {ok, #{status := 'SERVING'}} -> ok;
         {ok, #{status := 'UNKNOWN'}} -> ok;
+        %% etcd does not support health checks in early versions of v3 API
+        {error, {grpc_error, #{'grpc-message' := <<"unknown service grpc.health.v1.Health">>,
+                               'grpc-status'  := ?GRPC_STATUS_UNIMPLEMENTED}}} -> ok;
         {ok, #{status := Status}} -> {error, {unhealthy, Status}};
         {error, _Reason} = Err -> Err
     end.

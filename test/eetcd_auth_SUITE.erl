@@ -13,7 +13,9 @@
 suite() ->
     [{timetrap, {minutes, 3}}].
 
-all() -> [auth, user].
+%% todo
+%% all() -> [auth, user].
+all() -> [].
 
 groups() ->
     [].

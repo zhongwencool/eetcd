@@ -1,23 +1,37 @@
+%% @private
 -module(eetcd_grpc).
+-include("eetcd.hrl").
 
--export([decode/3, encode/2]).
+-export([decode/3, encode/3]).
+-export([grpc_status/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
--define(GRPC_ERROR(Status, Message), {grpc_error, {Status, Message}}).
--define(GRPC_STATUS_UNIMPLEMENTED, <<"12">>).
--define(GRPC_STATUS_INTERNAL, <<"13">>).
 
--spec encode(identity | gzip, tuple()) -> binary().
-encode(GrpcType, Msg) ->
-    PbMsg = router_pb:encode_msg(Msg, [{verify, true}]),
+-spec encode(identity | gzip, map(), atom()) -> binary().
+encode(GrpcType, Msg, MsgName) ->
+    PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
--spec decode(identity | gzip, binary(), atom()) -> tuple().
+-spec decode(identity | gzip, binary(), atom()) -> grpc_status().
 decode(Encoding, Frame, PbType) ->
-    PbBin = decode_(Frame, Encoding),
-    router_pb:decode_msg(PbBin, PbType).
+    case decode_(Frame, Encoding) of
+        {ok, PbBin, Fragment} ->
+            {ok, router_pb:decode_msg(PbBin, PbType), Fragment};
+        more -> more
+    end.
+
+
+grpc_status(RespHeaders) ->
+    GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),
+    GrpcMessage = proplists:get_value(<<"grpc-message">>, RespHeaders, <<"">>),
+    case GrpcStatus of
+        ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
+            eetcd_http2_keeper:check_leader();
+        _ -> ignore
+    end,
+    #{'grpc-status' => GrpcStatus, 'grpc-message' => GrpcMessage}.
 
 %%====================================================================
 %% Internal functions
@@ -33,7 +47,8 @@ encode_(gzip, Bin) ->
 encode_(Encoding, _) ->
     throw({error, {unknown_encoding, Encoding}}).
 
-decode_(<<0, Length:32, Encoded:Length/binary>>, _Encoding) -> Encoded;
+decode_(<<0, Length:32, Encoded:Length/binary, Rest/binary>>, _Encoding) -> {ok, Encoded, Rest};
+decode_(<<0, _Length:32, _Binary/binary>>, _Encoding) -> more;
 decode_(<<1, Length:32, Compressed:Length/binary>>, gzip) ->
     try
         zlib:gunzip(Compressed)

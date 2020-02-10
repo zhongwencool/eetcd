@@ -19,21 +19,6 @@ See [the full API documentation](https://github.com/etcd-io/etcd/blob/master/Doc
 5. Maintenance -- User, Role, Authentication, Cluster, Alarms.
 
 
-#### Retry
-Create a new etcd client for a clustered etcd setup.
-Client will connect to servers in sequence.
-On failure it will try the next server.
-When all servers have failed it will callback with error.
-If it suspects the cluster is in leader election mode it will retry up to 4 times with exp backoff.
-
-#### Automatic failover
-1. If a request fails, client will try to get cluster configuration from all given seed URIs until first valid response.
-The original request failed.
-2. Watches are a special case, they will stop watching by run callback with argument `{gun_error, WatchId, Reason}` when the leader goes down.
-After a failover reestablish your should manual watch again.
-3. Due to the tcp connection is broken, All keep alive lease will lose after failover.
-
-
 Quick Start
 -----
 #### 1. Setup
@@ -42,62 +27,107 @@ Quick Start
 {deps, [eetcd]}.
 
 ```
-Prepare configuration.
+zero configuration.
 
-```erlang
-## sys.config
-[{eetcd,
-    {etcd_cluster, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]},
-
-    {http2_transport, tcp},  %% tcp | ssl
-    %% ssl:connect_option() see all options in ssl_api.hrl such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]
-    {http2_transport_opts, []}
- }
-]
-```
 #### 2. Usage
 All etcd3 API's are defined in [gRPC services](https://github.com/etcd-io/etcd/blob/master/etcdserver/etcdserverpb/rpc.proto), which categorize remote procedure calls (RPCs) understood by the etcd server.
 A full listing of all etcd RPCs are documented in markdown in the [gRPC API listing](https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md).
 
+Firstly, open eetcd when your application starts.
+
+```erlang
+-module(my_app).
+-behaviour(application).
+-export([start/2, stop/1]).
+-define(NAME, etcd_example_conn).
+
+start(_StartType, _StartArgs) ->
+    Endpoints = ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"],    
+    {ok, _Pid} = eetcd:open(?NAME, Endpoints),
+    my_sup:start_link().
+
+stop(_State) ->
+    eetcd:close(?NAME),
+    ok.
+```
+
 ##### KV - Creates, updates, fetches, and deletes key-value pairs.
 ```erlang
-%% -include_lib("eetcd/include/eetcd.hrl").
 
 %% creates
-{ok, #'Etcd.PutResponse'{ header = #'Etcd.ResponseHeader'{}, prev_kv = undefined}}
-    = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}).
+{ok,#{header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 13803658152347727308,raft_term := 5,
+            revision := 6}}}
+    = eetcd_kv:put(?NAME, <<"key">>, <<"value">>).
 
 %% updates
-{ok, #'Etcd.PutResponse'{}}
-    = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key_exist">>, value = <<"new_value">>, ignore_value = true}).
-{error, {grpc_error, 3, <<"etcdserver: value is provided">>}}
-    = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key_no_exist">>, value = <<"new_value">>, ignore_value = true}).
+Ctx = eetcd_kv:new(?NAME),
+CtxExist = eetcd_kv:with_key(Ctx, <<"KeyExist">>),
+Ctx2 = eetcd_kv:with_value(CtxExist, <<"NewValue">>),
+Ctx3 = eetcd_kv:with_ignore_value(Ctx2),
+{ok,#{header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 16409577466894847729,raft_term := 5,
+            revision := 7}}} 
+     = eetcd_kv:put(Ctx3).
+
+CtxNoExist = eetcd_kv:with_key(Ctx, <<"KeyNoExist">>),
+Ctx5 = eetcd_kv:with_value(CtxNoExist, <<"NewValue">>),
+Ctx6 = eetcd_kv:with_ignore_value(Ctx5),
+
+{error,{grpc_error,#{'grpc-message' :=
+                         <<"etcdserver: value is provided">>,
+                     'grpc-status' := 3}}} 
+    = eetcd_kv:put(Ctx6).
 
 %% fetches
-{ok, #'Etcd.RangeResponse'{
-        header = #'Etcd.ResponseHeader'{},
-        more = false,
-        count = 1,
-        kvs = [#'mvccpb.KeyValue'{key = "key_exist", value = "value"}]
-    }}
-    = eetcd_kv:range(#'Etcd.RangeRequest'{key = "key_exist"}).
+{ok,#{count := 1,
+      header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 16409577466894847729,raft_term := 5,
+            revision := 7},
+      kvs :=
+          [#{create_revision := 7,key := <<"KeyExist">>,lease := 0,
+             mod_revision := 7,value := <<"NewValue">>,version := 1}],
+      more := false}}
+            = eetcd_kv:get(?NAME, <<"KeyExist">>).
 %% fetches all keys
-{ok, #'Etcd.RangeResponse'{
-        more = false,
-        count = Count,
-        kvs = Kvs
-    }}
-    = eetcd_kv:range(#'Etcd.RangeRequest'{key = "\0", range_end = "\0",
-          sort_target = 'KEY', sort_order = 'ASCEND', keys_only = true}).
+Ctx = eetcd_kv:new(?Name),
+Ctx1 = eetcd_kv:with_key(Ctx, "\0"),
+Ctx2 = eetcd_kv:with_range_end(Ctx1, "\0"),
+Ctx3 = eetcd_kv:with_sort(Ctx2, 'KEY', 'ASCEND'),
+{ok,#{count := 2,
+      header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 13803658152347727308,raft_term := 5,
+            revision := 7},
+      kvs :=
+          [#{create_revision := 7,key := <<"KeyExist">>,lease := 0,
+             mod_revision := 7,value := <<"NewValue">>,version := 1}
+           %% ....
+          ], more := false}}
+    = eetcd_kv:get(Ctx3).    
 
 %% deletes
-{ok, #'Etcd.DeleteRangeResponse'{
-        deleted = 1,
-        prev_kvs = [#'mvccpb.KeyValue'{key = "key", value = "value"}]
-    }} = eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = "key", prev_kv = true}).
+{ok,#{deleted := 1,
+      header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 11020526813496739906,raft_term := 5,
+            revision := 7},
+      prev_kvs := []}}
+   = eetcd_kv:delete(?NAME, "KeyExist").
 %% batch deletes
-{ok, #'Etcd.DeleteRangeResponse'{deleted = 2, prev_kvs = Kvs}}
-    = eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = "key", range_end = "\0", prev_kv = true}).
+Ctx = eetcd_kv:new(register),
+Ctx1 = eetcd_kv:with_key(Ctx, "K"),
+Ctx2 = eetcd_kv:with_prefix(Ctx1),
+{ok,#{deleted := 100,
+      header :=
+          #{cluster_id := 11360555963653019356,
+            member_id := 13803658152347727308,raft_term := 5,
+            revision := 9},
+      prev_kvs := []}}
+   = eetcd_kv:delete(Ctx2).
 
 ```
 
@@ -105,98 +135,124 @@ A full listing of all etcd RPCs are documented in markdown in the [gRPC API list
 
 ```erlang
 %% implement etcd v2 CompareAndSwap by Txn
-    {ok, #'Etcd.RangeResponse'{kvs = [#'mvccpb.KeyValue'{key = Kv1, value = Vv1, mod_revision = ModRevision}]}}
-        = eetcd_kv:range(#'Etcd.RangeRequest'{key = Kv1}),
+{ok,#{count := 1,
+      header := #{revision := Revision},
+      kvs :=
+          [#{ mod_revision := ModRev,value := Value}],
+      more := false}}    
+  = eetcd_kv:get(?NAME, Kv1),
 
-    {ok,#'Etcd.TxnResponse'{
-        succeeded = false,
-        responses = []}
-    } = eetcd_kv:txn(#'Etcd.TxnRequest'{
-        compare = [#'Etcd.Compare'{result = 'EQUAL', target = 'MOD', key = Kv1, target_union = {mod_revision, ModRevision - 1}}],
-        success = [#'Etcd.RequestOp'{request = {request_put, #'Etcd.PutRequest'{key = Kv1, value = Vv4, prev_kv = true}}}],
-        failure = []
-    }),
-    {ok,#'Etcd.TxnResponse'{
-        succeeded = true,
-        responses = [#'Etcd.ResponseOp'{
-            response = {response_put, #'Etcd.PutResponse'{prev_kv =  #'mvccpb.KeyValue'{key = Kv1, value = Vv1}}}
-        }]}}
-        = eetcd_kv:txn(#'Etcd.TxnRequest'{
-        compare = [#'Etcd.Compare'{result = 'EQUAL', target = 'MOD', key = Kv1, target_union = {mod_revision, ModRevision}}],
-        success = [#'Etcd.RequestOp'{request = {request_put, #'Etcd.PutRequest'{key = Kv1, value = Vv4, prev_kv = true}}}],
-        failure = []
-    }).
-```
-
-##### Watch - Monitors changes to keys.
-
-```erlang
-    Pid = self(),
-    Key = <<"etcd_key">>,
-    Value = <<"etcd_value">>,
-    Value1 = <<"etcd_value1">>,
-    Value2 = <<"etcd_value2">>,
-    Callback = fun(Res) -> erlang:send(Pid, Res) end,
-    {ok, WatchPid} = eetcd:watch(#'Etcd.WatchCreateRequest'{key = Key}, Callback),
-    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value}),
-    #'Etcd.WatchResponse'{created = false,
-        events = [#'mvccpb.Event'{type = 'PUT',
-            kv = #'mvccpb.KeyValue'{key = Key, value = Value}}]} = flush(),
-
-    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value1}),
-    #'Etcd.WatchResponse'{created = false,
-        events = [#'mvccpb.Event'{type = 'PUT',
-            kv = #'mvccpb.KeyValue'{key = Key, value = Value1}}]} = flush(),
-
-    eetcd_kv:delete_range(#'Etcd.DeleteRangeRequest'{key = Key}),
-    #'Etcd.WatchResponse'{created = false,
-        events = [#'mvccpb.Event'{type = 'DELETE',
-            kv = #'mvccpb.KeyValue'{key = Key, value = <<>>}}]} = flush(),
-
-    ok = eetcd:unwatch(WatchPid),
-    eetcd_kv:put(#'Etcd.PutRequest'{key = Key, value = Value2}),
-    {error, timeout} = flush().
-
-flush() -> flush(1000).
-
-flush(Time) ->
-    receive Msg  -> Msg
-    after Time -> {error, timeout}
-    end.
+Cmp = eetcd_compare:new(Kv1),
+If = eetcd_compare:mod_revision(Cmp, "=", ModRev),
+Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), <<"Change", Value/binary>>)),
+Else = [],
+eetcd_kv:txn(EtcdConnName, If, Then, Else).
 
 ```
 
 ##### Lease - Primitives for consuming client keep-alive messages.
 ```erlang
-TTL = 3,
-{ok, #'Etcd.LeaseGrantResponse'{'ID' =ID, 'TTL' = TTL}}
-    = eetcd_lease:lease_grant(#'Etcd.LeaseGrantRequest'{'TTL' = TTL}),
-ok = eetcd:lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{'ID' = ID}),
+ 1> eetcd_lease:grant(Name, TTL),
+{ok,#{'ID' => 1076765125482045706,'TTL' => 100,error => <<>>,
+      header =>
+          #{cluster_id => 11360555963653019356,
+            member_id => 16409577466894847729,raft_term => 5,
+            revision => 9}}}
+2> eetcd_lease:keep_alive(Name, 1076765125482045706).
+{ok,<0.456.0>}
 
-{ok, #'Etcd.LeaseLeasesResponse'{leases = [
-    #'Etcd.LeaseStatus'{'ID' = ID}
- ]}}
-   = eetcd_lease:lease_leases(#'Etcd.LeaseLeasesRequest'{}),
-timer:sleep(10000),
-{ok, #'Etcd.LeaseLeasesResponse'{leases = [
-    #'Etcd.LeaseStatus'{'ID' = ID}
-  ]}}
-    = eetcd_lease:lease_leases(#'Etcd.LeaseLeasesRequest'{}),
-
-{ok, #'Etcd.LeaseRevokeResponse'{}} =
-   eetcd_lease:lease_revoke(#'Etcd.LeaseRevokeRequest'{'ID' = ID}).
+3> eetcd_lease:leases(Name).
+{ok,#{header =>
+          #{cluster_id => 11360555963653019356,
+            member_id => 11020526813496739906,raft_term => 5,
+            revision => 9},
+      leases => [#{'ID' => 1076765125482045706}]}}
 
 ```
 More detailed examples see [eetcd_kv_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_kv_SUITE.erl)  [eetcd_watch_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_watch_SUITE.erl)  [eetcd_lease_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_lease_SUITE.erl).
 
-##### Authentication  
+##### Watch - Monitors changes to keys.
 ```erlang
-AuthRequest = #'Etcd.AuthenticateRequest'{name = <<"youruser">>, password = <<"yourpassword">>},
-{ok, #'Etcd.AuthenticateResponse'{token = Token}} = eetcd_auth:authenticate(AuthRequest),
-{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, Token]).
-%% or 
-{ok, PutResponse} = eetcd_kv:put(#'Etcd.PutRequest'{key = <<"key">>, value = <<"value">>}, [{<<"authorization">>, Token}]).
+-module(watch_example).
+
+-behaviour(gen_server).
+-define(NAME, watch_example_conn).
+
+-export([start_link/0]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+
+start_link() ->
+    gen_server:start({local, ?MODULE}, ?MODULE, [], []).
+
+init([]) ->
+    erlang:process_flag(trap_exit, true),
+    Registers = ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"],
+    {ok, _Pid} = eetcd:open(?NAME, Registers),
+    ets:new(?MODULE, [named_table, {read_concurrency, true}, public]),
+    {ok, Services, Revision} = get_exist_services(),
+    ets:insert(?MODULE, Services),
+    {ok, Conn} = watch_services_event(Revision),
+    {ok, Conn}.
+
+get_exist_services() ->
+    Ctx = eetcd_kv:new(?NAME),
+    Ctx1 = eetcd_kv:with_key(Ctx, <<"heartbeat:">>),
+    Ctx2 = eetcd_kv:with_prefix(Ctx1),
+    Ctx3 = eetcd_kv:with_keys_only(Ctx2),
+    {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv:get(Ctx3),
+    Services =
+        [begin
+             [_, Type, IP, Port] = binary:split(Key, [<<"|">>], [global]),
+             {{IP, Port}, Type}
+         end || #{key := Key} <- Services],
+    {ok, Services, Revision}.
+
+watch_services_event(Revision) ->
+    ReqInit = eetcd_watch:new(),
+    ReqKey = eetcd_watch:with_key(ReqInit, <<"heartbeat:">>),
+    ReqPrefix = eetcd_watch:with_prefix(ReqKey),
+    Req = eetcd_watch:with_start_revision(ReqPrefix, Revision),
+    eetcd_watch:watch(?NAME, Req).
+
+handle_info(Msg, Conn) ->
+    case eetcd_watch:watch_stream(Conn, Msg) of
+        {ok, NewConn, WatchEvent} ->
+            update_services(WatchEvent),
+            {noreply, NewConn};
+        {more, NewConn} ->
+            {noreply, NewConn};
+        {error, _Reason} ->
+            #{revision := Revision} = Conn,
+            {ok, NewConn} = watch_services_event(Revision),
+            {noreply, NewConn};
+        unknown ->
+            {noreply, Conn}
+    end.
+
+handle_call(_Request, _From, Conn) ->
+    {reply, ok, Conn}.
+
+handle_cast(_Request, Conn) ->
+    {noreply, Conn}.
+
+terminate(_Reason, _Conn) ->
+    eetcd:close(?NAME),
+    ok.
+
+code_change(_OldVsn, Conn, _Extra) ->
+    {ok, Conn}.
+
+update_services(#{events := Events}) ->
+    [begin
+         [_, Type, IP, Port] = binary:split(Key, [<<"|">>], [global]),
+         case EventType of
+             'PUT' -> ets:insert(?MODULE, {{IP, Port}, Type});
+             'DELETE' -> ets:delete(?MODULE, {IP, Port})
+         end
+     end || #{kv := #{key := Key}, type := EventType} <- Events],
+    ok.
 ```
+
 Test
 -----
 
@@ -208,14 +264,5 @@ Gen proto and client file
 ```erlang
 rebar3 etcd gen
 ``` 
-
-Architecture
------
-
-<img src="https://user-images.githubusercontent.com/3116225/45798910-356e9000-bcde-11e8-876b-eca70894de94.jpg" width="95%" height = "85%" alt="Home"></img>
-
-* `eetcd_http2_keeper` make sure http2 connection always work.
-* `eetcd_lease_server` handle all lease keep alive event, and auto renew lease.
-* `eetcd_watch_sup` start a `eetcd_watch_worker` child every `eetcd:watch/2-3`.
 
 

@@ -1,68 +1,88 @@
 -module(eetcd).
-
-%% API
--export([watch/2, watch/3, unwatch/1, get_watch_id/1]).
--export([lease_keep_alive/1]).
--export([member_list/0]).
-
 -include("eetcd.hrl").
+%% API
+-export([open/2, open/4, open/5, close/1]).
+-export([info/0]).
+-export([new/1, with_timeout/2]).
 
--type 'Grpc.Status'() ::
-?GRPC_STATUS_OK | ?GRPC_STATUS_CANCELLED |
-?GRPC_STATUS_UNKNOWN | ?GRPC_STATUS_INVALID_ARGUMENT |
-?GRPC_STATUS_DEADLINE_EXCEEDED | ?GRPC_STATUS_NOT_FOUND |
-?GRPC_STATUS_ALREADY_EXISTS | ?GRPC_STATUS_PERMISSION_DENIED |
-?GRPC_STATUS_RESOURCE_EXHAUSTED | ?GRPC_STATUS_RESOURCE_EXHAUSTED |
-?GRPC_STATUS_FAILED_PRECONDITION | ?GRPC_STATUS_ABORTED |
-?GRPC_STATUS_OUT_OF_RANGE | ?GRPC_STATUS_UNIMPLEMENTED |
-?GRPC_STATUS_INTERNAL | ?GRPC_STATUS_UNAVAILABLE |
-?GRPC_STATUS_DATA_LOSS | ?GRPC_STATUS_UNAUTHENTICATED.
+%% @doc Connects to a etcd server on TCP port
+%% Port on the host with IP address Address, such as:
+%% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
+-spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
+open(Name, Hosts) ->
+    open(Name, Hosts, [], tcp, []).
 
--export_type(['Grpc.Status'/0]).
+%% @doc Connects to a etcd server.
+-spec open(name(),
+    [string()],
+    tcp | tls | ssl,
+    [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+    {ok, pid()} | {error, any()}.
+open(Name, Hosts, Transport, TransportOpts) ->
+    open(Name, Hosts, [], Transport, TransportOpts).
 
-%% @doc Watch watches for events happening or that have happened. Both input and output are streams;
-%% the input stream is for creating watchers and the output stream sends events.
-%% One watch RPC can watch on multiple key ranges, streaming events for several watches at once.
-%% The entire event history can be watched starting from the last compaction revision.
-%% {ignore_create, true} make callback function ignore create watch event.
-%% {ignore_cancel, true} make callback function ignore cancel watch event.
--spec watch(#'Etcd.WatchCreateRequest'{}, Callback) -> {ok, pid()} when
-    Callback :: fun((#'Etcd.WatchResponse'{}) -> term()).
-watch(CreateReq, Callback) ->
-    watch(CreateReq, Callback, [{ignore_create, true}, {ignore_cancel, true}]).
+%% @doc Connects to a etcd server.
+%% ssl:connect_option() see all options in ssl_api.hrl
+%% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}].
+%%
+%% Default mode is `connect_all', it creates multiple sub-connections (one sub-connection per each endpoint).
+%% The balancing policy is round robin.
+%% For instance, in 5-node cluster, `connect_all' would require 5 TCP connections,
+%% This may consume more resources but provide more flexible load balance with better failover performance.
+%%
+%% `{mode, random}' creates only one connection to a random endpoint,
+%% it would pick one address and use it to send all client requests.
+%% The pinned address is maintained until the client connection is closed.
+%% When the client receives an error, it randomly picks another.
+%%
+%% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
+-spec open(name(),
+    [string()],
+    [{mode, connect_all|random} |{name, string()} | {password, string()}],
+    tcp | tls | ssl,
+    [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+    {ok, pid()} | {error, any()}.
+open(Name, Hosts, Options, Transport, TransportOpts) ->
+    Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
+    eetcd_conn_sup:start_child([{Name, Cluster, Options, Transport, TransportOpts}]).
 
--spec watch(#'Etcd.WatchCreateRequest'{}, Callback, Options) -> {ok, pid()} when
-    Callback :: fun((#'Etcd.WatchResponse'{}) -> term()),
-    Options :: [{ignore_create | ignore_cancel, boolean()}].
-watch(CreateReq, Callback, Options) when
-    is_record(CreateReq, 'Etcd.WatchCreateRequest'),
-    is_function(Callback, 1) ->
-    Request = #'Etcd.WatchRequest'{request_union = {create_request, CreateReq}},
-    eetcd_watch_sup:watch(Request, Callback, Options).
+%% @doc close connections with etcd server.
+-spec close(name()) -> ok | {error, eetcd_conn_unavailable}.
+close(Name) ->
+    case eetcd_conn:lookup(Name) of
+        {ok, Pid} -> eetcd_conn:close(Pid);
+        Err -> Err
+    end.
 
-%% @doc Cancel watches. No further events will be sent to the canceled watcher.
--spec unwatch(pid()) -> ok.
-unwatch(Pid) when is_pid(Pid) ->
-    eetcd_watch_sup:unwatch(Pid).
+%%% @doc etcd's overview.
+-spec info() -> any().
+info() ->
+    Leases = eetcd_lease_sup:info(),
+    Conns = eetcd_conn_sup:info(),
+    io:format("|\e[4m\e[48;2;80;80;80m Name           | Status |   IP:Port    | Conn     | Gun      |LeaseNum\e[0m|~n"),
+    [begin
+         {Name, #{etcd := Etcd, active_conns := Actives}} = Conn,
+         [begin
+              io:format("| ~-15.15s| Active |~s:~w|~p |~p |~7.7w | ~n", [Name, IP, Port, Etcd, Gun, maps:get(Gun, Leases, 0)])
+          end || {{IP, Port}, Gun, _Token} <- Actives]
+     end || Conn <- Conns],
+    io:format("|\e[4m\e[48;2;184;0;0m Name           | Status |   IP:Port    | Conn     | ReconnectSecond   \e[49m\e[0m|~n"),
+    [begin
+         {Name, #{etcd := Etcd, freeze_conns := Freezes}} = Conn,
+         [begin
+              io:format("| ~-15.15s| Freeze |~s:~w|~p |   ~-15.15w | ~n", [Name, IP, Port, Etcd, Ms / 1000])
+          end || {{IP, Port}, Ms} <- Freezes]
+     end || Conn <- Conns],
+    ok.
 
-%% @doc get watch id for other watchers
-%% If watch_id is provided and non-zero, it will be assigned to this watcher.
-%% Since creating a watcher in etcd is not a synchronous operation,
-%% this can be used ensure that ordering is correct when creating multiple watchers on the same stream.
-%% Creating a watcher with an ID already in use on the stream will cause an error to be returned.
--spec get_watch_id(pid()) -> non_neg_integer().
-get_watch_id(Pid) when is_pid(Pid) ->
-    gen_server:call(Pid, watch_id).
+%%% @doc Create context for request.
+-spec new(atom()|reference()) -> context().
+new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) -> #{eetcd_conn_name => ConnName};
+new(Context) when is_map(Context) -> Context.
 
-%% @doc Keeps the lease alive by streaming keep alive requests from the client to the server and
-%% streaming keep alive responses from the server to the client.
--spec lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{}|integer()) -> ok.
-lease_keep_alive(Id) when is_integer(Id) ->
-    lease_keep_alive(#'Etcd.LeaseKeepAliveRequest'{'ID' = Id});
-lease_keep_alive(Request) when is_record(Request, 'Etcd.LeaseKeepAliveRequest') ->
-    eetcd_lease_server:keep_alive(Request).
-
-%% @doc members is a list of all members associated with the cluster.
--spec member_list() -> {ok, #'Etcd.MemberListResponse'{}} | {error, term()}.
-member_list() ->
-    eetcd_cluster:member_list(#'Etcd.MemberListRequest'{}).
+%% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
+%% or the atom infinity to wait indefinitely. Default value is 5000.
+%% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
+-spec with_timeout(context(), pos_integer()) -> context().
+with_timeout(Context, Timeout) when is_integer(Timeout) ->
+    maps:put(eetcd_reply_timeout, Timeout, Context).

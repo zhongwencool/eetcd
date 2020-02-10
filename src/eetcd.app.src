@@ -1,18 +1,11 @@
 {application, eetcd,
     [
         {description, "ETCD V3 client"},
-        {vsn, "0.2.4"},
-        {registered, [eetcd_sup, eetcd_http2_client, eetcd_lease_server, eetcd_watch_sup]},
+        {vsn, "0.3.0"},
+        {registered, [eetcd_sup, eetcd_conn_sup, eetcd_lease_sup]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},
-        {env, [
-            {etcd_cluster, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]},
-            
-            {http2_transport, tcp},  %% tcp | tls | ssl
-            %% ssl:connect_option() see all options in ssl_api.hrl
-            %% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]
-            {http2_transport_opts, []}]},
-        
+        {env, []},
         {modules, []},
         
         {licenses, ["Apache 2.0"]},

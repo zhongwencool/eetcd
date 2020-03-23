@@ -381,12 +381,11 @@ get_prefix_range_end(Key) ->
         [] -> ?UNBOUND_RANGE_END;
         List0 when is_list(List0) ->
             Ord = lists:last(List0),
-            case Ord > 255 of
-                true  -> ?UNBOUND_RANGE_END;
-                false ->
-                    NewOrd = Ord + 1,
-                    lists:droplast(List0) ++ [NewOrd]
-            end
+            NewOrd = case Ord > 255 of
+                true  -> Ord;
+                false -> Ord + 1
+            end,
+            lists:droplast(List0) ++ [NewOrd]
     end;
 %% fall back option
 get_prefix_range_end(_) ->

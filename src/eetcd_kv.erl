@@ -380,12 +380,16 @@ get_prefix_range_end(Key) ->
     case eetcd_data_coercion:to_list(Key) of
         [] -> ?UNBOUND_RANGE_END;
         List0 when is_list(List0) ->
-            Ord = lists:last(List0),
-            NewOrd = case Ord > 255 of
-                true  -> Ord;
-                false -> Ord + 1
-            end,
-            lists:droplast(List0) ++ [NewOrd]
+            %% find last character < 0xff (255)
+            {Prefix, Suffix} = lists:splitwith(fun(Ch) -> Ch < 255 end, List0),
+            case Prefix of
+                %% keys where all characters >= 0xff are returned as is
+                []     -> Key;
+                Prefix ->
+                    %% advance the last character
+                    Ord = lists:last(Prefix),
+                    lists:droplast(Prefix) ++ [Ord + 1] ++ Suffix
+            end
     end;
 %% fall back option
 get_prefix_range_end(_) ->

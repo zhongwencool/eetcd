@@ -4,9 +4,9 @@
 
 -export([put/1, range/1, delete_range/1, txn/1, compact/1]).
 
--define(KEY(K), <<"eetcd_kev", (list_to_binary(K))/binary>>).
+-define(KEY(K), <<"eetcd_key_", (list_to_binary(K))/binary>>).
 
--define(VALUE(V), <<"eetcd_value", (list_to_binary(V))/binary>>).
+-define(VALUE(V), <<"eetcd_value_", (list_to_binary(V))/binary>>).
 
 -define(NAME(C), proplists:get_value(name, C)).
 

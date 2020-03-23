@@ -1,8 +1,11 @@
 -module(eetcd_kv_SUITE).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1, init_per_testcase/2, end_per_testcase/2]).
 
--export([put/1, range/1, delete_range/1, txn/1, compact/1]).
+-compile(export_all).
+-compile(nowarn_export_all).
 
 -define(KEY(K), <<"eetcd_key_", (list_to_binary(K))/binary>>).
 
@@ -15,7 +18,13 @@ suite() ->
 
 all() ->
     [
-        put, range, delete_range, txn, compact
+        put,
+        range,
+        delete_range,
+        txn,
+        compact,
+        prefix,
+        prefix_range_end
     ].
 
 groups() ->
@@ -23,10 +32,19 @@ groups() ->
 
 init_per_suite(_Config) ->
     Kvs = [
+        {?KEY("a1"), ?VALUE("a1")},
+        {?KEY("a2"), ?VALUE("a2")},
+        {?KEY("a3"), ?VALUE("a3")},
+        {?KEY("a4"), ?VALUE("a4")},
+
         {?KEY("v1"), ?VALUE("v1")},
         {?KEY("v2"), ?VALUE("v2")},
         {?KEY("v3"), ?VALUE("v3")},
-        {?KEY("v4"), ?VALUE("v4")}
+        {?KEY("v4"), ?VALUE("v4")},
+
+        {?KEY("z1"), ?VALUE("z1")},
+        {?KEY("z2"), ?VALUE("z2")},
+        {?KEY("z3"), ?VALUE("z3")}
     ],
     application:ensure_all_started(eetcd),
     {ok, _Pid} = eetcd:open(eetcd_kv_conn, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
@@ -313,9 +331,72 @@ compact(Config) ->
         = eetcd_kv:get(eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), Revision - 1)),
     ok.
 
+prefix(Config) ->
+    KVs = get_kvs(Config),
+    %% seed all keys
+    lists:foreach(fun({Key, Val}) ->
+                    Ctx = eetcd_kv:new(?NAME(Config)),
+                    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Val),
+                    eetcd_kv:put(Ctx1)
+                  end, KVs),
+    %% find keys prefixed with an "a"
+    Ctx1 = eetcd_kv:new(?NAME(Config)),
+    {ok, #{header := #{}, more := false, count := 4, kvs := Results1}}
+        = eetcd_kv:get(eetcd_kv:with_prefix(eetcd_kv:with_key(Ctx1, ?KEY("a")))),
+
+    %% we expect results a1 through a4 but not v2 or z3
+    ?assert(includes_key(?KEY("a1"), Results1)),
+    ?assert(includes_key(?KEY("a2"), Results1)),
+    ?assert(includes_key(?KEY("a3"), Results1)),
+    ?assert(includes_key(?KEY("a4"), Results1)),
+    ?assertNot(includes_key(?KEY("a5"), Results1)),
+    ?assertNot(includes_key(?KEY("b1"), Results1)),
+    ?assertNot(includes_key(?KEY("r8"), Results1)),
+    ?assertNot(includes_key(?KEY("v2"), Results1)),
+    ?assertNot(includes_key(?KEY("z3"), Results1)),
+
+    {ok, #{header := #{}, more := false, count := 3, kvs := Results2}}
+        = eetcd_kv:get(eetcd_kv:with_prefix(eetcd_kv:with_key(Ctx1, ?KEY("z")))),
+
+    ?assertNot(includes_key(?KEY("a1"), Results2)),
+    ?assertNot(includes_key(?KEY("a2"), Results2)),
+    ?assertNot(includes_key(?KEY("a3"), Results2)),
+    ?assertNot(includes_key(?KEY("a4"), Results2)),
+    ?assertNot(includes_key(?KEY("a5"), Results2)),
+    ?assertNot(includes_key(?KEY("b1"), Results2)),
+    ?assertNot(includes_key(?KEY("r8"), Results2)),
+    ?assertNot(includes_key(?KEY("v2"), Results2)),
+
+    ?assert(includes_key(?KEY("z1"), Results2)),
+    ?assert(includes_key(?KEY("z2"), Results2)),
+    ?assert(includes_key(?KEY("z3"), Results2)),
+
+    ok.
+
+prefix_range_end(_) ->
+    %% {Input, Output}
+    Pairs = [
+        {"a",    "b"},
+        {"b1",   "b2"},
+        {"etcd", "etce"},
+        {"{",    "|"},
+        {"xyz",  "xy{"},
+        {"11",    "12"},
+        {"19",    "1:"}
+    ],
+    [begin
+         ?assertEqual(Output, eetcd_kv:get_prefix_range_end(Input))
+     end || {Input, Output} <- Pairs].
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
 get_kvs(Config) ->
     {kvs, Kvs} = lists:keyfind(kvs, 1, Config),
     Kvs.
+
+includes_key(KeyTarget, KVs) ->
+    lists:any(fun ({Key, _Val})   -> Key =:= KeyTarget;
+                  (#{key := Key}) -> Key =:= KeyTarget
+              end, KVs).

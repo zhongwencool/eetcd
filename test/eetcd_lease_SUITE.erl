@@ -66,7 +66,7 @@ lease_keepalive_once(_Config) ->
     [#{'ID' := ID} | _] = Leases1,
     timer:sleep(900),
     {ok, _Pid} = eetcd_lease:keep_alive_once(?Name, ID),
-    timer:sleep(NewTTL * 1000 + 200),
+    timer:sleep(NewTTL * 1000 - 300),
     Leases2 = list_leases(?Name),
     ?assert(lists:any(fun(#{'ID' := Val}) -> Val =:= ID end, Leases2)),
     timer:sleep(2100),

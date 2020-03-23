@@ -390,7 +390,4 @@ get_prefix_range_end(Key) ->
                     Ord = lists:last(Prefix),
                     lists:droplast(Prefix) ++ [Ord + 1] ++ Suffix
             end
-    end;
-%% fall back option
-get_prefix_range_end(_) ->
-    ?UNBOUND_RANGE_END.
+    end.

@@ -19,6 +19,8 @@
     with_first_rev/1, with_last_rev/1, with_first_key/1, with_last_key/1,
     with_top/3, with_prev_kv/1, with_physical/1
 ]).
+%% for tests
+-export([get_prefix_range_end/1]).
 
 %%% @doc Create context for request.
 -spec new(atom()|reference()) -> context().
@@ -43,11 +45,11 @@ with_value(Context, Key) ->
     maps:put(value, Key, Context).
 
 %% @doc Enables `get', `delete' requests to operate
-%% on the keys with matching prefix. For example, `get("foo", with_prefix())'
+%% on the keys with matching prefix. For example, `get(with_prefix(with_key(Ctx, "foo"))'
 %% can return 'foo1', 'foo2', and so on.
 -spec with_prefix(context()) -> context().
-with_prefix(Context) ->
-    with_range_end(Context, "\0").
+with_prefix(#{key := Key} = Context) ->
+    with_range_end(Context, get_prefix_range_end(Key)).
 
 %%  @doc Specifies the range of `get', `delete' requests
 %% to be equal or greater than the key in the argument.
@@ -275,7 +277,7 @@ get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 get(Context, Key) ->
     C0 = new(Context),
     C1 = with_key(C0, Key),
-    eetcd_kv_gen:range(C1).
+    eetcd_kv_gen:range(C1). 
 
 %%% @doc Delete deletes a key, or optionally using eetcd_kv:with_range(End), [Key, End).
 %%% <dl>
@@ -366,3 +368,26 @@ txn(Context, If, Then, Else) ->
     Failure = case is_list(Else) of true -> Else; false -> [Else] end,
     Txn = maps:merge(#{compare => Compare, success => Success, failure => Failure}, C1),
     eetcd_kv_gen:txn(Txn).
+
+
+%%
+%% Implementation
+%%
+
+-define(UNBOUND_RANGE_END, "\0").
+
+get_prefix_range_end(Key) ->
+    case eetcd_data_coercion:to_list(Key) of
+        [] -> ?UNBOUND_RANGE_END;
+        List0 when is_list(List0) ->
+            %% find last character < 0xff (255)
+            {Prefix, Suffix} = lists:splitwith(fun(Ch) -> Ch < 255 end, List0),
+            case Prefix of
+                %% keys where all characters >= 0xff are returned as is
+                []     -> Key;
+                Prefix ->
+                    %% advance the last character
+                    Ord = lists:last(Prefix),
+                    lists:droplast(Prefix) ++ [Ord + 1] ++ Suffix
+            end
+    end.

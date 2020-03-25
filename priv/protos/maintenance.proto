@@ -1,0 +1,264 @@
+syntax = "proto3";
+package eetcd;
+
+import "gogo.proto";
+import "essentials.proto";
+
+message SnapshotRequest {
+}
+
+message SnapshotResponse {
+  // header has the current key-value store information. The first header in the snapshot
+  // stream indicates the point in time of the snapshot.
+  ResponseHeader header = 1;
+
+  // remaining_bytes is the number of blob bytes to be sent after this message
+  uint64 remaining_bytes = 2;
+
+  // blob contains the next chunk of the snapshot in the snapshot stream.
+  bytes blob = 3;
+}
+
+message Member {
+  // ID is the member ID for this member.
+  uint64 ID = 1;
+  // name is the human-readable name of the member. If the member is not started, the name will be an empty string.
+  string name = 2;
+  // peerURLs is the list of URLs the member exposes to the cluster for communication.
+  repeated string peerURLs = 3;
+  // clientURLs is the list of URLs the member exposes to clients for communication. If the member is not started, clientURLs will be empty.
+  repeated string clientURLs = 4;
+  // isLearner indicates if the member is raft learner.
+  bool isLearner = 5;
+}
+
+message MemberAddRequest {
+  // peerURLs is the list of URLs the added member will use to communicate with the cluster.
+  repeated string peerURLs = 1;
+  // isLearner indicates if the added member is raft learner.
+  bool isLearner = 2;
+}
+
+message MemberAddResponse {
+  ResponseHeader header = 1;
+  // member is the member information for the added member.
+  Member member = 2;
+  // members is a list of all members after adding the new member.
+  repeated Member members = 3;
+}
+
+message MemberRemoveRequest {
+  // ID is the member ID of the member to remove.
+  uint64 ID = 1;
+}
+
+message MemberRemoveResponse {
+  ResponseHeader header = 1;
+  // members is a list of all members after removing the member.
+  repeated Member members = 2;
+}
+
+message MemberUpdateRequest {
+  // ID is the member ID of the member to update.
+  uint64 ID = 1;
+  // peerURLs is the new list of URLs the member will use to communicate with the cluster.
+  repeated string peerURLs = 2;
+}
+
+message MemberUpdateResponse{
+  ResponseHeader header = 1;
+  // members is a list of all members after updating the member.
+  repeated Member members = 2;
+}
+
+message MemberListRequest {
+}
+
+message MemberListResponse {
+  ResponseHeader header = 1;
+  // members is a list of all members associated with the cluster.
+  repeated Member members = 2;
+}
+
+message MemberPromoteRequest {
+  // ID is the member ID of the member to promote.
+  uint64 ID = 1;
+}
+
+message MemberPromoteResponse {
+  ResponseHeader header = 1;
+  // members is a list of all members after promoting the member.
+  repeated Member members = 2;
+}
+
+message DefragmentRequest {
+}
+
+message DefragmentResponse {
+  ResponseHeader header = 1;
+}
+
+message MoveLeaderRequest {
+  // targetID is the node ID for the new leader.
+  uint64 targetID = 1;
+}
+
+message MoveLeaderResponse {
+  ResponseHeader header = 1;
+}
+
+enum AlarmType {
+  NONE = 0; // default, used to query if any alarm is active
+  NOSPACE = 1; // space quota is exhausted
+  CORRUPT = 2; // kv store corruption detected
+}
+
+message AlarmRequest {
+  enum AlarmAction {
+    GET = 0;
+    ACTIVATE = 1;
+    DEACTIVATE = 2;
+  }
+  // action is the kind of alarm request to issue. The action
+  // may GET alarm statuses, ACTIVATE an alarm, or DEACTIVATE a
+  // raised alarm.
+  AlarmAction action = 1;
+  // memberID is the ID of the member associated with the alarm. If memberID is 0, the
+  // alarm request covers all members.
+  uint64 memberID = 2;
+  // alarm is the type of alarm to consider for this request.
+  AlarmType alarm = 3;
+}
+
+message AlarmMember {
+  // memberID is the ID of the member associated with the raised alarm.
+  uint64 memberID = 1;
+  // alarm is the type of alarm which has been raised.
+  AlarmType alarm = 2;
+}
+
+message AlarmResponse {
+  ResponseHeader header = 1;
+  // alarms is a list of alarms associated with the alarm request.
+  repeated AlarmMember alarms = 2;
+}
+
+message StatusRequest {
+}
+
+message StatusResponse {
+  ResponseHeader header = 1;
+  // version is the cluster protocol version used by the responding member.
+  string version = 2;
+  // dbSize is the size of the backend database physically allocated, in bytes, of the responding member.
+  int64 dbSize = 3;
+  // leader is the member ID which the responding member believes is the current leader.
+  uint64 leader = 4;
+  // raftIndex is the current raft committed index of the responding member.
+  uint64 raftIndex = 5;
+  // raftTerm is the current raft term of the responding member.
+  uint64 raftTerm = 6;
+  // raftAppliedIndex is the current raft applied index of the responding member.
+  uint64 raftAppliedIndex = 7;
+  // errors contains alarm/health information and status.
+  repeated string errors = 8;
+  // dbSizeInUse is the size of the backend database logically in use, in bytes, of the responding member.
+  int64 dbSizeInUse = 9;
+  // isLearner indicates if the member is raft learner.
+  bool isLearner = 10;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+    SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
+  }
+  ServingStatus status = 1;
+}
+
+service Cluster {
+  // MemberAdd adds a member into the cluster.
+  rpc MemberAdd(MemberAddRequest) returns (MemberAddResponse) {
+  }
+
+  // MemberRemove removes an existing member from the cluster.
+  rpc MemberRemove(MemberRemoveRequest) returns (MemberRemoveResponse) {
+  }
+
+  // MemberUpdate updates the member configuration.
+  rpc MemberUpdate(MemberUpdateRequest) returns (MemberUpdateResponse) {
+  }
+
+  // MemberList lists all the members in the cluster.
+  rpc MemberList(MemberListRequest) returns (MemberListResponse) {
+  }
+
+  // MemberPromote promotes a member from raft learner (non-voting) to raft voting member.
+  rpc MemberPromote(MemberPromoteRequest) returns (MemberPromoteResponse) {
+  }
+}
+
+service Maintenance {
+  // Alarm activates, deactivates, and queries alarms regarding cluster health.
+  rpc Alarm(AlarmRequest) returns (AlarmResponse) {
+  }
+
+  // Status gets the status of the member.
+  rpc Status(StatusRequest) returns (StatusResponse) {
+  }
+
+  // Defragment defragments a member's backend database to recover storage space.
+  rpc Defragment(DefragmentRequest) returns (DefragmentResponse) {
+  }
+
+  // Hash computes the hash of whole backend keyspace,
+  // including key, lease, and other buckets in storage.
+  // This is designed for testing ONLY!
+  // Do not rely on this in production with ongoing transactions,
+  // since Hash operation does not hold MVCC locks.
+  // Use "HashKV" API instead for "key" bucket consistency checks.
+  rpc Hash(HashRequest) returns (HashResponse) {
+  }
+
+  // HashKV computes the hash of all MVCC keys up to a given revision.
+  // It only iterates "key" bucket in backend storage.
+  rpc HashKV(HashKVRequest) returns (HashKVResponse) {
+  }
+
+  // Snapshot sends a snapshot of the entire backend from a member over a stream to a client.
+  rpc Snapshot(SnapshotRequest) returns (stream SnapshotResponse) {
+  }
+
+  // MoveLeader requests current leader node to transfer its leadership to transferee.
+  rpc MoveLeader(MoveLeaderRequest) returns (MoveLeaderResponse) {
+  }
+}
+
+service Health {
+  // If the requested service is unknown, the call will fail with status
+  // NOT_FOUND.
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // Performs a watch for the serving status of the requested service.
+  // The server will immediately send back a message indicating the current
+  // serving status.  It will then subsequently send a new message whenever
+  // the service's serving status changes.
+  //
+  // If the requested service is unknown when the call is received, the
+  // server will send a message setting the serving status to
+  // SERVICE_UNKNOWN but will *not* terminate the call.  If at some
+  // future point, the serving status of the service becomes known, the
+  // server will send a new message with the service's serving status.
+  //
+  // If the call terminates with status UNIMPLEMENTED, then clients
+  // should assume this method is not supported and should not retry the
+  // call.  If the call terminates with any other status (including OK),
+  // clients should retry the call with appropriate exponential backoff.
+  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
+}

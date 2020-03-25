@@ -103,7 +103,7 @@ init({Name, Hosts, Options, Transport, TransportOpts}) ->
             connect_all(Hosts, Name, GunOpts, Data);
         random ->
             Length = erlang:length(Hosts),
-            Data1 = Data#{endpoints => Hosts, mode => random},
+            Data1 = Data#{endpoints => shuffle(Hosts), mode => random},
             Index = rand:uniform(Length),
             connect_one(Index, 2 * Length, Data1, Length)
     end.
@@ -455,3 +455,8 @@ put_in_authenticate(Data, Options) ->
             Auth = #{name => UserName, password => Password},
             Data#{authenticate => Auth}
     end.
+
+shuffle(List) ->
+    Disorders = [begin {rand:uniform(), K} end||K <-List],
+    [begin K end||{_, K} <- lists:keysort(1, Disorders)].
+    

@@ -4,6 +4,7 @@
 -export([open/2, open/4, open/5, close/1]).
 -export([info/0]).
 -export([new/1, with_timeout/2]).
+-export([get_prefix_range_end/1]).
 
 %% @doc Connects to a etcd server on TCP port
 %% Port on the host with IP address Address, such as:
@@ -86,3 +87,21 @@ new(Context) when is_map(Context) -> Context.
 -spec with_timeout(context(), pos_integer()) -> context().
 with_timeout(Context, Timeout) when is_integer(Timeout) ->
     maps:put(eetcd_reply_timeout, Timeout, Context).
+
+-define(UNBOUND_RANGE_END, "\0").
+
+get_prefix_range_end(Key) ->
+    case eetcd_data_coercion:to_list(Key) of
+        [] -> ?UNBOUND_RANGE_END;
+        List0 when is_list(List0) ->
+            %% find last character < 0xff (255)
+            {Prefix, Suffix} = lists:splitwith(fun(Ch) -> Ch < 255 end, List0),
+            case Prefix of
+                %% keys where all characters >= 0xff are returned as is
+                []     -> Key;
+                Prefix ->
+                    %% advance the last character
+                    Ord = lists:last(Prefix),
+                    lists:droplast(Prefix) ++ [Ord + 1] ++ Suffix
+            end
+    end.

@@ -118,8 +118,8 @@ with_key(Context, Key) ->
 %% on the keys with matching prefix. For example, `watch("foo", with_prefix())'
 %% can return 'foo1', 'foo2', and so on.
 -spec with_prefix(context()) -> context().
-with_prefix(Context) ->
-    with_range_end(Context, "\0").
+with_prefix(#{key := Key} = Context) ->
+    with_range_end(Context, eetcd:get_prefix_range_end(Key)).
 
 %%  @doc Specifies the range of `get', `delete' requests
 %% to be equal or greater than the key in the argument.

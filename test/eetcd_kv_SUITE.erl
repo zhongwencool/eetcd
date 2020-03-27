@@ -385,7 +385,7 @@ prefix_range_end(_) ->
         {"19",    "1:"}
     ],
     [begin
-         ?assertEqual(Output, eetcd_kv:get_prefix_range_end(Input))
+         ?assertEqual(Output, eetcd:get_prefix_range_end(Input))
      end || {Input, Output} <- Pairs].
 
 %%%===================================================================

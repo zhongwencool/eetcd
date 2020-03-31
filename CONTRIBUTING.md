@@ -1,6 +1,6 @@
 ## Contribution Workflow
 
-This process uses a pretty standard contribution workflow:
+This project uses a pretty standard contribution workflow:
 
 1. Fork the repository
 2. Create a branch with your changes

@@ -1,7 +1,7 @@
 -module(eetcd_lock).
 -include("eetcd.hrl").
 
--export([new/1, with_timeout/2, with_name/2, with_lease_id/2]).
+-export([new/1, with_timeout/2, with_name/2, with_lease_id/2, with_key/2]).
 -export([lock/1, lock/3, unlock/2]).
 
 

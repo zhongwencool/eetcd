@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%% @doc Behaviour to implement for eectd Etcd.Watch.
+%% @doc Behaviour to implement for eectd Etcd.Watch
 %% @private
 %%  All detail documents please visit https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-03-26T17:32:58+00:00 and should not be modified manually
+%% This module was generated on 2020-03-31T00:21:41+00:00 and should not be modified manually
 
 -module(eetcd_watch_gen).
 

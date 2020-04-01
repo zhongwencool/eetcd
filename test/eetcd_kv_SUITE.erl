@@ -125,11 +125,11 @@ range(Config) ->
     %% When limit is set to 0, it is treated as no limit.
     CLimit1 = eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3),
     CLimit2 = eetcd_kv:with_top(CLimit1, 'MOD', 'ASCEND'),
-    {ok, #{header := #{}, more := true, count := 2, kvs := [#{key := Kv1, mod_revision := Mod}]}}
+    {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1, mod_revision := Mod}]}}
         = eetcd_kv:get(CLimit2),
     
-    {ok, #{header := #{}, more := false, count := 2, kvs := [#{key := Kv2}]}}
-        = eetcd_kv:get(eetcd_kv:with_min_mod_rev(CLimit2, Mod + 1)),
+    {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1}]}}
+        = eetcd_kv:get(eetcd_kv:with_min_mod_rev(CLimit2, Mod)),
     
     %% revision is the point-in-time of the key-value store to use for the range.
     %% If revision is less or equal to zero, the range is over the newest key-value store.

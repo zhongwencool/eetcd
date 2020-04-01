@@ -27,6 +27,7 @@ test() ->
     R1 = eetcd_kv:get(test, "test"),
     io:format("~p~n", [R1]),
     eetcd_lease:keep_alive(test, LeaseID).
+
 %%% @doc Create context for request.
 -spec new(atom()|reference()) -> context().
 new(Context) -> eetcd:new(Context).
@@ -37,7 +38,7 @@ new(Context) -> eetcd:new(Context).
 -spec with_timeout(context(), pos_integer()) -> context().
 with_timeout(Context, Timeout) -> eetcd:with_timeout(Context, Timeout).
 
-%% @doc Grant creates a new lease.
+%% @doc Grant creates a new lease with the provided TTL in seconds.
 -spec grant(context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 grant(Context, TTL) ->

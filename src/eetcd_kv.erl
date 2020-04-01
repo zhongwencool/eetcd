@@ -159,7 +159,7 @@ with_last_key(Context) ->
     'KEY' | 'VERSION' | 'VALUE' | 'CREATE' |'MOD',
     'NONE' | 'ASCEND' | 'DESCEND') -> context().
 with_top(Context, SortTarget, SortOrder) ->
-    C1 = with_sort(Context, SortTarget, SortOrder),
+    C1 = with_prefix(with_sort(Context, SortTarget, SortOrder)),
     with_limit(C1, 1).
 
 %% @doc Get the previous key-value pair before the event happens.

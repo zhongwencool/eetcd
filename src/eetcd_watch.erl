@@ -155,8 +155,8 @@ watch(Name, CreateReq) ->
     {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
-    MRef = erlang:monitor(process, self()),
     {ok, Gun, StreamRef} = eetcd_watch_gen:watch(Name),
+    MRef = erlang:monitor(process, Gun),
     eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {response, nofin, 200, _Headers} ->

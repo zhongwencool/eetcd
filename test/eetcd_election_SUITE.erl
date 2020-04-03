@@ -7,7 +7,10 @@
     campaign/1,
     proclaim/1,
     leader/1,
-    resign/1
+    resign/1,
+    resign_no_leader/1,
+    observe_with_no_leader/1,
+    observe_with_leader/1
 
 ]).
 
@@ -21,7 +24,10 @@ all() ->
         campaign,
         proclaim,
         leader,
-        resign
+        resign,
+        resign_no_leader,
+        observe_with_leader,
+        observe_with_no_leader
     ].
 
 groups() ->
@@ -82,7 +88,7 @@ leader(_Config) ->
     ?assertMatch({ok, #{kv := #{lease := LeaseID, value := LeaderValue}}}, eetcd_election:leader(?Name, LeaderPfx)),
     ok.
 
-resign(_Config) ->
+resign_no_leader(_Config) ->
     LeaseID = new_lease(10),
     LeaderPfx = <<"eetcd_leader_pfx">>,
     LeaderValue = <<"eetcd_leader_init">>,
@@ -94,6 +100,67 @@ resign(_Config) ->
             'grpc-status' := 2}}}, eetcd_election:leader(?Name, LeaderPfx)),
     ok.
 
+resign(_Config) ->
+    LeaseID1 = new_lease(10),
+    LeaseID2 = new_lease(10),
+    LeaderPfx = <<"eetcd_leader_pfx">>,
+    LeaderValue = <<"eetcd_leader_init">>,
+    LeaderResign = <<"eetcd_leader_resign">>,
+    {ok, #{leader := Leader}} = eetcd_election:campaign(?Name, LeaderPfx, LeaseID1, LeaderValue),
+    {error, timeout} = eetcd_election:campaign(?Name, LeaderPfx, LeaseID2, LeaderResign),
+    ?assertMatch({ok, #{kv := #{lease := LeaseID1, value := LeaderValue}}}, eetcd_election:leader(?Name, LeaderPfx)),
+    ?assertMatch({ok, _}, eetcd_election:resign(?Name, Leader)),
+    ?assertMatch({ok, #{kv := #{value := LeaderResign}}}, eetcd_election:leader(?Name, LeaderPfx)),
+    ok.
+
+observe_with_leader(_Config) ->
+    LeaseID = new_lease(10),
+    LeaderKey = <<"LeaderKey">>,
+    ?assertMatch({error, {grpc_error,
+        #{'grpc-message' := <<"election: no leader">>,
+            'grpc-status' := 2}}}, eetcd_election:leader(?Name, LeaderKey)),
+    {ok, #{leader := Leader}} = eetcd_election:campaign(?Name, LeaderKey, LeaseID, <<"Leader-V1">>),
+    ?assertMatch(#{lease := LeaseID, name := LeaderKey}, Leader),
+    {ok, OCtx} = eetcd_election:observe(?Name, LeaderKey, 3000),
+    ?assertMatch(#{leader := #{lease := LeaseID, value := <<"Leader-V1">>}}, OCtx),
+    {ok, #{header := #{revision := _Revision}}} = eetcd_election:proclaim(?Name, Leader, <<"Leader-V2">>),
+    receive Msg1 ->
+        {ok, OCtx1} = eetcd_election:observe_stream(OCtx, Msg1),
+        ?assertMatch(#{leader := #{lease := LeaseID, value := <<"Leader-V2">>}}, OCtx1),
+        {ok, _} = eetcd_election:proclaim(?Name, Leader, <<"Leader-V3">>),
+        receive Msg2 ->
+            {ok, OCtx2} = eetcd_election:observe_stream(OCtx1, Msg2),
+            ?assertMatch(#{leader := #{lease := LeaseID, value := <<"Leader-V3">>}}, OCtx2),
+            ok
+        after 1000 -> throw({error, proclaim2_not_working})
+        end
+    after 1000 -> throw({error, proclaim1_not_working})
+    end,
+    ok.
+
+observe_with_no_leader(_Config) ->
+    LeaseID1 = new_lease(10),
+    LeaseID2 = new_lease(10),
+    LeaderKey = <<"LeaderKey">>,
+    {ok, OCtx} = eetcd_election:observe(?Name, LeaderKey, 2000),
+    ?assertMatch(#{leader := 'election_no_leader'}, OCtx),
+    {ok, #{leader := Leader}} = eetcd_election:campaign(?Name, LeaderKey, LeaseID1, <<"Leader-V1">>),
+    {error, timeout} = eetcd_election:campaign(?Name, LeaderKey, LeaseID2, <<"Leader-V2">>),
+    ?assertMatch({ok, #{kv := #{lease := LeaseID1, value := <<"Leader-V1">>}}},
+        eetcd_election:leader(?Name, LeaderKey)),
+    receive Msg ->
+        {ok, OCtx1} = eetcd_election:observe_stream(OCtx, Msg),
+        ?assertMatch(#{leader := #{lease := LeaseID1, value := <<"Leader-V1">>}}, OCtx1),
+        {ok, #{header := #{revision := _Revision}}} = eetcd_election:resign(?Name, Leader),
+        receive Msg1 ->
+            {ok, OCtx2} = eetcd_election:observe_stream(OCtx1, Msg1),
+            ?assertMatch(#{leader := #{lease := LeaseID2, value := <<"Leader-V2">>}}, OCtx2)
+        after 1000 -> throw({error, resign_not_working})
+        end
+    after 1000 -> throw({error, observe_with_leader_not_working})
+    end,
+    ok.
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
@@ -101,8 +168,8 @@ resign(_Config) ->
 revoke_all_leases(?Name) ->
     {ok, #{leases := Leases}} = eetcd_lease:leases(?Name),
     lists:foreach(fun(#{'ID' := ID}) ->
-      eetcd_lease:revoke(?Name, ID)
-    end, Leases).
+        eetcd_lease:revoke(?Name, ID)
+                  end, Leases).
 
 new_lease(Sec) ->
     {ok, #{'ID' := Id}} = eetcd_lease:grant(?Name, Sec),

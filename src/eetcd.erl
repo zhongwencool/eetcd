@@ -85,7 +85,7 @@ new(Context) when is_map(Context) -> Context.
 %% or the atom infinity to wait indefinitely. Default value is 5000.
 %% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
 -spec with_timeout(context(), pos_integer()) -> context().
-with_timeout(Context, Timeout) when is_integer(Timeout) ->
+with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
     maps:put(eetcd_reply_timeout, Timeout, Context).
 
 -define(UNBOUND_RANGE_END, "\0").

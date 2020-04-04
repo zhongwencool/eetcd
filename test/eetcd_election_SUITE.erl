@@ -5,11 +5,11 @@
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1, init_per_testcase/2, end_per_testcase/2]).
 -export([
     campaign/1,
+    campaign_async/1,
     proclaim/1,
     leader/1,
     resign/1,
     resign_no_leader/1,
-    observe_with_no_leader/1,
     observe_with_leader/1
 
 ]).
@@ -22,12 +22,12 @@ suite() ->
 all() ->
     [
         campaign,
+        campaign_async,
         proclaim,
         leader,
         resign,
         resign_no_leader,
-        observe_with_leader,
-        observe_with_no_leader
+        observe_with_leader
     ].
 
 groups() ->
@@ -138,27 +138,26 @@ observe_with_leader(_Config) ->
     end,
     ok.
 
-observe_with_no_leader(_Config) ->
-    LeaseID1 = new_lease(10),
-    LeaseID2 = new_lease(10),
-    LeaderKey = <<"LeaderKey">>,
-    {ok, OCtx} = eetcd_election:observe(?Name, LeaderKey, 2000),
-    ?assertMatch(#{leader := 'election_no_leader'}, OCtx),
-    {ok, #{leader := Leader}} = eetcd_election:campaign(?Name, LeaderKey, LeaseID1, <<"Leader-V1">>),
-    {error, timeout} = eetcd_election:campaign(?Name, LeaderKey, LeaseID2, <<"Leader-V2">>),
-    ?assertMatch({ok, #{kv := #{lease := LeaseID1, value := <<"Leader-V1">>}}},
-        eetcd_election:leader(?Name, LeaderKey)),
-    receive Msg ->
-        {ok, OCtx1} = eetcd_election:observe_stream(OCtx, Msg),
-        ?assertMatch(#{leader := #{lease := LeaseID1, value := <<"Leader-V1">>}}, OCtx1),
-        {ok, #{header := #{revision := _Revision}}} = eetcd_election:resign(?Name, Leader),
-        receive Msg1 ->
-            {ok, OCtx2} = eetcd_election:observe_stream(OCtx1, Msg1),
-            ?assertMatch(#{leader := #{lease := LeaseID2, value := <<"Leader-V2">>}}, OCtx2)
-        after 1000 -> throw({error, resign_not_working})
-        end
-    after 1000 -> throw({error, observe_with_leader_not_working})
-    end,
+campaign_async(_Config) ->
+    LeaderKey = <<"CampaignTest">>,
+    {ok, Pid1} = eetcd_election_leader_example:start_link(?Name, LeaderKey, "V1"),
+    {ok, Pid2} = eetcd_election_leader_example:start_link(?Name, LeaderKey, "V2"),
+    {ok, Leader1} = eetcd_election_leader_example:get_leader(Pid1),
+    {ok, Leader2} = eetcd_election_leader_example:get_leader(Pid2),
+    ?assertMatch(#{value := <<"V1">>}, Leader1),
+    ?assertMatch(Leader1, Leader2),
+    {ok, Campaign1} = eetcd_election_leader_example:get_campaign(Pid1),
+    {ok, Campaign2} = eetcd_election_leader_example:get_campaign(Pid2),
+    ?assertMatch(#{campaign := #{name := LeaderKey}}, Campaign1),
+    ?assertMatch(#{campaign := 'waiting_campaign_response'}, Campaign2),
+    
+    true = eetcd_election_leader_example:resign(Pid1),
+    timer:sleep(500),
+    {ok, Campaign3} = eetcd_election_leader_example:get_campaign(Pid2),
+    ?assertMatch(#{campaign := #{name := LeaderKey}}, Campaign3),
+    
+    eetcd_election_leader_example:stop(Pid1),
+    eetcd_election_leader_example:stop(Pid2),
     ok.
 
 %%%===================================================================

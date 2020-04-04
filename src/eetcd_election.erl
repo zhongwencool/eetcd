@@ -4,11 +4,13 @@
 -export([new/1, with_timeout/2, with_name/2, with_lease/2, with_leader/2]).
 -export([campaign/4, proclaim/3, leader/2, resign/2]).
 -export([campaign/1, proclaim/1, leader/1, resign/1]).
+-export([campaign_request/4, campaign_response/2]).
 -export([observe/3, observe_stream/2]).
 -export([test/0]).
 
--export_type([observe_ctx/0]).
--type observe_ctx() :: #{http2_pid => pid(), monitor_ref => reference(), stream_ref => reference(), leader => map()}.
+-export_type([campaign_ctx/0, observe_ctx/0]).
+-type observe_ctx() :: #{leader => map(), http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.
+-type campaign_ctx() :: #{campaign => map()|'waiting_campaign_response', http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.
 
 %%% @doc Creates a blank context for a request.
 -spec new(atom()|reference()) -> context().
@@ -81,6 +83,63 @@ campaign(Ctx, Name, LeaseId, Value) ->
     Ctx3 = with_lease(Ctx2, LeaseId),
     Ctx4 = with_value(Ctx3, Value),
     eetcd_election_gen:campaign(Ctx4).
+
+%%% @doc campaign async to acquire leadership.
+%%% if there is already a leader, campaign/4 will be held(block) forever until timeout.
+%%% the campaign_request/4 will return immediately,
+%%% then your can use campaign_response/2 to handle `Etcd.CampaignResponse`.
+%%% gen_server example
+%%% ```
+%%% init(Arg) ->
+%%%   ...
+%%%   {ok, CCtx} = eetcd_election:campaign_request(connName, Name, LeaderId, Value),
+%%%   ...
+%%% handle_info(Msg, State=#{ctx := CCtx}) ->
+%%%   case eetcd_election:campaign_response(CCtx, Msg) of
+%%%          unknown -> do_handle_your_msg(Msg, State);
+%%%         {ok, #{campaign := Leader}} -> campaign_win(Leader);
+%%%         {error, Reason} -> campaign_error(Reason)
+%%%   end.
+%%% '''
+-spec campaign_request(name(), Name :: binary(), LeaseId :: integer(), Value :: binary()) ->
+    {ok, campaign_ctx()} | {error, eetcd_error()}.
+campaign_request(ConnName, Name, LeaseId, Value) ->
+    Request0 = with_name(#{}, Name),
+    Request1 = with_lease(Request0, LeaseId),
+    Request = with_value(Request1, Value),
+    case eetcd_stream:new(ConnName, <<"/v3electionpb.Election/Campaign">>) of
+        {ok, Gun, StreamRef} ->
+            MRef = erlang:monitor(process, Gun),
+            eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.CampaignRequest', fin),
+            {ok,
+                #{
+                    http2_pid => Gun,
+                    monitor_ref => MRef,
+                    stream_ref => StreamRef,
+                    campaign => waiting_campaign_response
+                }
+            };
+        Err -> Err
+    end.
+
+-spec campaign_response(campaign_ctx(), term()) ->
+    unknown|{ok, campaign_ctx()} | {error, eetcd_error()}.
+%%% @doc handle campaign async response `Etcd.CampaignResponse'.
+campaign_response(CCtx, Msg) ->
+    case resp_stream(CCtx, Msg) of
+        {ok, Bin} ->
+            #{monitor_ref := MRef} = CCtx,
+            erlang:demonitor(MRef, [flush]),
+            {ok, #{leader := Leader}, <<>>}
+                = eetcd_grpc:decode(identity, Bin, 'Etcd.CampaignResponse'),
+            {ok, #{
+                campaign => Leader,
+                http2_pid => undefined,
+                monitor_ref => undefined,
+                stream_ref => undefined
+            }};
+        Other -> Other
+    end.
 
 %%% @doc
 %%% Proclaim updates the leader's posted value with a new value.
@@ -212,50 +271,39 @@ observe(ConnName, Name, Timeout) ->
             erlang:demonitor(MRef, [flush]),
             Err2
     end.
-observe_stream(#{stream_ref := Ref, http2_pid := Pid} = OCtx,
+
+%%% @doc handle observe stream `Etcd.LeaderResponse'.
+-spec observe_stream(observe_ctx(), term()) ->
+    unknown|{ok, observe_ctx()} | {error, eetcd_error()}.
+observe_stream(OCtx, Msg) ->
+    case resp_stream(OCtx, Msg) of
+        {ok, Bin} ->
+            {ok, #{kv := KV}, <<>>} = eetcd_grpc:decode(identity, Bin, 'Etcd.LeaderResponse'),
+            {ok, OCtx#{leader => KV}};
+        Other -> Other
+    end.
+
+resp_stream(#{stream_ref := Ref, http2_pid := Pid},
     {gun_response, Pid, Ref, nofin, 200, _Headers}) ->
     receive {gun_data, Pid, Ref, nofin, Bin} ->
-        {ok, #{kv := KV}, <<>>} = eetcd_grpc:decode(identity, Bin, 'Etcd.LeaderResponse'),
-        {ok, OCtx#{leader => KV}}
+        {ok, Bin}
     after 2000 -> unknown
     end;
-observe_stream(#{stream_ref := Ref, http2_pid := Pid} = OCtx,
+resp_stream(#{stream_ref := Ref, http2_pid := Pid},
     {gun_data, Pid, Ref, nofin, Bin}) ->
-    {ok, #{kv := KV}, <<>>} = eetcd_grpc:decode(identity, Bin, 'Etcd.LeaderResponse'),
-    {ok, OCtx#{leader => KV}};
-observe_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
+    {ok, Bin};
+resp_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
     {error, {stream_error, Reason}};
-observe_stream(#{http2_pid := Pid, stream_ref := SRef, monitor_ref := MRef},
+resp_stream(#{http2_pid := Pid, stream_ref := SRef, monitor_ref := MRef},
     {gun_error, Pid, Reason}) -> %% gun connection process state error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
     {error, {conn_error, Reason}};
-observe_stream(#{http2_pid := Pid, monitor_ref := MRef},
+resp_stream(#{http2_pid := Pid, monitor_ref := MRef},
     {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
     erlang:demonitor(MRef, [flush]),
     {error, {http2_down, Reason}};
-observe_stream(_OCtx, _UnKnow) -> throw({_OCtx, _UnKnow}), unknown.
-
-test() ->
-    application:ensure_all_started(eetcd),
-    logger:set_primary_config(level, info),
-    Registers = ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"],
-    Name = test,
-    {ok, _Pid} = eetcd:open(Name, Registers),
-    {ok, #{'ID' := LeaseID1}} = eetcd_lease:grant(Name, 8),
-    {ok, _} = eetcd_lease:keep_alive(Name, LeaseID1),
-    {ok, #{'ID' := LeaseID2}} = eetcd_lease:grant(Name, 8),
-    {ok, _} = eetcd_lease:keep_alive(Name, LeaseID2),
-    LeaderKey = "zw",
-    {ok, #{leader := Leader}} = eetcd_election:campaign(Name, LeaderKey, LeaseID1, <<"Leader-V1">>),
-    spawn(fun() ->
-        Result = eetcd_election:campaign(Name, LeaderKey, LeaseID2, <<"Leader-V2">>),
-        io:format("111~p~n", [Result]),
-        receive X -> io:format("222~p~n", [X]) end
-          end),
-    resign(Name, Leader).
-
-% leader(Name, LeaderKey).
+resp_stream(_OCtx, _UnKnow) -> unknown.

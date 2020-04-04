@@ -1,7 +1,7 @@
 -module(eetcd_lease).
 -include("eetcd.hrl").
 -behaviour(gen_server).
--export([test/0]).
+
 -export([new/1, with_timeout/2]).
 -export([grant/2, revoke/2, time_to_live/3, leases/1]).
 -export([keep_alive/2, keep_alive_once/2]).
@@ -14,19 +14,6 @@
 -define(LeaseNotFound, <<"etcdserver: requested lease not found">>).
 -define(Event(ID, Reason), #{event => 'KeepAliveHalted', lease_id => ID, reason => Reason}).
 -define(TRY_RECONNECTING, try_reconnecting).
-
-test() ->
-    application:ensure_all_started(eetcd),
-    logger:set_primary_config(level, info),
-    {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"], tcp, []),
-    %% {ok, _Pid} = eetcd:open(test, ["127.0.0.1:2379"], tcp, []),
-    {ok, T1 = #{'ID' := LeaseID}} = eetcd_lease:grant(test, 100),
-    io:format("~p~n", [T1]),
-    R = eetcd_kv:put(eetcd_kv:with_lease(eetcd:new(test), LeaseID), "test", "test_value"),
-    io:format("~p~n", [R]),
-    R1 = eetcd_kv:get(test, "test"),
-    io:format("~p~n", [R1]),
-    eetcd_lease:keep_alive(test, LeaseID).
 
 %%% @doc Create context for request.
 -spec new(atom()|reference()) -> context().
@@ -164,7 +151,7 @@ handle_info({gun_data, _Pid, Ref, nofin, Data},
             Event = ?Event(ID, ?LeaseNotFound),
             erlang:send(Caller, Event),
             {stop, {shutdown, Event}, State};
-        {ok,#{'TTL' := _TTL}, <<>>} -> {noreply, State#{ongoing => Ongoing - 1}}
+        {ok, #{'TTL' := _TTL}, <<>>} -> {noreply, State#{ongoing => Ongoing - 1}}
     end;
 
 %% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}

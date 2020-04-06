@@ -82,10 +82,18 @@ new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) -> #{eetcd_co
 new(Context) when is_map(Context) -> Context.
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
-%% or the atom infinity to wait indefinitely. Default value is 5000.
+%% or the atom infinity to wait indefinitely.
 %% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
 -spec with_timeout(context(), pos_integer()) -> context().
 with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
+    case Timeout < 100 of
+        true ->
+            Reason =
+                lists:flatten(
+                    io_lib:format("Setting timeout to ~wms(less than 100ms) is not allowed", [Timeout])),
+            throw({error, Reason});
+        false -> ok
+    end,
     maps:put(eetcd_reply_timeout, Timeout, Context).
 
 -define(UNBOUND_RANGE_END, "\0").

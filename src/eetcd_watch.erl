@@ -25,38 +25,6 @@ response => router_pb:'Etcd.WatchResponse'()}.
 -export([watch_stream/2]).
 -export([unwatch/2]).
 -export([rev/1]).
--export([test/0]).
-
-test() ->
-    application:ensure_all_started(eetcd),
-    logger:set_primary_config(level, info),
-    Registers = ["127.0.0.1:2379", "127.0.0.1:2579", "127.0.0.1:2479"],
-    Name = register,
-    {ok, _Pid} = eetcd:open(Name, Registers),
-    {ok, #{'ID' := LeaseID}} = eetcd_lease:grant(Name, 15),
-    {ok, _} = eetcd_lease:keep_alive(Name, LeaseID),
-    Key = <<"heartbeat|query|10.4.3.1|8756">>,
-    CtxInit = eetcd_kv:new(Name),
-    CtxKey = eetcd_kv:with_key(CtxInit, Key),
-    CtxVal = eetcd_kv:with_value(CtxKey, <<"ok">>),
-    CtxLease = eetcd_kv:with_lease(CtxVal, LeaseID),
-    {ok, #{}} = eetcd_kv:put(CtxLease),
-    eetcd_lease:revoke(Name, LeaseID),
-    Request = with_key(#{}, "test"),
-    {ok, Conn} = eetcd_watch:watch(Name, Request, 5000),
-    io:format("~p~n", [Conn]),
-    eetcd_kv:put(Name, "test", "goodv1"),
-    receive X ->
-        io:format("put:~p~n", [eetcd_watch:watch_stream(Conn, X)])
-    end,
-    eetcd_kv:delete(Name, "test"),
-    receive Y ->
-        {ok, Conn1, Resp} = eetcd_watch:watch_stream(Conn, Y),
-        io:format("delete:~p~n", [Resp]),
-        T2 = eetcd_watch:unwatch(Conn1, 5000),
-        io:format("unwatch:~p~n", [T2])
-    end,
-    ok.
 
 %%% @doc init watch request
 -spec new() -> context().
@@ -155,8 +123,8 @@ watch(Name, CreateReq) ->
     {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
-    MRef = erlang:monitor(process, self()),
     {ok, Gun, StreamRef} = eetcd_watch_gen:watch(Name),
+    MRef = erlang:monitor(process, Gun),
     eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {response, nofin, 200, _Headers} ->

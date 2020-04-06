@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-03-31T01:37:53+00:00 and should not be modified manually
+%% This module was generated on 2020-04-02T02:00:45+00:00 and should not be modified manually
 
 -module(eetcd_auth_gen).
 

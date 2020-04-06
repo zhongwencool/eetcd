@@ -26,11 +26,6 @@ decode(Encoding, Frame, PbType) ->
 grpc_status(RespHeaders) ->
     GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),
     GrpcMessage = proplists:get_value(<<"grpc-message">>, RespHeaders, <<"">>),
-    case GrpcStatus of
-        ?GRPC_STATUS_UNAVAILABLE -> %% {grpc_error, 14, <<"etcdserver: request timed out">>}}
-            eetcd_http2_keeper:check_leader();
-        _ -> ignore
-    end,
     #{'grpc-status' => GrpcStatus, 'grpc-message' => GrpcMessage}.
 
 %%====================================================================

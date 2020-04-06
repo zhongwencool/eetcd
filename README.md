@@ -16,8 +16,9 @@ See [the full API documentation](https://github.com/etcd-io/etcd/blob/master/Doc
 2. Transaction;
 3. Lease -- as well as a few convenience features like continuous keep alive;
 4. Watch;
-5. Maintenance -- User, Role, Authentication, Cluster, Alarms.
-
+5. Maintenance -- User, Role, Authentication, Cluster, Alarms;
+6. Lock;
+7. Election.
 
 Quick Start
 -----
@@ -252,6 +253,9 @@ update_services(#{events := Events}) ->
      end || #{kv := #{key := Key}, type := EventType} <- Events],
     ok.
 ```
+
+##### Election Example
+![Election Example](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_election_leader_example.erl)
 
 Test
 -----

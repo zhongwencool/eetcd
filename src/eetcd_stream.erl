@@ -52,7 +52,7 @@ data(Pid, Ref, Msg, MsgName, IsFin) ->
     EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
-    EtcdResponse :: tuple().
+    EtcdResponse :: tuple() | eetcd_error().
 unary(Request, RequestName, Path, ResponseType) ->
     case maps:find(eetcd_conn_name, Request) of
         {ok, Name} ->
@@ -64,6 +64,7 @@ unary(Request, RequestName, Path, ResponseType) ->
             end;
         error -> {error, eetcd_conn_unavailable}
     end.
+
 -spec unary(Pid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers) -> EtcdResponse when
     Pid :: pid(),
     EtcdRequest :: map(),

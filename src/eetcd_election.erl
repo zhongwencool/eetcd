@@ -6,7 +6,6 @@
 -export([campaign/1, proclaim/1, leader/1, resign/1]).
 -export([campaign_request/4, campaign_response/2]).
 -export([observe/3, observe_stream/2]).
--export([test/0]).
 
 -export_type([campaign_ctx/0, observe_ctx/0]).
 -type observe_ctx() :: #{leader => map(), http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.

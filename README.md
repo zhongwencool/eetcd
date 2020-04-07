@@ -255,7 +255,19 @@ update_services(#{events := Events}) ->
 ```
 
 ##### Election Example
-![Election Example](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_election_leader_example.erl)
+[Election Example](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_election_leader_example.erl)
+
+##### Debug information
+```erlang
+1>eetcd:info().
+| Name           | Status |   IP:Port    | Conn     | Gun      |LeaseNum|
+| test           | Active |127.0.0.1:2379|<0.535.0> |<0.536.0> |      1 |
+| test           | Active |127.0.0.1:2579|<0.535.0> |<0.539.0> |      2 |
+| Name           | Status |   IP:Port    | Conn     | ReconnectSecond   |
+| test           | Freeze |127.0.0.1:2479|<0.535.0> |   1.6             |
+```
+- `Active` is normal connection.
+- `Freeze` is a broken connection who try to reconnect after `ReconnectSecond`.
 
 Test
 -----

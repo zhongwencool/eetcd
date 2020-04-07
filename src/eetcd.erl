@@ -88,7 +88,7 @@ new(Context) when is_map(Context) -> Context.
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely.
 %% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
--spec with_timeout(context(), pos_integer()) -> context().
+-spec with_timeout(context(), pos_integer()|infinity) -> context().
 with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
     case Timeout < 100 of
         true ->

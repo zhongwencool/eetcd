@@ -18,7 +18,7 @@ new(Ctx) -> eetcd:new(Ctx).
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely. Default value is 5000.
 %% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
--spec with_timeout(context(), pos_integer()) -> context().
+-spec with_timeout(context(), pos_integer()|infinity) -> context().
 with_timeout(Ctx, Timeout) -> eetcd:with_timeout(Ctx, Timeout).
 
 %%% @doc name is the election's identifier for the campaign.

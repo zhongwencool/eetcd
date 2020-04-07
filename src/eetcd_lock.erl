@@ -1,7 +1,7 @@
 -module(eetcd_lock).
 -include("eetcd.hrl").
 
--export([new/1, with_timeout/2, with_name/2, with_lease_id/2, with_key/2]).
+-export([new/1, with_timeout/2, with_name/2, with_lease/2, with_key/2]).
 -export([lock/1, lock/3, unlock/2]).
 
 
@@ -24,8 +24,8 @@ with_name(Context, Name) ->
 %%% lock. If the lease expires or is revoked and currently holds the lock,
 %%% the lock is automatically released. Calls to Lock with the same lease will
 %%% be treated as a single acquisition; locking twice with the same lease is a no-op.
--spec with_lease_id(context(), LeaseID :: pos_integer()) -> context().
-with_lease_id(Context, LeaseID) ->
+-spec with_lease(context(), LeaseID :: pos_integer()) -> context().
+with_lease(Context, LeaseID) ->
     maps:put(lease, LeaseID, Context).
 
 %%% @doc key is a key that will exist on etcd for the duration that the Lock caller
@@ -47,7 +47,7 @@ lock(Context) ->
 -spec lock(Ctx :: context()|name(), Name :: binary(), LeaseID :: pos_integer()) -> {ok, router_pb:'Etcd.LockResponse'()} | {error, eetcd_error()}.
 lock(Context0, Name, LeaseID) ->
     Context1 = new(Context0),
-    Context = with_lease_id(with_name(Context1, Name), LeaseID),
+    Context = with_lease(with_name(Context1, Name), LeaseID),
     eetcd_lock_gen:lock(Context).
 
 %%% @doc Unlock takes a key returned by Lock and releases the hold on lock. The

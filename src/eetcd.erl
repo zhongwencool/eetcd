@@ -30,13 +30,17 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% The balancing policy is round robin.
 %% For instance, in 5-node cluster, `connect_all' would require 5 TCP connections,
 %% This may consume more resources but provide more flexible load balance with better failover performance.
+%% `eetcd_conn' will do his best to keep all connections normal, and try to reconnect when connection is broken.
+%% The reconnect millisecond is 200 400 800 1600 3200 6400 12800 25600, and keep recycling this reconnection time until normal.
 %%
 %% `{mode, random}' creates only one connection to a random endpoint,
 %% it would pick one address and use it to send all client requests.
 %% The pinned address is maintained until the client connection is closed.
-%% When the client receives an error, it randomly picks another.
+%% When the client receives an error, it randomly picks another normal endpoint.
 %%
 %% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
+%%
+%% You can use `eetcd:info/0' to see the internal connection status.
 -spec open(name(),
     [string()],
     [{mode, connect_all|random} |{name, string()} | {password, string()}],
@@ -84,7 +88,7 @@ new(Context) when is_map(Context) -> Context.
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely.
 %% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
--spec with_timeout(context(), pos_integer()) -> context().
+-spec with_timeout(context(), pos_integer()|infinity) -> context().
 with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
     case Timeout < 100 of
         true ->

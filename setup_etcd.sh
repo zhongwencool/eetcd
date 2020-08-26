@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-ETCD_VER=v3.3.18
+ETCD_VER=v3.4.12
 
 # choose either URL
 GOOGLE_URL=https://storage.googleapis.com/etcd
 GITHUB_URL=https://github.com/etcd-io/etcd/releases/download
-DOWNLOAD_URL=${GOOGLE_URL}
+DOWNLOAD_URL=${GITHUB_URL}
 
 rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 rm -rf /tmp/etcd && mkdir -p /tmp/etcd

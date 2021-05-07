@@ -1,7 +1,7 @@
 {application, eetcd,
     [
         {description, "ETCD V3 client"},
-        {vsn, "0.3.3"},
+        {vsn, "0.3.4"},
         {registered, [eetcd_sup, eetcd_conn_sup, eetcd_lease_sup]},
         {mod, {eetcd_app, []}},
         {applications, [kernel, stdlib, gun]},

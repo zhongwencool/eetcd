@@ -139,6 +139,7 @@ await_body(ServerPid, StreamRef, Timeout, MRef, Acc) ->
         {gun_data, ServerPid, StreamRef, fin, Data} ->
             {ok, <<Acc/binary, Data/binary>>};
     %% It's OK to return trailers here because the client specifically requested them
+    %% Trailers are grpc_status and grpc_message headers
         {gun_trailers, ServerPid, StreamRef, Trailers} ->
             {ok, Acc, Trailers};
         {gun_error, ServerPid, StreamRef, Reason} ->

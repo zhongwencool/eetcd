@@ -285,12 +285,22 @@ observe_stream(OCtx, Msg) ->
 resp_stream(#{stream_ref := Ref, http2_pid := Pid},
     {gun_response, Pid, Ref, nofin, 200, _Headers}) ->
     receive {gun_data, Pid, Ref, nofin, Bin} ->
-        {ok, Bin}
+        receive {gun_trailers, Pid, Ref, [{<<"grpc-status">>, <<"0">>}, {<<"grpc-message">>, <<>>}]} ->
+            {ok, Bin};
+        {gun_trailers, Pid, Ref, [{<<"grpc-status">>, GrpcStatus}, {<<"grpc-message">>, GrpcMsg}]} ->
+            {error, ?GRPC_ERROR(GrpcStatus, GrpcMsg)}
+        after 2000 -> unknown
+        end
     after 2000 -> unknown
     end;
 resp_stream(#{stream_ref := Ref, http2_pid := Pid},
     {gun_data, Pid, Ref, nofin, Bin}) ->
     {ok, Bin};
+resp_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
+    {gun_trailers, Pid, SRef, [{<<"grpc-status">>, GrpcStatus}, {<<"grpc-message">>, GrpcMsg}]}) ->    %% grpc error
+    erlang:demonitor(MRef, [flush]),
+    gun:cancel(Pid, SRef),
+    {error, ?GRPC_ERROR(GrpcStatus, GrpcMsg)};
 resp_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),

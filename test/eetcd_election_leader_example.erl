@@ -32,6 +32,7 @@ resign(Pid) ->
 %%%===================================================================
 
 init([Etcd, LeaderKey, Value]) ->
+    logger:set_primary_config(#{level => info}),
     erlang:process_flag(trap_exit, true),
     {ok, #{'ID' := LeaseID}} = eetcd_lease:grant(Etcd, 8),
     {ok, _} = eetcd_lease:keep_alive(Etcd, LeaseID),
@@ -66,9 +67,11 @@ handle_info(Msg, State) ->
     #{campaign := Campaign, observe := Observe} = State,
     case eetcd_election:campaign_response(Campaign, Msg) of
         {ok, NewCampaign = #{campaign := Leader}} ->
+            %% Only get this response when you win campaign by yourself.
+            %% You are leader!
             win_campaign_event(Leader),
             {noreply, State#{campaign => NewCampaign}};
-        {error, Reason} -> %% you can just let it crash and restart process
+        {error, Reason} -> %% you can just let it crash and restart process or recampaign !!!
             campaign_unexpected_error(Reason),
             {noreply, State};
         unknown ->
@@ -95,17 +98,22 @@ code_change(_OldVsn, State = #{}, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-win_campaign_event(_Leader) ->
+win_campaign_event(Leader) ->
+    logger:info("win campaign event:~p", [Leader]),
     "Todo".
 
-campaign_unexpected_error(_Reason) ->
+campaign_unexpected_error(Reason) ->
+    logger:info("campaign unexpected error:~p", [Reason]),
     "Todo: try to recampaign".
 
-leader_change_event(_Leader) ->
+leader_change_event(Leader) ->
+    logger:info("leader change event:~p", [Leader]),
     "Todo".
 
-observe_unexpected_error(_Reason) ->
+observe_unexpected_error(Reason) ->
+    logger:info("observe unexpect error:~p", [Reason]),
     "Todo: try to reobserve after some sleep.".
 
-handle_info_your_own_msg(_Msg, _State) ->
+handle_info_your_own_msg(Msg, State) ->
+    logger:info("hanle info your own msg:~p ~p", [Msg, State]),
     "Todo".

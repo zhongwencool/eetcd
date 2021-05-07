@@ -168,13 +168,13 @@ watch(Name, CreateReq, Timeout) ->
 %%that is, a gun_* message received on the gun connection.
 %%If it is, then this function will parse the message, turn it into  watch responses, and possibly take action given the responses.
 %%If there's no error, this function returns {ok, WatchConn, 'Etcd.WatchResponse'()}|{more, WatchConn}
-%%If there's an error, {error, {stream_error | conn_error | http2_down, term()} | timeout} is returned.
+%%If there's an error, {error, {grpc_error, stream_error | conn_error | http2_down, term()} | timeout} is returned.
 %%If the given message is not from the gun connection, this function returns unknown.
 -spec watch_stream(watch_conn(), Message) ->
     {ok, watch_conn(), router_pb:'Etcd.WatchResponse'()}
     | {more, watch_conn()}
     | unknown
-    | {error, {stream_error | conn_error | http2_down, term()}} when
+    | {error, {grpc_error, stream_error | conn_error | http2_down, term()}} when
     Message :: term().
 
 watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed} = Conn,
@@ -194,6 +194,11 @@ watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed} 
                 Resp};
         more -> {more, Conn#{unprocessed => Bin}}
     end;
+watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
+    {gun_trailers, Pid, SRef, [{<<"grpc-status">>, Status}, {<<"grpc-message">>, Msg}]}) ->
+    erlang:demonitor(MRef, [flush]),
+    gun:cancel(Pid, SRef),
+    {error, {grpc_error, ?GRPC_ERROR(Status, Msg)}};
 watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),

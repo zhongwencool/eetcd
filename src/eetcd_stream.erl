@@ -9,7 +9,7 @@
 
 -include("eetcd.hrl").
 
--spec new(Name, Path) -> {ok, GunPid, Http2Ref} when
+-spec new(Name, Path) -> {ok, GunPid, Http2Ref} | {error, eetcd:eetcd_error()} when
     Name :: name(),
     Path :: iodata(),
     GunPid :: pid(),
@@ -22,11 +22,12 @@ new(Name, Path) ->
         Err -> Err
     end.
 
--spec new(Name, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
+-spec new(Name, EtcdMsg, EtcdMsgName, Http2Path) -> {ok, GunPid, Http2Ref} | {error, eetcd:eetcd_error()} when
     Name :: name(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
+    GunPid :: pid(),
     Http2Ref :: reference().
 new(Name, Msg, MsgName, Path) ->
     case new(Name, Path) of

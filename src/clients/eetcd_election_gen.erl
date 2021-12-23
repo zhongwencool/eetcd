@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-04-02T02:00:46+00:00 and should not be modified manually
+%% This module was generated on 2021-12-22T07:01:11+00:00 and should not be modified manually
 
 -module(eetcd_election_gen).
 
@@ -35,7 +35,7 @@ leader(Request) ->
 
 %% @doc Stream RPC 
 -spec observe(router_pb:'Etcd.LeaderRequest'()) ->
-    reference()|{error,eetcd:eetcd_error()}.
+    {ok, GunPid :: pid(), Http2Ref:: reference()}|{error,eetcd:eetcd_error()}.
 observe(Request) ->
     eetcd_stream:new(Request, <<"/v3electionpb.Election/Observe">>).
 

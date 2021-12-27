@@ -223,7 +223,14 @@ handle_info(Msg, Conn) ->
         {more, NewConn} ->
             {noreply, NewConn};
         {error, _Reason} ->
-            #{revision := Revision} = Conn,
+            #{watch_ids := Ids} = Conn,
+            %% We expect there is only one watch in the Conn in this example
+            %%
+            %% TODO
+            %% If there are more than one watch (aka multiplexing watch stream),
+            %% this watcher process should keep the corresponding key/prefix to the watch id,
+            %% to retrieve the correct revision of it.
+            [#{revision := Revision}] = maps:values(Ids),
             {ok, NewConn} = watch_services_event(Revision),
             {noreply, NewConn};
         unknown ->

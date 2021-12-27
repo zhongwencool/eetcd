@@ -201,18 +201,18 @@ get_exist_services() ->
     Ctx2 = eetcd_kv:with_prefix(Ctx1),
     Ctx3 = eetcd_kv:with_keys_only(Ctx2),
     {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv:get(Ctx3),
-    Services =
+    Services1 =
         [begin
              [_, Type, IP, Port] = binary:split(Key, [<<"|">>], [global]),
              {{IP, Port}, Type}
          end || #{key := Key} <- Services],
-    {ok, Services, Revision}.
+    {ok, Services1, Revision}.
 
 watch_services_event(Revision) ->
     ReqInit = eetcd_watch:new(),
     ReqKey = eetcd_watch:with_key(ReqInit, <<"heartbeat:">>),
     ReqPrefix = eetcd_watch:with_prefix(ReqKey),
-    Req = eetcd_watch:with_start_revision(ReqPrefix, Revision),
+    Req = eetcd_watch:with_start_revision(ReqPrefix, Revision + 1),
     eetcd_watch:watch(?NAME, Req).
 
 handle_info(Msg, Conn) ->

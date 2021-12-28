@@ -261,6 +261,8 @@ update_services(#{events := Events}) ->
     ok.
 ```
 
+We can use a single stream for multiplex watches, see [example](/test/eetcd_watch_example.erl).
+
 ##### Election Example
 [Election Example](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_election_leader_example.erl)
 

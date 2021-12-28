@@ -120,10 +120,14 @@ with_range_end(Context, End) ->
 
 %% @doc @equiv watch(name(), context(), 5000).
 -spec watch(name(), context()) ->
-    {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {ok, watch_conn(), WatchId :: pos_integer()} |
+    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq) ->
     watch(Name, CreateReq, undefined, 5000).
 
+-spec watch(name(), context(), Timeout :: pos_integer() | watch_conn() | undefined) ->
+    {ok, watch_conn(), WatchId :: pos_integer()} |
+    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(Name, CreateReq, Timeout) when is_integer(Timeout) ->
     watch(Name, CreateReq, undefined, Timeout);
 watch(Name, CreateReq, WatchConn) ->
@@ -143,7 +147,8 @@ watch(Name, CreateReq, WatchConn) ->
 %%	The returned "id" is the ID of this watcher. It appears as WatchID
 %%  in events that are sent to the created watcher through stream channel.
 -spec watch(name(), context(), watch_conn() | undefined, pos_integer()) ->
-    {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {ok, watch_conn(), WatchId :: pos_integer()} |
+    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch(_Name, CreateReq, #{http2_pid := Gun,
                           stream_ref := StreamRef,
                           monitor_ref := MRef} = WatchConn, Timeout)
@@ -154,7 +159,8 @@ watch(Name, CreateReq, undefined, Timeout) ->
 
 %% Do watch request with a new watch stream.
 -spec watch_new_(name(), context(), pos_integer()) ->
-    {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {ok, watch_conn(), WatchId :: pos_integer()} |
+    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
 watch_new_(Name, CreateReq, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
     {ok, Gun, StreamRef} = eetcd_watch_gen:watch(Name),
@@ -181,7 +187,8 @@ watch_new_(Name, CreateReq, Timeout) ->
                             watch_ids => #{ WatchId => #{ revision => Rev,
                                                           compact_revision => CompactRev}},
                             unprocessed => <<>>
-                        }
+                        },
+                        WatchId
                     };
                 {error, _} = Err1 ->
                     erlang:demonitor(MRef, [flush]),
@@ -197,12 +204,13 @@ watch_new_(Name, CreateReq, Timeout) ->
 
 %% Do watch request with the re-used watch stream.
 -spec watch_reuse_(context(), watch_conn(), pos_integer()) ->
-    {ok, watch_conn()} | {error, {stream_error | conn_error | http2_down, term()} | timeout}.
-watch_reuse_(CreateReq, #{http2_pid := Gun,
-                    stream_ref := StreamRef,
-                    monitor_ref := MRef,
-                    watch_ids := Ids} = WatchConn,
-       Timeout) ->
+    {ok, watch_conn(), WatchId :: pos_integer()} |
+    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+watch_reuse_(CreateReq, #{http2_pid   := Gun,
+                          stream_ref  := StreamRef,
+                          monitor_ref := MRef,
+                          watch_ids   := Ids} = WatchConn,
+             Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
     eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
@@ -229,7 +237,8 @@ watch_reuse_(CreateReq, #{http2_pid := Gun,
                     watch_ids => Ids#{ WatchId => #{ revision => Rev,
                                                      compact_revision => CompactRev}},
                     unprocessed => <<>>
-                }
+                },
+                WatchId
             };
         {error, _} = Err2 ->
             erlang:demonitor(MRef, [flush]),

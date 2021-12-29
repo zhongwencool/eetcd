@@ -304,6 +304,8 @@ rev(#{revision := Rev}) -> Rev.
 %% @doc  Cancel watching so that no more events are transmitted.
 %% This is a synchronous operation.
 %% Other change events will be returned in OtherEvents when these events arrive between the request and the response.
+%%
+%% Notice that this function will cancel all the watches in the same stream.
 -spec unwatch(watch_conn(), Timeout) ->
     {ok, Responses, OtherEvents}
     | {error, {stream_error | conn_error | http2_down, term()} | timeout, Responses, OtherEvents} when
@@ -311,26 +313,37 @@ rev(#{revision := Rev}) -> Rev.
     Responses :: [router_pb:'Etcd.WatchResponse'()],
     OtherEvents :: [router_pb:'Etcd.WatchResponse'()].
 unwatch(WatchConn, Timeout) ->
-    #{
-        http2_pid := Gun,
-        monitor_ref := MRef,
-        stream_ref := StreamRef,
-        watch_ids := WatchIds,
-        unprocessed := Unprocessed
-    } = WatchConn,
-    await_unwatch_resp(Gun, StreamRef, Unprocessed, maps:keys(WatchIds), Timeout, MRef, [], []).
+    unwatch_and_await_resp(WatchConn, Timeout, [], []).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-await_unwatch_resp(_Gun, _StreamRef, _Unprocessed, [], _Timeout, MRef, RespAcc, Acc) ->
+unwatch_and_await_resp(#{http2_pid := Gun,
+                         stream_ref := StreamRef,
+                         monitor_ref := MRef,
+                         watch_ids := WatchIds} = _WatchConn, _Timeout, RespAcc, Acc)
+    when erlang:map_size(WatchIds) =:= 0 ->
+    gun:cancel(Gun, StreamRef),
     erlang:demonitor(MRef, [flush]),
     {ok, lists:reverse(RespAcc), lists:reverse(Acc)};
-await_unwatch_resp(Gun, StreamRef, Unprocessed, [WatchId|Rest], Timeout, MRef, RespAcc, Acc) ->
+unwatch_and_await_resp(#{http2_pid := Gun,
+                         stream_ref := StreamRef,
+                         watch_ids := WatchIds} = WatchConn, Timeout, RespAcc, Acc) ->
+    [WatchId|_Rest] = maps:keys(WatchIds),
+    IsFin = case maps:size(WatchIds) of
+                1 -> fin;
+                _ -> nofin
+            end,
     Request = #{request_union => {cancel_request, #{watch_id => WatchId}}},
-    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', fin),
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', IsFin),
+    await_unwatch_resp(WatchConn, Timeout, RespAcc, Acc).
 
+await_unwatch_resp(#{http2_pid := Gun,
+                     monitor_ref := MRef,
+                     stream_ref := StreamRef,
+                     watch_ids := WatchIds,
+                     unprocessed := Unprocessed} = WatchConn, Timeout, RespAcc, Acc) ->
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {data, nofin, Data} ->
             Bin = <<Unprocessed/binary, Data/binary>>,
@@ -338,13 +351,14 @@ await_unwatch_resp(Gun, StreamRef, Unprocessed, [WatchId|Rest], Timeout, MRef, R
                 {ok, Resp, NewUnprocessed} ->
                     case Resp of
                         #{created := false, watch_id := WatchId, canceled := true} ->
-                            gun:cancel(Gun, StreamRef),
-                            await_unwatch_resp(Gun, StreamRef, Unprocessed, Rest, Timeout, MRef, [Resp|RespAcc], Acc);
+                            unwatch_and_await_resp(WatchConn#{unprocessed => NewUnprocessed,
+                                                          watch_ids => maps:without([WatchId], WatchIds)
+                                                         }, Timeout, [Resp|RespAcc], Acc);
                         OtherEvent ->
-                            await_unwatch_resp(Gun, StreamRef, NewUnprocessed, [WatchId|Rest], Timeout, MRef, RespAcc, [OtherEvent | Acc])
+                            await_unwatch_resp(WatchConn#{unprocessed => NewUnprocessed}, Timeout, RespAcc, [OtherEvent | Acc])
                     end;
                 more ->
-                    await_unwatch_resp(Gun, StreamRef, Bin, [WatchId|Rest], Timeout, MRef, RespAcc, Acc)
+                    await_unwatch_resp(WatchConn#{unprocessed => Bin}, Timeout, RespAcc, Acc)
             end;
         {error, Reason} -> {error, Reason, lists:reverse(RespAcc), lists:reverse(Acc)}
     end.

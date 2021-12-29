@@ -1,8 +1,10 @@
 -module(eetcd_watch_SUITE).
+-include_lib("eunit/include/eunit.hrl").
 
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
 
 -export([watch_one_key/1, watch_multi_keys/1,
+    watch_keys_with_single_stream/1,
     watch_with_start_revision/1, watch_with_filters/1,
     watch_with_prev_kv/1, watch_with_watch_id/1,
     watch_with_huge_value/1]).
@@ -15,6 +17,7 @@ suite() ->
 all() ->
     [
         watch_one_key, watch_multi_keys, watch_with_start_revision, watch_with_filters,
+        watch_keys_with_single_stream,
         watch_with_prev_kv, watch_with_watch_id, watch_with_huge_value
     ].
 
@@ -64,6 +67,81 @@ watch_one_key(_Config) ->
         events := []}], []} = eetcd_watch:unwatch(Conn2, Timeout),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value2)),
     {error, timeout} = flush(),
+
+    ok.
+
+%% watch multiple keys with one single stream and unwatch them
+watch_keys_with_single_stream(_Config) ->
+    Key1 = <<"etcd_key_1">>,
+    Value1 = <<"etcd_value">>,
+    Value1_1 = <<"etcd_value1_1">>,
+    Value1_2 = <<"etcd_value1_2">>,
+
+    Key2 = <<"etcd_key_2">>,
+    Value2 = <<"etcd_value2">>,
+
+    Timeout = 3000,
+    {ok, WatchConn1, _WatchId1} = eetcd_watch:watch(?Name, eetcd_watch:with_key(eetcd_watch:new(), Key1), Timeout),
+    %% Watch another key
+    Req2 = eetcd_watch:with_key(eetcd_watch:new(), Key2),
+    {ok, WatchConn, _WatchId2} = eetcd_watch:watch(?Name, Req2, WatchConn1, Timeout),
+
+    %% Put key1
+    eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key1), Value1)),
+    Message = flush(),
+    {ok, Conn0, #{created := false,
+        events := [#{type := 'PUT',
+            kv := #{key := Key1, value := Value1}}],
+        watch_id := 0}}
+        = eetcd_watch:watch_stream(WatchConn, Message),
+
+    %% Change key1
+    eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key1), Value1_1)),
+    Message1 = flush(),
+    {ok, Conn1, #{created := false,
+        events := [#{type := 'PUT',
+            kv := #{key := Key1, value := Value1_1}}],
+        watch_id := 0}}
+        = eetcd_watch:watch_stream(Conn0, Message1),
+
+    %% Change key2
+    eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key2), Value2)),
+    Message2_1 = flush(),
+    {ok, Conn2, #{created := false,
+        events := [#{type := 'PUT',
+            kv := #{key := Key2, value := Value2}}],
+        watch_id := 1}}
+        = eetcd_watch:watch_stream(Conn1, Message2_1),
+
+    %% Delete key2
+    eetcd_kv:delete(eetcd_kv:with_key(eetcd_kv:new(?Name), Key2)),
+    Message2 = flush(),
+    {ok, Conn3, #{created := false,
+        events := [#{type := 'DELETE',
+            kv := #{key := Key2, value := <<>>}}]}}
+        = eetcd_watch:watch_stream(Conn2, Message2),
+
+    %% Delete key1
+    eetcd_kv:delete(eetcd_kv:with_key(eetcd_kv:new(?Name), Key1)),
+    Message1_2 = flush(),
+    {ok, Conn4, #{created := false,
+        events := [#{type := 'DELETE',
+            kv := #{key := Key1, value := <<>>}}]}}
+        = eetcd_watch:watch_stream(Conn3, Message1_2),
+
+    %% Unwatch all watch ids in this stream
+    {ok, Resps, []} = eetcd_watch:unwatch(Conn4, Timeout),
+    UnWatchedIds = [ UnWatchedId || #{created := false,
+                                      canceled := true,
+                                      events := [],
+                                      watch_id := UnWatchedId } <- Resps],
+    ?assertEqual([0, 1], lists:sort(UnWatchedIds)),
+
+    eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key1), Value1_2)),
+    {error, timeout} = flush(),
+
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key1),
 
     ok.
 

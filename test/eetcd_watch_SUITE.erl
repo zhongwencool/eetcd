@@ -68,6 +68,9 @@ watch_one_key(_Config) ->
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value2)),
     {error, timeout} = flush(),
 
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key),
+
     ok.
 
 %% watch multiple keys with one single stream and unwatch them
@@ -185,6 +188,10 @@ watch_multi_keys(_Config) ->
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value2)),
     {error, timeout} = flush(),
 
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key),
+    eetcd_kv:delete(?Name, Key2),
+
     ok.
 
 %% start_revision is an optional revision to watch from (inclusive). No start_revision is "now".
@@ -205,6 +212,10 @@ watch_with_start_revision(_Config) ->
         = eetcd_watch:watch_stream(WatchConn, Message1),
     {ok, [#{created := false, canceled := true,
         events := []}], []} = eetcd_watch:unwatch(Conn1, Timeout),
+
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key),
+
     ok.
 
 %% progress_notify is set so that the etcd server will periodically send a WatchResponse with no events
@@ -245,6 +256,10 @@ watch_with_filters(_Config) ->
         = eetcd_watch:watch_stream(WatchConn, Message1),
     {ok, [#{created := false, canceled := true,
         events := []}], []} = eetcd_watch:unwatch(Conn1, Timeout),
+
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key),
+
     ok.
 
 watch_with_prev_kv(_Config) ->
@@ -321,6 +336,10 @@ watch_with_huge_value(_Config) ->
     {ok, Conn} = watch_loop(List, WatchConn, Key),
     {ok, [#{created := false, canceled := true,
         events := []}], []} = eetcd_watch:unwatch(Conn, 5000),
+
+    %% Clear test keys
+    eetcd_kv:delete(?Name, Key),
+
     ok.
 
 watch_loop([], Conn, _) -> {ok, Conn};

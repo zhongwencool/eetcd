@@ -45,26 +45,26 @@ watch_one_key(_Config) ->
         events := [#{type := 'PUT',
             kv := #{key := Key, value := Value}}]}}
         = eetcd_watch:watch_stream(WatchConn, Message),
-    
+
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value1)),
     Message1 = flush(),
     {ok, Conn1, #{created := false,
         events := [#{type := 'PUT',
             kv := #{key := Key, value := Value1}}]}}
         = eetcd_watch:watch_stream(Conn0, Message1),
-    
+
     eetcd_kv:delete(eetcd_kv:with_key(eetcd_kv:new(?Name), Key)),
     Message2 = flush(),
     {ok, Conn2, #{created := false,
         events := [#{type := 'DELETE',
             kv := #{key := Key, value := <<>>}}]}}
         = eetcd_watch:watch_stream(Conn1, Message2),
-    
+
     {ok, [#{created := false, canceled := true,
         events := []}], []} = eetcd_watch:unwatch(Conn2, Timeout),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value2)),
     {error, timeout} = flush(),
-    
+
     ok.
 
 watch_multi_keys(_Config) ->
@@ -75,14 +75,14 @@ watch_multi_keys(_Config) ->
     Timeout = 3000,
     WatchReq = eetcd_watch:with_range_end(eetcd_watch:with_key(eetcd_watch:new(), Key), "\0"),
     {ok, WatchConn, _WatchId} = eetcd_watch:watch(?Name, WatchReq, Timeout),
-    
+
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value)),
     Message1 = flush(),
     {ok, Conn1, #{created := false,
         events := [#{type := 'PUT',
             kv := #{key := Key, value := Value}}]}}
         = eetcd_watch:watch_stream(WatchConn, Message1),
-    
+
     Key1 = <<Key/binary, "1">>,
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key1), Value1)),
     Message2 = flush(),
@@ -90,23 +90,23 @@ watch_multi_keys(_Config) ->
         events := [#{type := 'PUT',
             kv := #{key := Key1, value := Value1}}]}}
         = eetcd_watch:watch_stream(Conn1, Message2),
-    
+
     Key2 = <<"1", Key/binary>>,
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key2), Value2)),
     {error, timeout} = flush(),
-    
+
     eetcd_kv:delete(?Name, Key1),
     Message3 = flush(),
     {ok, Conn3, #{created := false,
         events := [#{type := 'DELETE',
             kv := #{key := Key1, value := <<>>}}]}}
         = eetcd_watch:watch_stream(Conn2, Message3),
-    
+
     {ok, [#{created := false, canceled := true,
         events := []}], []} = eetcd_watch:unwatch(Conn3, Timeout),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(?Name), Key), Value2)),
     {error, timeout} = flush(),
-    
+
     ok.
 
 %% start_revision is an optional revision to watch from (inclusive). No start_revision is "now".
@@ -117,7 +117,7 @@ watch_with_start_revision(_Config) ->
     Ctx = eetcd_kv:new(?Name),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Value)),
     {ok, #{kvs := [#{mod_revision := Revision}]}} = eetcd_kv:get(eetcd_kv:with_key(Ctx, Key)),
-    
+
     WatchReq = eetcd_watch:with_start_revision(eetcd_watch:with_key(eetcd_watch:new(), Key), Revision),
     {ok, WatchConn, _WatchId} = eetcd_watch:watch(?Name, WatchReq, Timeout),
     Message1 = flush(),
@@ -155,10 +155,10 @@ watch_with_filters(_Config) ->
     Timeout = 3000,
     Ctx = eetcd_kv:new(?Name),
     eetcd_kv:put(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Value)),
-    
+
     WatchReq = eetcd_watch:with_filter_put(eetcd_watch:with_key(eetcd_watch:new(), Key)),
     {ok, WatchConn, _WatchId} = eetcd_watch:watch(?Name, WatchReq, Timeout),
-    
+
     eetcd_kv:delete(eetcd_kv:with_key(Ctx, Key)),
     Message1 = flush(),
     {ok, Conn1, #{created := false,
@@ -178,7 +178,7 @@ watch_with_prev_kv(_Config) ->
     timer:sleep(200),
     WatchReq = eetcd_watch:with_prev_kv(eetcd_watch:with_key(eetcd_watch:new(), Key)),
     {ok, WatchConn, _WatchId} = eetcd_watch:watch(?Name, WatchReq, Timeout),
-    
+
     eetcd_kv:delete(eetcd_kv:with_key(Ctx, Key)),
     Message1 = flush(),
     {ok, Conn1, #{created := false,
@@ -199,12 +199,12 @@ watch_with_watch_id(_Config) ->
     timer:sleep(200),
     WatchReq1 = eetcd_watch:with_key(eetcd_watch:new(), Key),
     {ok, WatchConn1, _WatchId} = eetcd_watch:watch(?Name, WatchReq1, Timeout),
-    
+
     #{watch_ids := WatchIds} = WatchConn1,
     [WatchId] = maps:keys(WatchIds),
     WatchReq2 = eetcd_watch:with_watch_id(eetcd_watch:with_key(eetcd_watch:new(), Key), WatchId),
     {ok, WatchConn2, _WatchId} = eetcd_watch:watch(?Name, WatchReq2, Timeout),
-    
+
     eetcd_kv:delete(?Name, Key),
     Message1 = flush(),
     Message2 = flush(),

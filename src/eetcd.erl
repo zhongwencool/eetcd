@@ -38,6 +38,13 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% The pinned address is maintained until the client connection is closed.
 %% When the client receives an error, it randomly picks another normal endpoint.
 %%
+%% `{auto_sync_interval_ms, Interval}' sets the default `Interval' in milliseconds of auto-sync.
+%% Default is 0, which means no auto-sync. If enabled auto-sync, you can set `auto_sync_interval_ms'
+%% in application env to change the interval. If disabled, the `auto_sync_interval_ms' in application
+%% env will be ignored. With auto-sync enabled, eetcd will automatically sync the cluster member
+%% list via the MemberList API of etcd, and will try to connect any new endpoints if in `connect_all'
+%% mode.
+%%
 %% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
 %%
 %% You can use `eetcd:info/0' to see the internal connection status.

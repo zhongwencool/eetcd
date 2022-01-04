@@ -155,15 +155,17 @@ watch(_Name, CreateReq, #{http2_pid := Gun,
   when is_pid(Gun), is_reference(StreamRef), is_reference(MRef) ->
     watch_reuse_(CreateReq, WatchConn, Timeout);
 watch(Name, CreateReq, undefined, Timeout) ->
-    watch_new_(Name, CreateReq, Timeout).
+    case eetcd_watch_gen:watch(Name) of
+        {ok, Gun, StreamRef} -> watch_new_(CreateReq, Gun, StreamRef, Timeout);
+        {error, _Reason} = E -> E
+    end.
 
 %% Do watch request with a new watch stream.
--spec watch_new_(name(), context(), pos_integer()) ->
+-spec watch_new_(context(), pid(), reference(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, {stream_error | conn_error | http2_down, term()} | timeout}.
-watch_new_(Name, CreateReq, Timeout) ->
+watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
-    {ok, Gun, StreamRef} = eetcd_watch_gen:watch(Name),
     MRef = erlang:monitor(process, Gun),
     eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of

@@ -12,7 +12,7 @@
 -export([watch/1]).
 
 %% @doc Stream RPC 
--spec watch(router_pb:'Etcd.WatchRequest'()) ->
+-spec watch(atom()|reference()) ->
     {ok, GunPid :: pid(), Http2Ref:: reference()}|{error,eetcd:eetcd_error()}.
 watch(Request) ->
     eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>).

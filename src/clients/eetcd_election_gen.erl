@@ -34,7 +34,7 @@ leader(Request) ->
     eetcd_stream:unary(Request, 'Etcd.LeaderRequest', <<"/v3electionpb.Election/Leader">>, 'Etcd.LeaderResponse').
 
 %% @doc Stream RPC 
--spec observe(router_pb:'Etcd.LeaderRequest'()) ->
+-spec observe(atom()|reference()) ->
     {ok, GunPid :: pid(), Http2Ref:: reference()}|{error,eetcd:eetcd_error()}.
 observe(Request) ->
     eetcd_stream:new(Request, <<"/v3electionpb.Election/Observe">>).

@@ -14,14 +14,13 @@ encode(GrpcType, Msg, MsgName) ->
     PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
--spec decode(identity | gzip, binary(), atom()) -> grpc_status().
+-spec decode(identity | gzip, binary(), atom()) -> {ok, map(), binary()} | more.
 decode(Encoding, Frame, PbType) ->
     case decode_(Frame, Encoding) of
         {ok, PbBin, Fragment} ->
             {ok, router_pb:decode_msg(PbBin, PbType), Fragment};
         more -> more
     end.
-
 
 grpc_status(RespHeaders) ->
     GrpcStatus = binary_to_integer(proplists:get_value(<<"grpc-status">>, RespHeaders, <<"0">>)),

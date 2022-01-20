@@ -62,7 +62,7 @@ with_range_end(Context, End) ->
 
 %% @doc Limit the number of results to return from `get' request.
 %% If with_limit is given a 0 limit, it is treated as no limit.
--spec with_limit(context(), iodata()) -> context().
+-spec with_limit(context(), non_neg_integer()) -> context().
 with_limit(Context, End) ->
     maps:put(limit, End, Context).
 

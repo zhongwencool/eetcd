@@ -37,12 +37,12 @@ new(Name, Msg, MsgName, Path) ->
         Err -> Err
     end.
 
--spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, Http2Path) -> Http2Ref when
+-spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, IsFin) -> Http2Ref when
     GunPid :: pid(),
     Http2Ref :: reference(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
-    Http2Path :: iodata().
+    IsFin :: fin | nofin.
 data(Pid, Ref, Msg, MsgName, IsFin) ->
     EncodeBody = eetcd_grpc:encode(identity, Msg, MsgName),
     gun:data(Pid, Ref, IsFin, EncodeBody),

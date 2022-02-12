@@ -16,7 +16,7 @@
 -define(TRY_RECONNECTING, try_reconnecting).
 
 %%% @doc Create context for request.
--spec new(atom()|reference()) -> context().
+-spec new(name()|context()) -> context().
 new(Context) -> eetcd:new(Context).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
@@ -34,7 +34,7 @@ grant(Context, TTL) ->
     eetcd_lease_gen:lease_grant(C2).
 
 %% @doc Revoke revokes the given lease.
--spec revoke(context(), pos_integer()) ->
+-spec revoke(name()|context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 revoke(Context, LeaseID) ->
     C1 = new(Context),

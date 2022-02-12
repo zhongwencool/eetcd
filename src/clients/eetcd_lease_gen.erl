@@ -28,7 +28,7 @@ lease_revoke(Request) ->
     eetcd_stream:unary(Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse').
 
 %% @doc Stream RPC 
--spec lease_keep_alive(router_pb:'Etcd.LeaseKeepAliveRequest'()) ->
+-spec lease_keep_alive(atom()|reference()) ->
     {ok, GunPid :: pid(), Http2Ref:: reference()}|{error,eetcd:eetcd_error()}.
 lease_keep_alive(Request) ->
     eetcd_stream:new(Request, <<"/etcdserverpb.Lease/LeaseKeepAlive">>).

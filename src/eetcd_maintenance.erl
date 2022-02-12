@@ -5,7 +5,7 @@
 -export([defragment/3, status/3, hash_kv/4, move_leader/2]).
 
 %%% @doc AlarmList gets all active alarms.
--spec alarm_list(context()) ->
+-spec alarm_list(name()|context()) ->
     {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
 alarm_list(ConnName) ->
     C1 = eetcd:new(ConnName),
@@ -15,7 +15,7 @@ alarm_list(ConnName) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarm disarms a given alarm.
--spec alarm_disarm(context(), integer(), integer()) ->
+-spec alarm_disarm(name()|context(), integer(), integer()) ->
     {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
 alarm_disarm(Context, MemberId, Alarm) ->
     C1 = eetcd:new(Context),
@@ -25,14 +25,21 @@ alarm_disarm(Context, MemberId, Alarm) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarmAll disarms all alarm.
--spec alarm_disarm_all(context()) ->
-    {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
+-spec alarm_disarm_all(name()|context()) ->
+    router_pb:'Etcd.AlarmResponse'().
 alarm_disarm_all(ConnName) ->
     {ok, Acc0 = #{alarms := List}} = alarm_list(ConnName),
-    lists:foldl(fun(#{memberID := Id, alarm := Alarm}, Acc) ->
-        #{alarm := Old} = Acc,
-        {ok, A = #{alarm := L}} = alarm_disarm(ConnName, Id, Alarm),
-        A#{alarm => L ++ Old} end, Acc0#{alarm => []}, List).
+    lists:foldl(
+      fun(#{memberID := Id, alarm := Alarm}, Acc) ->
+              #{alarms := Old} = Acc,
+              case alarm_disarm(ConnName, Id, Alarm) of
+                  {ok, #{alarms := L}} ->
+                      Acc#{alarms => L ++ Old};
+                  {error, Reason} ->
+                      ?LOG_ERROR("~p disarm ~p failed by ~p ", [ConnName, Alarm, Reason]),
+                      Acc
+              end
+      end, Acc0#{alarms => []}, List).
 
 %%% @doc Defragment releases wasted space from internal fragmentation on a given etcd member.
 %%% Defragment is only needed when deleting a large number of keys and want to reclaim the resources.

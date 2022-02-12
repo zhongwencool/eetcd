@@ -12,7 +12,7 @@
 -type campaign_ctx() :: #{campaign => map()|'waiting_campaign_response', http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.
 
 %%% @doc Creates a blank context for a request.
--spec new(atom()|reference()) -> context().
+-spec new(name()|context()) -> context().
 new(Ctx) -> eetcd:new(Ctx).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
@@ -163,7 +163,7 @@ campaign_response(CCtx, Msg) ->
 proclaim(Ctx) ->
     eetcd_election_gen:proclaim(Ctx).
 
--spec proclaim(Ctx :: context()|name(), Leader :: map(), Value :: binary()) ->
+-spec proclaim(Ctx :: context()|name(), Leader :: binary(), Value :: binary()) ->
     {ok, router_pb:'Etcd.ProclaimResponse'()} | {error, eetcd_error()}.
 proclaim(Ctx, Leader, Val) ->
     Ctx1 = new(Ctx),

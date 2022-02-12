@@ -88,7 +88,7 @@ info() ->
     ok.
 
 %%% @doc Create context for request.
--spec new(atom()|reference()) -> context().
+-spec new(atom()|reference()|context()) -> context().
 new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) -> #{eetcd_conn_name => ConnName};
 new(Context) when is_map(Context) -> Context.
 

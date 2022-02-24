@@ -30,6 +30,7 @@ init([]) ->
     SupFlags = #{strategy => one_for_one, intensity => 1000, period => 10},
     Http2Sup = eetcd_conn_sup,
     LeaserSup = eetcd_lease_sup,
+    Watcher = eetcd_watcher,
     ChildSpecs = [
         #{id => Http2Sup,
             start => {Http2Sup, start_link, []},
@@ -42,6 +43,12 @@ init([]) ->
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [LeaserSup]}
+            modules => [LeaserSup]},
+        #{id => Watcher,
+            start => {eetcd_watcher, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [Watcher]}
     ],
     {ok, {SupFlags, ChildSpecs}}.

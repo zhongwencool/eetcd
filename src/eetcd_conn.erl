@@ -92,8 +92,10 @@ flush_token(Gun, Headers) ->
 init({Name, Hosts, Options, Transport, TransportOpts}) ->
     erlang:process_flag(trap_exit, true),
     GunOpts = #{protocols => [http2],
+        connect_timeout => proplists:get_value(connect_timeout, Options, 1000),
         http2_opts => #{keepalive => 45000},
-        retry => 0,
+        retry => proplists:get_value(retry, Options, 0),
+        retry_timeout => proplists:get_value(retry_timeout, Options, 5000),
         transport => Transport,
         transport_opts => TransportOpts
     },
@@ -228,7 +230,11 @@ fold_connect([Host | Hosts], Name, GunOpts, Auth, Ok, Fail) ->
 
 connect(Name, {IP, Port}, GunOpts, Auth) ->
     {ok, Gun} = gun:open(IP, Port, GunOpts),
-    case gun:await_up(Gun, 1000) of
+    Retries = proplists:get_value(retry, GunOpts),
+    ConnectTimeout = proplists:get_value(connect_timeout, GunOpts),
+    RetryTimeout = proplists:get_value(retry_timeout, GunOpts),
+    AwaitTime = (Retries + 1) * ConnectTimeout + Retries * RetryTimeout,
+    case gun:await_up(Gun, AwaitTime) of
         {ok, http2} ->
             case check_health_remote(Gun) of
                 ok ->
@@ -590,4 +596,3 @@ put_in_authenticate(Data, Options) ->
 shuffle(List) ->
     Disorders = [begin {rand:uniform(), K} end||K <-List],
     [begin K end||{_, K} <- lists:keysort(1, Disorders)].
-

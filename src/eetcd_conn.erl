@@ -230,9 +230,9 @@ fold_connect([Host | Hosts], Name, GunOpts, Auth, Ok, Fail) ->
 
 connect(Name, {IP, Port}, GunOpts, Auth) ->
     {ok, Gun} = gun:open(IP, Port, GunOpts),
-    Retries = proplists:get_value(retry, GunOpts),
-    ConnectTimeout = proplists:get_value(connect_timeout, GunOpts),
-    RetryTimeout = proplists:get_value(retry_timeout, GunOpts),
+    Retries = maps:get(retry, GunOpts),
+    ConnectTimeout = maps:get(connect_timeout, GunOpts),
+    RetryTimeout = maps:get(retry_timeout, GunOpts),
     AwaitTime = (Retries + 1) * ConnectTimeout + Retries * RetryTimeout,
     case gun:await_up(Gun, AwaitTime) of
         {ok, http2} ->

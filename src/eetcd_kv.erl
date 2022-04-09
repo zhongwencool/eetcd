@@ -168,7 +168,7 @@ with_top(Context, SortTarget, SortOrder) ->
 with_prev_kv(Context) ->
     maps:put(prev_kv, true, Context).
 
-%% @doc Attache a lease ID to a key in `put' request.
+%% @doc Attach a lease ID to a key in `put' request.
 -spec with_lease(context(), integer()) -> context().
 with_lease(Context, Id) when is_integer(Id) ->
     maps:put(lease, Id, Context).

@@ -38,6 +38,10 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% The pinned address is maintained until the client connection is closed.
 %% When the client receives an error, it randomly picks another normal endpoint.
 %%
+%% `{connect_timeout, Interval}' is the connection timeout. Defaults to one second (1000).
+%% `{retry, Attempts}' is the number of times it will try to reconnect on failure before giving up. Defaults to zero (disabled).
+%% `{retry_timeout, Interval}' is the time between retries in milliseconds.
+%%
 %% `{auto_sync_interval_ms, Interval}' sets the default `Interval' in milliseconds of auto-sync.
 %% Default is 0, which means no auto-sync. If enabled auto-sync, you can set `auto_sync_interval_ms'
 %% in application env to change the interval. If disabled, the `auto_sync_interval_ms' in application
@@ -50,7 +54,14 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% You can use `eetcd:info/0' to see the internal connection status.
 -spec open(name(),
     [string()],
-    [{mode, connect_all|random} |{name, string()} | {password, string()}],
+    [
+      {mode, connect_all | random}
+      | {name, string()}
+      | {password, string()}
+      | {retry, non_neg_integer()}
+      | {retry_timeout, pos_integer()}
+      | {connect_timeout, timeout()}
+    ],
     tcp | tls | ssl,
     [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
     {ok, pid()} | {error, any()}.

@@ -173,7 +173,7 @@ handle_info({gun_error, Gun, _Reason}, State = #{gun := Gun}) ->
     reconnect(State);
 
 handle_info(Info, State) ->
-    ?LOG_ERROR("Leaser({~p,~p}) receive unknow msg ~p~n state~p~n",
+    ?LOG_ERROR("Leaser({~p,~p}) receive unknown msg ~p~n state~p~n",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 

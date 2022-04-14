@@ -138,7 +138,7 @@ handle_event(EventType, reconnecting, _StateName, Data)
     when EventType =:= internal orelse EventType =:= info ->
     reconnect_conns(Data);
 handle_event(info, ?check_health, _StateName, Data) ->
-    {keep_state, do_check_health(Data)};
+    do_check_health(Data);
 handle_event(info, ?auto_sync, _StateName, Data) ->
     handle_do_sync(Data);
 handle_event(internal, ?ready, ?ready, #{name := Name}) ->
@@ -384,9 +384,16 @@ next_sync(_Data) ->
 
 do_check_health(Data = #{mode := Mode, health_ref := HealthRef}) ->
     erlang:cancel_timer(HealthRef),
-    NewData = do_check_health(Mode, Data),
+    NewData0 = do_check_health(Mode, Data),
     NewHealthRef = next_check_health(),
-    NewData#{health_ref => NewHealthRef}.
+    NewData = NewData0#{health_ref => NewHealthRef},
+    case NewData of
+        #{active_conns := [], member_list := Members} ->
+            NewMembers = [{lists:flatten(io_lib:format("~s:~p", [Host, Port])), ?MIN_RECONN} || {Host, Port} <- Members],
+            reconnect_conns(NewData#{freeze_conns => NewMembers});
+        _ ->
+            {keep_state, NewData}
+    end.
 
 do_check_health(connect_all, Data) ->
     #{
@@ -522,19 +529,38 @@ do_sync_memberlist(#{name := Name,
             %% Remove removed_endpoints from freeze_conns
             NewFreezes = [ {H, ?MIN_RECONN} || H <- (ClientUrls -- A)],
 
-            case RemovedEndpoints of
-                [] -> ok;
-                _ ->
-                    ?LOG_NOTICE(#{msg => "Got removed endpoints",
-                                  removed_endpoints => RemovedEndpoints})
+            NewData =
+                case RemovedEndpoints of
+                    [] ->
+                        Data;
+                    _ ->
+                        ?LOG_NOTICE(#{
+                            msg => "Got removed endpoints",
+                            removed_endpoints => RemovedEndpoints
+                        }),
+
+                        lists:foldl(
+                            fun(HostPort, Data1) ->
+                                case lists:keytake(HostPort, 1, ActiveConns) of
+                                    {value, {Endpoint, Gun, _}, NewActives} ->
+                                        ets:delete(?ETCD_CONNS, {Endpoint, Name}),
+                                        gun:close(Gun),
+                                        Data1#{active_conns => NewActives};
+                                    false ->
+                                        Data1
+                                end
+                            end,
+                            Data,
+                            RemovedEndpoints
+                        )
             end,
 
             case NewEndpoints of
                 [] ->
-                    Data#{member_list => ClientUrls};
+                    NewData#{member_list => ClientUrls};
                 _ ->
                     ?LOG_NOTICE(#{msg => "Got new endpoints", new_endpoints => NewEndpoints}),
-                    Data#{freeze_conns => NewFreezes, member_list => ClientUrls}
+                    NewData#{freeze_conns => NewFreezes, member_list => ClientUrls}
             end;
         {error, Reason} ->
             ?LOG_ERROR("~p get member_list failed by ~p ", [Name, Reason]),

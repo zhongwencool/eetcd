@@ -145,7 +145,7 @@ handle_event(internal, ?ready, ?ready, #{name := Name}) ->
     ?LOG_INFO("ETCD(~p, ~p)'s connections are ready.", [Name, self()]),
     keep_state_and_data;
 handle_event(EventType, EventContent, StateName, Data) ->
-    ?LOG_ERROR("~p: unknow event ~p ~p ~p ~n",
+    ?LOG_ERROR("~p: unknown event ~p ~p ~p ~n",
         [{?MODULE, self()}, {EventType, EventContent}, StateName, Data]),
     keep_state_and_data.
 

@@ -111,9 +111,9 @@ leader_change_event(Leader) ->
     "Todo".
 
 observe_unexpected_error(Reason) ->
-    logger:info("observe unexpect error:~p", [Reason]),
+    logger:info("observe unexpected error:~p", [Reason]),
     "Todo: try to reobserve after some sleep.".
 
 handle_info_your_own_msg(Msg, State) ->
-    logger:info("hanle info your own msg:~p ~p", [Msg, State]),
+    logger:info("handle info your own msg:~p ~p", [Msg, State]),
     "Todo".

@@ -222,26 +222,31 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
 
         %% Response for the watch request with the existed/re-used watch stream.
         {data, nofin, Body} ->
-            {ok,
-                #{
-                    created := true,
-                    canceled := false,
-                    compact_revision := CompactRev,
-                    header := #{revision := Rev},
-                    watch_id := WatchId
-                }, <<>>}
-                = eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse'),
-            {ok,
-                WatchConn#{
-                    http2_pid => Gun,
-                    monitor_ref => MRef,
-                    stream_ref => StreamRef,
-                    watch_ids => Ids#{ WatchId => #{ revision => Rev,
-                                                     compact_revision => CompactRev}},
-                    unprocessed => <<>>
-                },
-                WatchId
-            };
+            case eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse') of
+                {ok,
+                    #{
+                        created := true,
+                        canceled := false,
+                        compact_revision := CompactRev,
+                        header := #{revision := Rev},
+                        watch_id := WatchId
+                    }, <<>>} ->
+                    {ok,
+                        WatchConn#{
+                            http2_pid => Gun,
+                            monitor_ref => MRef,
+                            stream_ref => StreamRef,
+                            watch_ids => Ids#{ WatchId => #{ revision => Rev,
+                                                             compact_revision => CompactRev}},
+                            unprocessed => <<>>
+                        },
+                        WatchId
+                    };
+
+                {ok, #{created := false} = ReceivedMessage, _} ->
+                    {error, {stream_error, ReceivedMessage}}
+            end;
+
         {error, _} = Err2 ->
             erlang:demonitor(MRef, [flush]),
             Err2

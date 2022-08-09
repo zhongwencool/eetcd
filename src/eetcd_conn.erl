@@ -416,7 +416,9 @@ do_check_health(connect_all, Data) ->
                     {Health, [{Host, ?MIN_RECONN} | Freeze]}
             end
           end, {[], Freezes}, Actives),
-        NewFreezes1 = [{H1, P1} || {H1, P1} <- NewFreezes, {H2, P2} <- Members, H1 =:= H2, P1 =:= P2],
+        NewFreezes1 = [{{H1, P1}, RECONN} || {{H1, P1}, RECONN} <- NewFreezes,
+                                             {H2, P2} <- Members,
+                                             H1 =:= H2, P1 =:= P2],
     Data#{active_conns => NewActives, freeze_conns => NewFreezes1};
 do_check_health(random, Data) ->
     #{name := Name, active_conns := ActiveConns} = Data,

@@ -2,7 +2,7 @@
 -include("eetcd.hrl").
 %% API
 -export([alarm_list/1, alarm_disarm/3, alarm_disarm_all/1]).
--export([defragment/3, status/3, hash_kv/4, move_leader/2]).
+-export([defragment/4, status/4, hash_kv/5, move_leader/2]).
 
 %%% @doc AlarmList gets all active alarms.
 -spec alarm_list(name()|context()) ->
@@ -46,30 +46,30 @@ alarm_disarm_all(ConnName) ->
 %%% Defragment is an expensive operation. User should avoid defragmenting multiple members at the same time.
 %%% To defragment multiple members in the cluster, user need to call defragment multiple
 %%% times with different endpoints.
--spec defragment(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+-spec defragment(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()], [ssl:tls_client_option()]) ->
     {ok,router_pb:'Etcd.DefragmentResponse'()}|{error,eetcd_error()}.
-defragment(Endpoint, Transport, TransportOpts) ->
+defragment(Endpoint, Transport, TcpOpts, TlsOpts) ->
     Fun = fun(Conn) -> eetcd_maintenance_gen:defragment(eetcd:new(Conn)) end,
-    dial(Endpoint, Transport, TransportOpts, Fun).
+    dial(Endpoint, Transport, TcpOpts, TlsOpts, Fun).
 
 %%% @doc Status gets the status of the endpoint.
--spec status(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+-spec status(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()], [ssl:tls_client_option()]) ->
     {ok,router_pb:'Etcd.StatusResponse'()}|{error,eetcd_error()}.
-status(Endpoint, Transport, TransportOpts) ->
+status(Endpoint, Transport, TcpOpts, TlsOpts) ->
     Fun = fun(Conn) -> eetcd_maintenance_gen:status(eetcd:new(Conn)) end,
-    dial(Endpoint, Transport, TransportOpts, Fun).
+    dial(Endpoint, Transport, TcpOpts, TlsOpts, Fun).
 
 %%% @doc HashKV returns a hash of the KV state at the time of the RPC.
 %%% If revision is zero, the hash is computed on all keys. If the revision
 %%% is non-zero, the hash is computed on all keys at or below the given revision.
--spec hash_kv(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()] | [ssl:connect_option()], pos_integer()) ->
+-spec hash_kv(iodata(), tcp | tls | ssl, [gen_tcp:connect_option()], [ssl:tls_client_option()], pos_integer()) ->
     {ok,router_pb:'Etcd.HashKVResponse'()}|{error,eetcd_error()}.
-hash_kv(Endpoint, Transport, TransportOpts, Rev) ->
+hash_kv(Endpoint, Transport, TcpOpts, TlsOpts, Rev) ->
     Fun = fun(Conn) ->
         Context = maps:put(revision, Rev, eetcd:new(Conn)),
         eetcd_maintenance_gen:hash_kv(Context)
           end,
-    dial(Endpoint, Transport, TransportOpts, Fun).
+    dial(Endpoint, Transport, TcpOpts, TlsOpts, Fun).
 
 %%% Snapshot provides a reader for a point-in-time snapshot of etcd.
 %%% If the context "ctx" is canceled or timed out, reading from returned
@@ -89,10 +89,10 @@ move_leader(Context, TargetID) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-dial(Endpoint, Transport, TransportOpts, Fun) ->
+dial(Endpoint, Transport, TcpOpts, TlsOpts, Fun) ->
     Conn = make_ref(),
     try
-        case eetcd:open(Conn, [Endpoint], Transport, TransportOpts) of
+        case eetcd:open(Conn, [Endpoint], Transport, TcpOpts, TlsOpts) of
             {ok, _Pid} -> Fun(Conn);
             Err ->
                 Err

@@ -89,15 +89,18 @@ flush_token(Gun, Headers) ->
 %%%===================================================================
 %%% gen_statem callbacks
 %%%===================================================================
-init({Name, Hosts, Options, Transport, TransportOpts}) ->
+init({Name, Hosts, Options, Transport, TcpOpts, TlsOpts}) ->
     erlang:process_flag(trap_exit, true),
     GunOpts = #{protocols => [http2],
         connect_timeout => proplists:get_value(connect_timeout, Options, 1000),
+        domain_lookup_timeout => proplists:get_value(domain_lookup_timeout, Options, 1000),
+        tls_handshake_timeout => proplists:get_value(tls_handshake_timeout, Options, 3000),
         http2_opts => #{keepalive => 45000},
         retry => proplists:get_value(retry, Options, 0),
         retry_timeout => proplists:get_value(retry_timeout, Options, 5000),
         transport => Transport,
-        transport_opts => TransportOpts
+        tcp_opts => TcpOpts,
+        tls_opts => TlsOpts
     },
     AutoSyncInterval = proplists:get_value(auto_sync_interval_ms, Options, 0),
     Data0 = #{

@@ -1,7 +1,7 @@
 -module(eetcd).
 -include("eetcd.hrl").
 %% API
--export([open/2, open/4, open/5, close/1]).
+-export([open/2, open/5, open/6, close/1]).
 -export([info/0]).
 -export([new/1, with_timeout/2]).
 -export([get_prefix_range_end/1]).
@@ -11,16 +11,17 @@
 %% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
 -spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
 open(Name, Hosts) ->
-    open(Name, Hosts, [], tcp, []).
+    open(Name, Hosts, [], tcp, [], []).
 
 %% @doc Connects to a etcd server.
 -spec open(name(),
     [string()],
     tcp | tls | ssl,
-    [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+    [gen_tcp:connect_option()],
+    [ssl:tls_client_option()]) ->
     {ok, pid()} | {error, any()}.
-open(Name, Hosts, Transport, TransportOpts) ->
-    open(Name, Hosts, [], Transport, TransportOpts).
+open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
+    open(Name, Hosts, [], Transport, TcpOpts, TlsOpts).
 
 %% @doc Connects to a etcd server.
 %% ssl:connect_option() see all options in ssl_api.hrl
@@ -39,6 +40,8 @@ open(Name, Hosts, Transport, TransportOpts) ->
 %% When the client receives an error, it randomly picks another normal endpoint.
 %%
 %% `{connect_timeout, Interval}' is the connection timeout. Defaults to one second (1000).
+%% `{domain_lookup_timeout, Interval}' is the domain_lookup_timeout timeout. Defaults to one second (1000).
+%% `{tls_handshake_timeout, Interval}' is the tls_handshake_timeout timeout. Defaults to one second (3000).
 %% `{retry, Attempts}' is the number of times it will try to reconnect on failure before giving up. Defaults to zero (disabled).
 %% `{retry_timeout, Interval}' is the time between retries in milliseconds.
 %%
@@ -63,11 +66,12 @@ open(Name, Hosts, Transport, TransportOpts) ->
       | {connect_timeout, timeout()}
     ],
     tcp | tls | ssl,
-    [gen_tcp:connect_option()] | [ssl:connect_option()]) ->
+    [gen_tcp:connect_option()],
+    [ssl:tls_client_option()]) ->
     {ok, pid()} | {error, any()}.
-open(Name, Hosts, Options, Transport, TransportOpts) ->
+open(Name, Hosts, Options, Transport, TcpOpts, TlsOpts) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    eetcd_conn_sup:start_child([{Name, Cluster, Options, Transport, TransportOpts}]).
+    eetcd_conn_sup:start_child([{Name, Cluster, Options, Transport, TcpOpts, TlsOpts}]).
 
 %% @doc close connections with etcd server.
 -spec close(name()) -> ok | {error, eetcd_conn_unavailable}.

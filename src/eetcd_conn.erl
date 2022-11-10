@@ -119,10 +119,14 @@ init({Name, Hosts, Options}) ->
         random ->
             AutoSyncInterval > 0 andalso
             ?LOG_WARNING("~s run under random mode, disabled auto_sync member list", [Name]),
-            Length = erlang:length(Hosts),
-            Data1 = Data#{endpoints => shuffle(Hosts), mode => random},
-            Index = rand:uniform(Length),
-            connect_one(Index, 2 * Length, Data1, Length)
+            case erlang:length(Hosts) of
+                Length when Length >= 1 ->
+                    Data1 = Data#{endpoints => shuffle(Hosts), mode => random},
+                    Index = rand:uniform(Length),
+                    connect_one(Index, 2 * Length, Data1, Length);
+                _ ->
+                    {stop, eetcd_conn_unavailable}
+            end
     end.
 
 callback_mode() -> [handle_event_function].
@@ -458,6 +462,31 @@ handle_do_sync(Data = #{sync_ref := SyncRef}) ->
             reconnect_conns(NewData1)
     end.
 
+filtermap_url(Url, Transport) ->
+    ParseResult = uri_string:parse(Url),
+    do_filtermap_url(ParseResult, Transport, Url).
+
+do_filtermap_url(#{host := Host, port := Port, scheme := Scheme}, Transport, Url)
+  when erlang:is_binary(Host) ->
+    case {erlang:bit_size(Host) > 0, Scheme, Transport} of
+        {true, <<"http">>, tcp} ->
+            {true, {erlang:binary_to_list(Host), Port}};
+        {true, <<"https">>, tls} ->
+            {true, {erlang:binary_to_list(Host), Port}};
+        {true, <<"https">>, ssl} ->
+            {true, {erlang:binary_to_list(Host), Port}};
+        _ ->
+            %% Note: because of the design of eetcd_conn, we need
+            %% the member lists' URL use the same transport
+            %% options to the active connections.
+            ?LOG_WARNING("Not matched schemes from member list ~s",
+                         [Url]),
+            false
+    end;
+do_filtermap_url(_, _, Url) ->
+    ?LOG_WARNING("Url ~s from member list is not a valid etcd url", [Url]),
+    false.
+
 do_sync_memberlist(#{mode := random} = Data) ->
     Data;
 do_sync_memberlist(#{active_conns := [], name := Name} = Data) ->
@@ -491,31 +520,7 @@ do_sync_memberlist(#{name := Name,
             ClientUrls1 = lists:flatten(ClientUrls0),
 
             ClientUrls2 = lists:filtermap(
-                           fun(Url) ->
-                               case uri_string:parse(Url) of
-                                   #{host := Host, port := Port, scheme := Scheme}
-                                     when erlang:bit_size(Host) > 0 ->
-                                       case {Scheme, Transport} of
-                                           {<<"http">>, tcp} ->
-                                               {true, {erlang:binary_to_list(Host), Port}};
-                                           {<<"https">>, tls} ->
-                                               {true, {erlang:binary_to_list(Host), Port}};
-                                           {<<"https">>, ssl} ->
-                                               {true, {erlang:binary_to_list(Host), Port}};
-                                           _ ->
-                                               %% Note: because of the design of eetcd_conn, we need
-                                               %% the member lists' URL use the same transport
-                                               %% options to the active connections.
-                                               ?LOG_WARNING("Not matched schemes from member list ~s",
-                                                            [Url]),
-                                               false
-                                       end;
-                                   _I ->
-                                       ?LOG_WARNING("Url ~s from member list is not a valid etcd url",
-                                                    [Url]),
-                                       false
-                               end
-                           end, ClientUrls1),
+                           fun(Url) -> filtermap_url(Url, Transport) end, ClientUrls1),
 
             ClientUrls = lists:usort(ClientUrls2),
 

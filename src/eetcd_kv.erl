@@ -21,8 +21,9 @@
 ]).
 
 %%% @doc Create context for request.
--spec new(atom()|reference()) -> context().
+-spec new(new_context()) -> context().
 new(Context) -> eetcd:new(Context).
+
 -spec new() -> context().
 new() -> #{}.
 
@@ -62,12 +63,12 @@ with_range_end(Context, End) ->
 
 %% @doc Limit the number of results to return from `get' request.
 %% If with_limit is given a 0 limit, it is treated as no limit.
--spec with_limit(context(), non_neg_integer()) -> context().
+-spec with_limit(context(), integer()) -> context().
 with_limit(Context, End) ->
     maps:put(limit, End, Context).
 
 %% @doc Specifies the store revision for `get' request.
--spec with_rev(context(), pos_integer()) -> context().
+-spec with_rev(context(), integer()) -> context().
 with_rev(Context, Rev) ->
     maps:put(revision, Rev, Context).
 
@@ -219,7 +220,7 @@ with_physical(Context) ->
 put(Context) -> eetcd_kv_gen:put(Context).
 
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
--spec put(name()|context(), key(), value()) ->
+-spec put(new_context(), key(), value()) ->
     {ok, router_pb:'Etcd.PutResponse'()}|{error, eetcd_error()}.
 put(Context, Key, Value) ->
     C1 = new(Context),
@@ -269,8 +270,9 @@ put(Context, Key, Value) ->
 -spec get(context()) ->
     {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
 get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
+
 %%% @doc Get retrieves keys with options.
--spec get(context()|name(), key()) ->
+-spec get(new_context(), key()) ->
     {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
 get(Context, Key) ->
     C0 = new(Context),
@@ -299,7 +301,7 @@ get(Context, Key) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
 delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
--spec delete(name()|context(), key()) ->
+-spec delete(new_context(), key()) ->
     {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
 delete(Context, Key) ->
     C0 = new(Context),
@@ -327,7 +329,7 @@ delete(Context, Key) ->
     {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
 compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
--spec compact(name()|context(), integer()) ->
+-spec compact(new_context(), integer()) ->
     {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
 compact(Context, Revision) ->
     C0 = new(Context),
@@ -357,7 +359,7 @@ compact(Context, Revision) ->
 %%% {@link eetcd_op:put/1} {@link eetcd_op:get/1}
 %%% {@link eetcd_op:delete/1} {@link eetcd_op:txn/1}
 %%% @end
--spec txn(name()|context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
+-spec txn(new_context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
     {ok, router_pb:'Etcd.TxnResponse'()}|{error, eetcd_error()}.
 txn(Context, If, Then, Else) ->
     C1 = new(Context),

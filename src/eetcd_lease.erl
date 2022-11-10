@@ -16,7 +16,7 @@
 -define(TRY_RECONNECTING, try_reconnecting).
 
 %%% @doc Create context for request.
--spec new(name()|context()) -> context().
+-spec new(new_context()) -> context().
 new(Context) -> eetcd:new(Context).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
@@ -26,7 +26,7 @@ new(Context) -> eetcd:new(Context).
 with_timeout(Context, Timeout) -> eetcd:with_timeout(Context, Timeout).
 
 %% @doc Grant creates a new lease with the provided TTL in seconds.
--spec grant(context(), pos_integer()) ->
+-spec grant(new_context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 grant(Context, TTL) ->
     C1 = new(Context),
@@ -34,7 +34,7 @@ grant(Context, TTL) ->
     eetcd_lease_gen:lease_grant(C2).
 
 %% @doc Revoke revokes the given lease.
--spec revoke(name()|context(), pos_integer()) ->
+-spec revoke(new_context(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
 revoke(Context, LeaseID) ->
     C1 = new(Context),
@@ -43,21 +43,21 @@ revoke(Context, LeaseID) ->
 
 %% @doc TimeToLive retrieves the lease information of the given lease ID.
 %% The 3rd argument is a option of `NeedAttachedKeys'.
--spec time_to_live(context(), pos_integer(), boolean()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
+-spec time_to_live(new_context(), pos_integer(), boolean()) ->
+    {ok, router_pb:'Etcd.LeaseTimeToLiveResponse'()}|{error, eetcd_error()}.
 time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
     C1 = new(Context),
     C2 = maps:put('ID', LeaseID, C1),
     C3 = maps:put(keys, WithKeys, C2),
     case eetcd_lease_gen:lease_time_to_live(C3) of
         {ok, #{'TTL' := TTL}} when TTL =< 0 ->
-            {error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}};
+            {error, {grpc_error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}}};
         {ok, _Reps} = Status -> Status;
         {error, _Reason} = Err -> Err
     end.
 
 %% @doc Leases retrieves all leases.
--spec leases(context()) ->
+-spec leases(new_context()) ->
     {ok, router_pb:'Etcd.LeaseLeasesResponse'()}|{error, eetcd_error()}.
 leases(ConnName) ->
     C1 = new(ConnName),
@@ -106,7 +106,12 @@ close() ->
         end, 0,
         supervisor:which_children(eetcd_lease_sup)).
 
--spec start_link(pid(), name(), integer()) -> {ok, pid()}.
+-spec start_link(pid(), name(), integer()) -> Result
+      when Result :: {ok, Pid} | ignore | {error, Error},
+           Pid :: pid(),
+           Error :: {already_started, Pid} | term().
+%% The gen_server:start_ret() return type was introduced since OTP 25,
+%% but for backward compatibility, we still use the old return type.
 start_link(Caller, Name, LeaseID) ->
     gen_server:start_link(?MODULE, [Caller, Name, LeaseID], []).
 

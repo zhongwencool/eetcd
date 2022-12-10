@@ -150,12 +150,12 @@ campaign_async(_Config) ->
     {ok, Campaign2} = eetcd_election_leader_example:get_campaign(Pid2),
     ?assertMatch(#{campaign := #{name := LeaderKey}}, Campaign1),
     ?assertMatch(#{campaign := 'waiting_campaign_response'}, Campaign2),
-    
+
     true = eetcd_election_leader_example:resign(Pid1),
     timer:sleep(500),
     {ok, Campaign3} = eetcd_election_leader_example:get_campaign(Pid2),
     ?assertMatch(#{campaign := #{name := LeaderKey}}, Campaign3),
-    
+
     eetcd_election_leader_example:stop(Pid1),
     eetcd_election_leader_example:stop(Pid2),
     ok.
@@ -174,4 +174,4 @@ new_lease(Sec) ->
     {ok, #{'ID' := Id}} = eetcd_lease:grant(?Name, Sec),
     {ok, _Pid} = eetcd_lease:keep_alive(?Name, Id),
     Id.
-    
+

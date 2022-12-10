@@ -16,10 +16,10 @@
     stream_ref => gun:stream_ref()
 }.
 -type campaign_ctx() :: #{
-    campaign => leader_key() | waiting_campaign_response,
-    http2_pid => pid() | undefined,
-    monitor_ref => reference() | undefined,
-    stream_ref => gun:stream_ref() | undefined
+    campaign := leader_key() | waiting_campaign_response,
+    http2_pid => pid(),
+    monitor_ref => reference(),
+    stream_ref => gun:stream_ref()
 }.
 
 %%% @doc Creates a blank context for a request.
@@ -135,19 +135,18 @@ campaign_request(ConnName, Name, LeaseId, Value) ->
 -spec campaign_response(campaign_ctx(), term()) ->
     unknown|{ok, campaign_ctx()} | {error, eetcd_error()}.
 %%% @doc handle campaign async response `Etcd.CampaignResponse'.
-campaign_response(#{monitor_ref := undefined} = _CCtx, _Msg) -> unknown;
-campaign_response(#{monitor_ref := MRef} = CCtx, Msg) ->
+campaign_response(CCtx, Msg) ->
     case resp_stream(CCtx, Msg) of
         {ok, Bin} ->
-            erlang:demonitor(MRef, [flush]),
+            case maps:get(monitor_ref, CCtx, undefined) of
+                MRef when is_reference(MRef) ->
+                    erlang:demonitor(MRef, [flush]);
+                _ ->
+                    ok
+            end,
             {ok, #{leader := Leader}, <<>>}
                 = eetcd_grpc:decode(identity, Bin, 'Etcd.CampaignResponse'),
-            {ok, #{
-                campaign => Leader,
-                http2_pid => undefined,
-                monitor_ref => undefined,
-                stream_ref => undefined
-            }};
+            {ok, #{campaign => Leader}};
         Other -> Other
     end.
 

@@ -82,12 +82,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
     Res =
         case await(Pid, StreamRef, Timeout, MRef) of
             {response, nofin, 200, _Headers} ->
-                case await_body(Pid, StreamRef, Timeout, MRef) of
-                    {ok, ResBody, _Trailers} ->
-                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
-                        {ok, Resp};
-                    {error, _} = Error1 -> Error1
-                end;
+                await_body(Pid, StreamRef, Timeout, MRef, ResponseType);
             {response, fin, 200, RespHeaders} ->
                 case eetcd_grpc:grpc_status(RespHeaders) of
                     #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
@@ -96,12 +91,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                         StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->
-                                case await_body(Pid, StreamRef1, Timeout, MRef) of
-                                    {ok, ResBody, _Trailers} ->
-                                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
-                                        {ok, Resp};
-                                    {error, _} = Error1 -> Error1
-                                end;
+                                await_body(Pid, StreamRef1, Timeout, MRef, ResponseType);
                             {response, fin, 200, RespHeaders} ->
                                 {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}}
                         end;
@@ -141,8 +131,13 @@ await(ServerPid, StreamRef, Timeout, MRef) ->
             await(ServerPid, StreamRef, Timeout, MRef)
     end.
 
-await_body(ServerPid, StreamRef, Timeout, MRef) ->
-    transfer_error(gun:await_body(ServerPid, StreamRef, Timeout, MRef)).
+await_body(ServerPid, StreamRef, Timeout, MRef, ResponseType) ->
+    case transfer_error(gun:await_body(ServerPid, StreamRef, Timeout, MRef)) of
+        {ok, ResBody, _Trailers} ->
+            {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
+            {ok, Resp};
+        {error, _} = Error -> Error
+    end.
 
 transfer_error({error, {stream_error, Reason}}) ->
     {error, {gun_stream_error, Reason}};

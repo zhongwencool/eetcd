@@ -48,10 +48,16 @@ round_robin_select(Name) ->
         [Uniq] -> Uniq;
         Lists ->
             Length = erlang:length(Lists),
+            %% Incr {_, Incr, Lenght, 1} is not negative (>= 0) and the result(Index) would be
+            %% greater than (>) Threshold(Length).
+            %% And the Length is greater than (>) 1 according to the case clauses.
             Index = ets:update_counter(?ETCD_CONNS, Name, {1, 1, Length, 1}, {1, Name}),
-            case lists:nth(Index, Lists) of
-                {Gun, undefined} -> {ok, Gun, ?HEADERS};
-                {Gun, Token} -> {ok, Gun, [{<<"authorization">>, Token} | ?HEADERS]}
+            case Index of
+                I when is_integer(I), I >=1 ->
+                    case lists:nth(I, Lists) of
+                        {Gun, undefined} -> {ok, Gun, ?HEADERS};
+                        {Gun, Token} -> {ok, Gun, [{<<"authorization">>, Token} | ?HEADERS]}
+                    end
             end
     end.
 

@@ -296,7 +296,8 @@ watch_with_watch_id(_Config) ->
     #{watch_ids := WatchIds} = WatchConn1,
     [WatchId] = maps:keys(WatchIds),
     WatchReq2 = eetcd_watch:with_watch_id(eetcd_watch:with_key(eetcd_watch:new(), Key), WatchId),
-    {ok, WatchConn2, _WatchId} = eetcd_watch:watch(?Name, WatchReq2, Timeout),
+    {ok, WatchConn2, WatchId2} = eetcd_watch:watch(?Name, WatchReq2, Timeout),
+    ?assertEqual(WatchId, WatchId2),
 
     eetcd_kv:delete(?Name, Key),
     Message1 = flush(),

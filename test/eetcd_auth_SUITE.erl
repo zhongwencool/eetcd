@@ -40,19 +40,19 @@ auth(_Config) ->
 user(Name) ->
     {ok, #{}} = eetcd_auth:auth_enable(Name),
     %% list
-    {ok, AuthRoleListResponse} = eetcd_auth:user_list(Name),
+    {ok, _AuthRoleListResponse} = eetcd_auth:user_list(Name),
     %% add
-    {ok, AuthRoleAddResponse} = eetcd_auth:user_add(Name, <<"name1">>, <<"12345">>),
+    {ok, _AuthRoleAddResponse} = eetcd_auth:user_add(Name, <<"name1">>, <<"12345">>),
     %% get
-    {ok, AuthUserGetResponse} = eetcd_auth:user_get(Name, <<"name1">>),
+    {ok, _AuthUserGetResponse} = eetcd_auth:user_get(Name, <<"name1">>),
     %% change password
-    {ok, AuthUserChangePasswordResponse} = eetcd_auth:user_change_password(Name, <<"name1">>,<<"54321">>),
+    {ok, _AuthUserChangePasswordResponse} = eetcd_auth:user_change_password(Name, <<"name1">>,<<"54321">>),
     %% get
-    {ok, AuthUserGetResponse1} = eetcd_auth:user_get(Name, <<"name1">>),
+    {ok, _AuthUserGetResponse1} = eetcd_auth:user_get(Name, <<"name1">>),
     %% delete
-    {ok, AuthUserDeleteResponse} = eetcd_auth:user_delete(Name, <<"name1">>),
+    {ok, _AuthUserDeleteResponse} = eetcd_auth:user_delete(Name, <<"name1">>),
     %% list
-    {ok, AuthRoleListResponse2} = eetcd_auth:user_list(Name),
-    {ok, AuthDisableResponse2} = eetcd_auth:auth_disable(Name),
+    {ok, _AuthRoleListResponse2} = eetcd_auth:user_list(Name),
+    {ok, _AuthDisableResponse2} = eetcd_auth:auth_disable(Name),
     ok.
 

@@ -24,7 +24,8 @@ open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
     open(Name, Hosts, [], Transport, TcpOpts, TlsOpts).
 
 %% @doc Connects to a etcd server.
-%% ssl:connect_option() see all options in ssl_api.hrl
+%%
+%% @see `ssl:tls_client_option()' see all tls client options in `ssl' module.
 %% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}].
 %%
 %% Default mode is `connect_all', it creates multiple sub-connections (one sub-connection per each endpoint).
@@ -41,7 +42,7 @@ open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
 %%
 %% `{connect_timeout, Interval}' is the connection timeout. Defaults to one second (1000).
 %% `{domain_lookup_timeout, Interval}' is the domain_lookup_timeout timeout. Defaults to one second (1000).
-%% `{tls_handshake_timeout, Interval}' is the tls_handshake_timeout timeout. Defaults to one second (3000).
+%% `{tls_handshake_timeout, Interval}' is the tls_handshake_timeout timeout. Defaults to three second (3000).
 %% `{retry, Attempts}' is the number of times it will try to reconnect on failure before giving up. Defaults to zero (disabled).
 %% `{retry_timeout, Interval}' is the time between retries in milliseconds.
 %%
@@ -52,7 +53,7 @@ open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
 %% list via the MemberList API of etcd, and will try to connect any new endpoints if in `connect_all'
 %% mode.
 %%
-%% `[{name, string()},{password, string()}]' generates an authentication token based on a given user name and password.
+%% `[{name, string()}, {password, string()}]' generates an authentication token based on a given user name and password.
 %%
 %% You can use `eetcd:info/0' to see the internal connection status.
 -spec open(name(),
@@ -64,6 +65,8 @@ open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
       | {retry, non_neg_integer()}
       | {retry_timeout, pos_integer()}
       | {connect_timeout, timeout()}
+      | {domain_lookup_timeout, timeout()}
+      | {tls_handshake_timeout, timeout()}
     ],
     tcp | tls | ssl,
     [gen_tcp:connect_option()],

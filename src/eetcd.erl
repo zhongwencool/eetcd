@@ -1,32 +1,34 @@
 -module(eetcd).
 -include("eetcd.hrl").
 %% API
--export([open/2, open/5, open/6, close/1]).
+-export([open/2, open/3, close/1]).
 -export([info/0]).
 -export([new/1, with_timeout/2]).
 -export([get_prefix_range_end/1]).
+-export_type([opts/0]).
+
+-type opts() :: [ {mode, connect_all | random} |
+                  {transport, tcp | tls | ssl} |
+                  {name, string()} |
+                  {password, string()} |
+                  {auto_sync_interval_ms, non_neg_integer()} |
+                  {retry, non_neg_integer()} |
+                  {retry_timeout, pos_integer()} |
+                  {connect_timeout, timeout()} |
+                  {domain_lookup_timeout, timeout()} |
+                  {tls_handshake_timeout, timeout()} |
+                  {tcp_opts, [gen_tcp:connect_option()]} |
+                  {tls_opts, [ssl:tls_client_option()]}
+                ].
 
 %% @doc Connects to a etcd server on TCP port
 %% Port on the host with IP address Address, such as:
 %% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
 -spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
 open(Name, Hosts) ->
-    open(Name, Hosts, [], tcp, [], []).
+    open(Name, Hosts, [{transport, tcp}]).
 
 %% @doc Connects to a etcd server.
--spec open(name(),
-    [string()],
-    tcp | tls | ssl,
-    [gen_tcp:connect_option()],
-    [ssl:tls_client_option()]) ->
-    {ok, pid()} | {error, any()}.
-open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
-    open(Name, Hosts, [], Transport, TcpOpts, TlsOpts).
-
-%% @doc Connects to a etcd server.
-%%
-%% @see `ssl:tls_client_option()' see all tls client options in `ssl' module.
-%% such as [{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}].
 %%
 %% Default mode is `connect_all', it creates multiple sub-connections (one sub-connection per each endpoint).
 %% The balancing policy is round robin.
@@ -55,26 +57,22 @@ open(Name, Hosts, Transport, TcpOpts, TlsOpts) when is_atom(Transport) ->
 %%
 %% `[{name, string()}, {password, string()}]' generates an authentication token based on a given user name and password.
 %%
+%% `{tcp_opts, [gen_tcp:connect_option()]}' and `{tls_opts, [ssl:tls_client_option()]}' are the
+%% options for gun:open/3 in Gun 2.0.
+%%
+%% See all TCP options in {@link gen_tcp} module.
+%%
+%% See all TLS client options in {@link ssl} module,
+%% such as `[{certfile, Certfile}, {keyfile, Keyfile}] or [{cert, Cert}, {key, Key}]'.
+%%
+%% Read more details of gun options in the
+%% [https://ninenines.eu/docs/en/gun/2.0/manual/gun/ Gun 2.0 manual].
+%%
 %% You can use `eetcd:info/0' to see the internal connection status.
--spec open(name(),
-    [string()],
-    [
-      {mode, connect_all | random}
-      | {name, string()}
-      | {password, string()}
-      | {retry, non_neg_integer()}
-      | {retry_timeout, pos_integer()}
-      | {connect_timeout, timeout()}
-      | {domain_lookup_timeout, timeout()}
-      | {tls_handshake_timeout, timeout()}
-    ],
-    tcp | tls | ssl,
-    [gen_tcp:connect_option()],
-    [ssl:tls_client_option()]) ->
-    {ok, pid()} | {error, any()}.
-open(Name, Hosts, Options, Transport, TcpOpts, TlsOpts) ->
+-spec open(name(), [string()], opts()) -> {ok, pid()} | {error, any()}.
+open(Name, Hosts, Options) ->
     Cluster = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    eetcd_conn_sup:start_child([{Name, Cluster, Options, Transport, TcpOpts, TlsOpts}]).
+    eetcd_conn_sup:start_child([{Name, Cluster, Options}]).
 
 %% @doc close connections with etcd server.
 -spec close(name()) -> ok | {error, eetcd_conn_unavailable}.

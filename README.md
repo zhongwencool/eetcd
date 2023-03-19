@@ -296,17 +296,22 @@ Migration from eetcd 0.3.x to 0.4.x
 eetcd 0.4.x now dependents on Gun 2.0, which introduced some breaking changes,
 and propagate to eetcd.
 
-The transport options are split into `tcp_opts` and `tls_opts`. As a result the
-functions `eetcd:open/4,5` have been replaced with `eetcd:open/5,6`.
+The prior transport options are split into `tcp_opts` and `tls_opts` and moved
+inside the new `eetcd:opts()` parameter. As a result, the functions `eetcd:open/4,5`
+have been replaced with `eetcd:open/2,3`.
 
 Likewise, the transport options for `eetcd_maintenance` APIs are split into
 `tcp_opts` and `tls_opts` as well.
 
-- The function `eetcd_maintenance:defragment/3` has been replaced with `eetcd_maintenance:defragment/4`.
-- The function `eetcd_maintenance:status/3` has been replaced with `eetcd_maintenance:status/4`.
-- The function `eetcd_maintenance:has_kv/4` has been replaced with `eetcd_maintenance:has_kv/5`.
+- The function `eetcd:open/4,5` has been replaced with `eetcd:open/3`.
+- The function `eetcd_maintenance:defragment/3` has been replaced with `eetcd_maintenance:defragment/2`.
+- The function `eetcd_maintenance:status/3` has been replaced with `eetcd_maintenance:status/2`.
+- The function `eetcd_maintenance:has_kv/4` has been replaced with `eetcd_maintenance:has_kv/3`.
 
 New options `{domain_lookup_timeout, Interval}` and `{tls_handshake_timeout, Interval}`
-have been added for `eetcd:open/5,6`. Alone with the prior `{connect_timeout, Interval}`,
+have been added for `eetcd:open/3`. Alone with the prior `{connect_timeout, Interval}`,
 it allows the underlining Gun library to get separate events when connecting,
 the domain lookup, connection and TLS handshakes.
+- `tls_opts` Passed to Gun.
+
+Read more details of Gun options in the [Gun 2.0 manual](https://ninenines.eu/docs/en/gun/2.0/manual/gun/).

@@ -33,9 +33,9 @@ end_per_suite(Config) ->
 %%%===================================================================
 
 smoke_test(_Config) ->
-    {ok, _} = eetcd_maintenance:defragment(?Endpoint, tcp, [], []),
-    {ok, _} = eetcd_maintenance:status(?Endpoint, tcp, [], []),
-    {ok, _} = eetcd_maintenance:hash_kv(?Endpoint, tcp, [], [], 0),
+    {ok, _} = eetcd_maintenance:defragment(?Endpoint, [{transport, tcp}]),
+    {ok, _} = eetcd_maintenance:status(?Endpoint, [{transport, tcp}]),
+    {ok, _} = eetcd_maintenance:hash_kv(?Endpoint, [{transport, tcp}], 0),
     ok.
 
 %%%===================================================================

@@ -1,0 +1,80 @@
+name: Intergration Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    name: Erlang/OTP ${{matrix.otp}}
+    strategy:
+      matrix:
+        otp: ['23', '24', '25']
+
+    services:
+      etcd0:
+        image: quay.io/coreos/etcd:v3.5.6
+        env:
+          ETCD_NAME: etcd0
+          ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd0:2380
+          ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+          ETCD_ADVERTISE_CLIENT_URLS: http://127.0.0.1:2379
+          ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster-1
+          ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2480,etcd2=http://etcd2:2580
+          ETCD_INITIAL_CLUSTER_STATE: new
+        ports:
+          - 2379:2379
+          - 2380:2380
+        options: >-
+          --health-cmd "etcdctl endpoint health --endpoints http://127.0.0.1:2379"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      etcd1:
+        image: quay.io/coreos/etcd:v3.5.6
+        env:
+          ETCD_NAME: etcd1
+          ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd1:2480
+          ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2480
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2479
+          ETCD_ADVERTISE_CLIENT_URLS: http://127.0.0.1:2479
+          ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster-1
+          ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2480,etcd2=http://etcd2:2580
+          ETCD_INITIAL_CLUSTER_STATE: new
+        ports:
+          - 2479:2479
+          - 2480:2480
+        options: >-
+          --health-cmd "etcdctl endpoint health --endpoints http://127.0.0.1:2479"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      etcd2:
+        image: quay.io/coreos/etcd:v3.5.6
+        env:
+          ETCD_NAME: etcd2
+          ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd2:2580
+          ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2580
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2579
+          ETCD_ADVERTISE_CLIENT_URLS: http://127.0.0.1:2579
+          ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster-1
+          ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2480,etcd2=http://etcd2:2580
+          ETCD_INITIAL_CLUSTER_STATE: new
+        ports:
+          - 2579:2579
+          - 2580:2580
+        options: >-
+          --health-cmd "etcdctl endpoint status --endpoints http://127.0.0.1:2579"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          rebar3-version: '3.20.0'
+          version-type: strict
+      - run: rebar3 do ct -v -c, cover -v
+        env:
+          TERM: xterm-color

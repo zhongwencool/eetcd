@@ -17,7 +17,7 @@
 new(Name, Path) ->
     case eetcd_conn:round_robin_select(Name) of
         {ok, Pid, Headers} ->
-            Ref = gun:request(Pid, <<"POST">>, Path, Headers, <<>>),
+            Ref = gun:headers(Pid, <<"POST">>, Path, Headers),
             {ok, Pid, Ref};
         Err -> Err
     end.
@@ -82,7 +82,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
     Res =
         case await(Pid, StreamRef, Timeout, MRef) of
             {response, nofin, 200, _Headers} ->
-                case await_body(Pid, StreamRef, Timeout, MRef, <<>>) of
+                case await_body(Pid, StreamRef, Timeout, MRef) of
                     {ok, ResBody, _Trailers} ->
                         {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
                         {ok, Resp};
@@ -96,7 +96,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                         StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->
-                                case await_body(Pid, StreamRef1, Timeout, MRef, <<>>) of
+                                case await_body(Pid, StreamRef1, Timeout, MRef) of
                                     {ok, ResBody, _Trailers} ->
                                         {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
                                         {ok, Resp};
@@ -112,43 +112,27 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
     erlang:demonitor(MRef, [flush]),
     Res.
 
-%% `gun:await/2,3,4`, `gun:await_body/2,3,4` and `gun:await_up/1,2,3` don't distinguish the error types until v2.0.0.
-%%  They can be a timeout, a connection error, a stream error or a down error (when the Gun process exited while waiting).
-%% so we copy some code from gun v2.0.0 to replace `gun:await/4`
-%% TODO remove this when upgrade gun to v2.0.0
 await(ServerPid, StreamRef, Timeout, MRef) ->
-    receive
-        {gun_response, ServerPid, StreamRef, IsFin, Status, Headers} ->
-            {response, IsFin, Status, Headers};
-        {gun_data, ServerPid, StreamRef, IsFin, Data} ->
-            {data, IsFin, Data};
-        {gun_error, ServerPid, StreamRef, Reason} ->
-            {error, {gun_stream_error, Reason}};
-        {gun_error, ServerPid, Reason} ->
-            {error, {gun_conn_error, Reason}};
-        {'DOWN', MRef, process, ServerPid, Reason} ->
-            {error, {gun_down, Reason}}
-    after Timeout ->
-        {error, timeout}
+    case gun:await(ServerPid, StreamRef, Timeout, MRef) of
+        {response, _, _, _}=Resp ->
+            Resp;
+        {data, _, _}=Resp ->
+            Resp;
+        {error, _} = Resp ->
+            transfer_error(Resp);
+        Other ->
+            ?LOG_INFO("eetcd_await_resp_other ~p", [Other]),
+            await(ServerPid, StreamRef, Timeout, MRef)
     end.
 
-await_body(ServerPid, StreamRef, Timeout, MRef, Acc) ->
-    receive
-        {gun_data, ServerPid, StreamRef, nofin, Data} ->
-            await_body(ServerPid, StreamRef, Timeout, MRef,
-                <<Acc/binary, Data/binary>>);
-        {gun_data, ServerPid, StreamRef, fin, Data} ->
-            {ok, <<Acc/binary, Data/binary>>};
-    %% It's OK to return trailers here because the client specifically requested them
-    %% Trailers are grpc_status and grpc_message headers
-        {gun_trailers, ServerPid, StreamRef, Trailers} ->
-            {ok, Acc, Trailers};
-        {gun_error, ServerPid, StreamRef, Reason} ->
-            {error, {gun_stream_error, Reason}};
-        {gun_error, ServerPid, Reason} ->
-            {error, {gun_conn_error, Reason}};
-        {'DOWN', MRef, process, ServerPid, Reason} ->
-            {error, {gun_down, Reason}}
-    after Timeout ->
-        {error, timeout}
-    end.
+await_body(ServerPid, StreamRef, Timeout, MRef) ->
+    transfer_error(gun:await_body(ServerPid, StreamRef, Timeout, MRef)).
+
+transfer_error({error, {stream_error, Reason}}) ->
+    {error, {gun_stream_error, Reason}};
+transfer_error({error, {connection_error, Reason}}) ->
+    {error, {gun_conn_error, Reason}};
+transfer_error({error, {down, Reason}}) ->
+    {error, {gun_down, Reason}};
+transfer_error(Other) ->
+    Other.

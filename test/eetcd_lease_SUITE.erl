@@ -19,7 +19,7 @@ groups() ->
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
     {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"],
-                            [{mode, random}], tcp, []),
+                            [{mode, random}, {transport, tcp}]),
     Config.
 
 init_per_testcase(_TestCase, Config) ->

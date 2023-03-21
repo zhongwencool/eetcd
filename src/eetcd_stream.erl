@@ -92,8 +92,8 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->
                                 await_body(Pid, StreamRef1, Timeout, MRef, ResponseType);
-                            {response, fin, 200, RespHeaders} ->
-                                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}}
+                            {response, fin, 200, RespHeaders1} ->
+                                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders1)}}
                         end;
                     Error3 -> {error, {grpc_error, Error3}}
                 end;

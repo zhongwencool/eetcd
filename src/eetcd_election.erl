@@ -8,11 +8,22 @@
 -export([observe/3, observe_stream/2]).
 
 -export_type([campaign_ctx/0, observe_ctx/0]).
--type observe_ctx() :: #{leader => map(), http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.
--type campaign_ctx() :: #{campaign => map()|'waiting_campaign_response', http2_pid => pid(), monitor_ref => reference(), stream_ref => reference()}.
+-type leader_key() :: router_pb:'Etcd.LeaderKey'().
+-type observe_ctx() :: #{
+    leader => map() | election_no_leader,
+    http2_pid => pid(),
+    monitor_ref => reference(),
+    stream_ref => gun:stream_ref()
+}.
+-type campaign_ctx() :: #{
+    campaign := leader_key() | waiting_campaign_response,
+    http2_pid => pid(),
+    monitor_ref => reference(),
+    stream_ref => gun:stream_ref()
+}.
 
 %%% @doc Creates a blank context for a request.
--spec new(name()|context()) -> context().
+-spec new(new_context()) -> context().
 new(Ctx) -> eetcd:new(Ctx).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
@@ -29,7 +40,7 @@ with_name(Ctx, Name) ->
 %%% @doc lease is the ID of the lease attached to leadership of the election. If the
 %%  lease expires or is revoked before resigning leadership, then the
 %%  leadership is transferred to the next campaigner, if any.
--spec with_lease(context(), LeaseID :: pos_integer()) -> context().
+-spec with_lease(context(), LeaseID :: integer()) -> context().
 with_lease(Ctx, LeaseID) ->
     maps:put(lease, LeaseID, Ctx).
 
@@ -44,9 +55,9 @@ with_value(Ctx, Value) ->
 %%% key is an opaque key representing the ownership of the election. If the key is deleted, then leadership is lost.
 %%% rev is the creation revision of the key. It can be used to test for ownership of an election during transactions by testing the key's creation revision matches rev.
 %%% lease is the lease ID of the election leader.
--spec with_leader(context(), Leader :: binary()) -> context().
-with_leader(Ctx, Leader) ->
-    maps:put(leader, Leader, Ctx).
+-spec with_leader(context(), LeaderKey :: leader_key()) -> context().
+with_leader(Ctx, LeaderKey) ->
+    maps:put(leader, LeaderKey, Ctx).
 
 %%% @doc
 %%% Campaign waits to acquire leadership in an election, returning a LeaderKey
@@ -74,7 +85,7 @@ with_leader(Ctx, Leader) ->
 campaign(Ctx) ->
     eetcd_election_gen:campaign(Ctx).
 
--spec campaign(Ctx :: context()|name(), Name :: binary(), LeaseId :: integer(), Value :: binary()) ->
+-spec campaign(Ctx :: new_context(), Name :: binary(), LeaseId :: integer(), Value :: binary()) ->
     {ok, router_pb:'Etcd.CampaignResponse'()} | {error, eetcd_error()}.
 campaign(Ctx, Name, LeaseId, Value) ->
     Ctx1 = new(Ctx),
@@ -127,16 +138,15 @@ campaign_request(ConnName, Name, LeaseId, Value) ->
 campaign_response(CCtx, Msg) ->
     case resp_stream(CCtx, Msg) of
         {ok, Bin} ->
-            #{monitor_ref := MRef} = CCtx,
-            erlang:demonitor(MRef, [flush]),
+            case maps:get(monitor_ref, CCtx, undefined) of
+                MRef when is_reference(MRef) ->
+                    erlang:demonitor(MRef, [flush]);
+                _ ->
+                    ok
+            end,
             {ok, #{leader := Leader}, <<>>}
                 = eetcd_grpc:decode(identity, Bin, 'Etcd.CampaignResponse'),
-            {ok, #{
-                campaign => Leader,
-                http2_pid => undefined,
-                monitor_ref => undefined,
-                stream_ref => undefined
-            }};
+            {ok, #{campaign => Leader}};
         Other -> Other
     end.
 
@@ -163,11 +173,11 @@ campaign_response(CCtx, Msg) ->
 proclaim(Ctx) ->
     eetcd_election_gen:proclaim(Ctx).
 
--spec proclaim(Ctx :: context()|name(), Leader :: binary(), Value :: binary()) ->
+-spec proclaim(Ctx :: new_context(), LeaderKey :: leader_key(), Value :: binary()) ->
     {ok, router_pb:'Etcd.ProclaimResponse'()} | {error, eetcd_error()}.
-proclaim(Ctx, Leader, Val) ->
+proclaim(Ctx, LeaderKey, Val) ->
     Ctx1 = new(Ctx),
-    Ctx2 = with_leader(Ctx1, Leader),
+    Ctx2 = with_leader(Ctx1, LeaderKey),
     Ctx3 = with_value(Ctx2, Val),
     eetcd_election_gen:proclaim(Ctx3).
 
@@ -192,11 +202,11 @@ proclaim(Ctx, Leader, Val) ->
 resign(Ctx) ->
     eetcd_election_gen:resign(Ctx).
 
--spec resign(Ctx :: context()|name(), Leader :: binary()) ->
+-spec resign(Ctx :: new_context(), LeaderKey :: leader_key()) ->
     {ok, router_pb:'Etcd.ResignResponse'()} | {error, eetcd_error()}.
-resign(Ctx, Leader) ->
+resign(Ctx, LeaderKey) ->
     Ctx1 = new(Ctx),
-    Ctx2 = with_leader(Ctx1, Leader),
+    Ctx2 = with_leader(Ctx1, LeaderKey),
     eetcd_election_gen:resign(Ctx2).
 
 %%% @doc
@@ -219,7 +229,7 @@ resign(Ctx, Leader) ->
 leader(Ctx) ->
     eetcd_election_gen:leader(Ctx).
 
--spec leader(Ctx :: context()|name(), Name :: binary()) ->
+-spec leader(Ctx :: new_context(), Name :: binary()) ->
     {ok, router_pb:'Etcd.LeaderResponse'()} | {error, eetcd_error()}.
 leader(Ctx, Name) ->
     Ctx1 = new(Ctx),
@@ -263,7 +273,7 @@ observe(ConnName, Name, Timeout) ->
                     http2_pid => Gun,
                     monitor_ref => MRef,
                     stream_ref => StreamRef,
-                    leader => 'election_no_leader'
+                    leader => election_no_leader
                 }
             };
         {error, _} = Err2 ->
@@ -305,14 +315,14 @@ resp_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, {stream_error, Reason}};
+    {error, {gun_stream_error, Reason}};
 resp_stream(#{http2_pid := Pid, stream_ref := SRef, monitor_ref := MRef},
     {gun_error, Pid, Reason}) -> %% gun connection process state error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, {conn_error, Reason}};
+    {error, {gun_conn_error, Reason}};
 resp_stream(#{http2_pid := Pid, monitor_ref := MRef},
     {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
     erlang:demonitor(MRef, [flush]),
-    {error, {http2_down, Reason}};
+    {error, {gun_down, Reason}};
 resp_stream(_OCtx, _UnKnow) -> unknown.

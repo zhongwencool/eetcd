@@ -13,7 +13,7 @@
     Name :: name(),
     Path :: iodata(),
     GunPid :: pid(),
-    Http2Ref :: reference().
+    Http2Ref :: gun:stream_ref().
 new(Name, Path) ->
     case eetcd_conn:round_robin_select(Name) of
         {ok, Pid, Headers} ->
@@ -28,7 +28,7 @@ new(Name, Path) ->
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
     GunPid :: pid(),
-    Http2Ref :: reference().
+    Http2Ref :: gun:stream_ref().
 new(Name, Msg, MsgName, Path) ->
     case new(Name, Path) of
         {ok, Pid, Ref} ->
@@ -39,7 +39,7 @@ new(Name, Msg, MsgName, Path) ->
 
 -spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, IsFin) -> Http2Ref when
     GunPid :: pid(),
-    Http2Ref :: reference(),
+    Http2Ref :: gun:stream_ref(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     IsFin :: fin | nofin.
@@ -73,7 +73,7 @@ unary(Request, RequestName, Path, ResponseType) ->
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
     Http2Headers :: list(),
-    EtcdResponse :: tuple().
+    EtcdResponse :: {ok, term()} | {error, eetcd_error()}.
 unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) ->
     Timeout = maps:get(eetcd_reply_timeout, Request, 9000),
     EncodeBody = eetcd_grpc:encode(identity, maps:remove(eetcd_reply_timeout, Request), RequestName),
@@ -82,12 +82,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
     Res =
         case await(Pid, StreamRef, Timeout, MRef) of
             {response, nofin, 200, _Headers} ->
-                case await_body(Pid, StreamRef, Timeout, MRef) of
-                    {ok, ResBody, _Trailers} ->
-                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
-                        {ok, Resp};
-                    {error, _} = Error1 -> Error1
-                end;
+                await_body(Pid, StreamRef, Timeout, MRef, ResponseType);
             {response, fin, 200, RespHeaders} ->
                 case eetcd_grpc:grpc_status(RespHeaders) of
                     #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
@@ -96,14 +91,9 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                         StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->
-                                case await_body(Pid, StreamRef1, Timeout, MRef) of
-                                    {ok, ResBody, _Trailers} ->
-                                        {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
-                                        {ok, Resp};
-                                    {error, _} = Error1 -> Error1
-                                end;
-                            {response, fin, 200, RespHeaders} ->
-                                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders)}}
+                                await_body(Pid, StreamRef1, Timeout, MRef, ResponseType);
+                            {response, fin, 200, RespHeaders1} ->
+                                {error, {grpc_error, eetcd_grpc:grpc_status(RespHeaders1)}}
                         end;
                     Error3 -> {error, {grpc_error, Error3}}
                 end;
@@ -112,6 +102,22 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
     erlang:demonitor(MRef, [flush]),
     Res.
 
+%% `gun:await/2,3,4`, `gun:await_body/2,3,4` and `gun:await_up/1,2,3` don't distinguish the error types until v2.0.0.
+%%  They can be a timeout, a connection error, a stream error or a down error (when the Gun process exited while waiting).
+%% so we copy some code from gun v2.0.0 to replace `gun:await/4`
+%% TODO remove this when upgrade gun to v2.0.0
+-spec await(ServerPid, StreamRef, Timeout, MonitorRef) ->
+    {response, IsFin, StatusCode, Headers} |
+    {data, IsFin, Data} | {error, eetcd_error()}
+      when
+        ServerPid :: pid(),
+        StreamRef :: gun:stream_ref(),
+        Timeout :: timeout(),
+        MonitorRef :: reference(),
+        IsFin :: fin | nofin,
+        StatusCode :: non_neg_integer(),
+        Headers :: [{binary(), binary()}],
+        Data :: binary().
 await(ServerPid, StreamRef, Timeout, MRef) ->
     case gun:await(ServerPid, StreamRef, Timeout, MRef) of
         {response, _, _, _}=Resp ->
@@ -125,8 +131,13 @@ await(ServerPid, StreamRef, Timeout, MRef) ->
             await(ServerPid, StreamRef, Timeout, MRef)
     end.
 
-await_body(ServerPid, StreamRef, Timeout, MRef) ->
-    transfer_error(gun:await_body(ServerPid, StreamRef, Timeout, MRef)).
+await_body(ServerPid, StreamRef, Timeout, MRef, ResponseType) ->
+    case transfer_error(gun:await_body(ServerPid, StreamRef, Timeout, MRef)) of
+        {ok, ResBody, _Trailers} ->
+            {ok, Resp, <<>>} = eetcd_grpc:decode(identity, ResBody, ResponseType),
+            {ok, Resp};
+        {error, _} = Error -> Error
+    end.
 
 transfer_error({error, {stream_error, Reason}}) ->
     {error, {gun_stream_error, Reason}};

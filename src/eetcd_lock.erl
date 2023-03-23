@@ -6,7 +6,7 @@
 
 
 %%% @doc Creates a blank context for a request.
--spec new(atom()|reference()) -> context().
+-spec new(new_context()) -> context().
 new(Context) -> eetcd:new(Context).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
@@ -44,7 +44,7 @@ with_key(Context, Key) ->
 lock(Context) ->
     eetcd_lock_gen:lock(Context).
 
--spec lock(Ctx :: context()|name(), Name :: binary(), LeaseID :: pos_integer()) -> {ok, router_pb:'Etcd.LockResponse'()} | {error, eetcd_error()}.
+-spec lock(Ctx :: new_context(), Name :: binary(), LeaseID :: pos_integer()) -> {ok, router_pb:'Etcd.LockResponse'()} | {error, eetcd_error()}.
 lock(Context0, Name, LeaseID) ->
     Context1 = new(Context0),
     Context = with_lease(with_name(Context1, Name), LeaseID),
@@ -53,7 +53,7 @@ lock(Context0, Name, LeaseID) ->
 %%% @doc Unlock takes a key returned by Lock and releases the hold on lock. The
 %%% next Lock caller waiting for the lock will then be woken up and given
 %%% ownership of the lock.
--spec unlock(Ctx :: context()|name(), Key :: binary()) -> {ok, router_pb:'Etcd.UnlockRequest'()} | {error, eetcd_error()}.
+-spec unlock(Ctx :: new_context(), Key :: binary()) -> {ok, router_pb:'Etcd.UnlockResponse'()} | {error, eetcd_error()}.
 unlock(Context0, Key) ->
     Context1 = new(Context0),
     Context = with_key(Context1, Key),

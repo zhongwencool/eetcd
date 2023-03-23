@@ -26,7 +26,7 @@
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec auth_enable(name()|context()) ->
+-spec auth_enable(new_context()) ->
     {ok,router_pb:'Etcd.AuthEnableResponse'()}|{error,eetcd_error()}.
 auth_enable(Context) ->
     eetcd_auth_gen:auth_enable(new(Context)).
@@ -45,7 +45,7 @@ auth_enable(Context) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec auth_disable(name()|context()) ->
+-spec auth_disable(new_context()) ->
     {ok,router_pb:'Etcd.AuthDisableResponse'()}|{error,eetcd_error()}.
 auth_disable(Context) ->
     eetcd_auth_gen:auth_disable(new(Context)).
@@ -64,7 +64,7 @@ auth_disable(Context) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_add(name()|context(), iodata(), iodata()) ->
+-spec user_add(new_context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name, Password) ->
     C1 = new(Context),
@@ -86,10 +86,10 @@ user_add(Context, Name, Password) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_add(name()|context(), iodata()) ->
+-spec user_add(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     C3 = maps:put(options, #{no_password => true}, C2),
     eetcd_auth_gen:user_add(C3).
@@ -108,10 +108,10 @@ user_add(Context, Name) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_delete(name()|context(), iodata()) ->
+-spec user_delete(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserDeleteResponse'()}|{error,eetcd_error()}.
 user_delete(Context, Name) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     eetcd_auth_gen:user_delete(C2).
 
@@ -129,10 +129,10 @@ user_delete(Context, Name) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_change_password(name()|context(), iodata(), iodata()) ->
+-spec user_change_password(new_context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserChangePasswordResponse'()}|{error,eetcd_error()}.
 user_change_password(Context, Name, Password) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     C3 = maps:put(password, Password, C2),
     eetcd_auth_gen:user_change_password(C3).
@@ -151,10 +151,10 @@ user_change_password(Context, Name, Password) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_grant_role(name()|context(), iodata(), iodata()) ->
+-spec user_grant_role(new_context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserGrantRoleResponse'()}|{error,eetcd_error()}.
 user_grant_role(Context, User, Role) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(user, User, C1),
     C3 = maps:put(role, Role, C2),
     eetcd_auth_gen:user_grant_role(C3).
@@ -173,10 +173,10 @@ user_grant_role(Context, User, Role) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_get(name()|context(), iodata()) ->
+-spec user_get(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserGetResponse'()}|{error,eetcd_error()}.
 user_get(Context, Name) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     eetcd_auth_gen:user_get(C2).
 
@@ -194,10 +194,10 @@ user_get(Context, Name) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_list(name()|context()) ->
+-spec user_list(new_context()) ->
     {ok,router_pb:'Etcd.AuthUserListResponse'()}|{error,eetcd_error()}.
 user_list(Context) ->
-    eetcd_auth_gen:user_list(eetcd:new(Context)).
+    eetcd_auth_gen:user_list(new(Context)).
 
 %%% @doc UserRevokeRole revokes a role of a user.
 %%% <dl>
@@ -213,10 +213,10 @@ user_list(Context) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec user_revoke_role(name()|context(), iodata(), iodata()) ->
+-spec user_revoke_role(new_context(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthUserRevokeRoleResponse'()}|{error,eetcd_error()}.
 user_revoke_role(Context, Name, Role) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     C3 = maps:put(role, Role, C2),
     eetcd_auth_gen:user_revoke_role(C3).
@@ -235,10 +235,10 @@ user_revoke_role(Context, Name, Role) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_add(name()|context(), iodata()) ->
+-spec role_add(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleAddResponse'()}|{error,eetcd_error()}.
 role_add(Context, Name) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     eetcd_auth_gen:role_add(C2).
 
@@ -257,10 +257,10 @@ role_add(Context, Name) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_grant_permission(name()|context(), iodata(), iodata(), iodata(), 'READ' | 'WRITE' | 'READWRITE') ->
+-spec role_grant_permission(new_context(), iodata(), iodata(), iodata(), 'READ' | 'WRITE' | 'READWRITE') ->
     {ok,router_pb:'Etcd.AuthRoleGrantPermissionResponse'()}|{error,eetcd_error()}.
 role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(name, Name, C1),
     Permission = #{key => Key, range_end => RangeEnd, permType => PermType},
     C3 = maps:put(perm, Permission, C2),
@@ -280,10 +280,10 @@ role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_get(name()|context(), iodata()) ->
+-spec role_get(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleGetResponse'()}|{error,eetcd_error()}.
 role_get(Context, Role) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(role, Role, C1),
     eetcd_auth_gen:role_get(C2).
 
@@ -301,10 +301,10 @@ role_get(Context, Role) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_list(name()|context()) ->
+-spec role_list(new_context()) ->
     {ok,router_pb:'Etcd.AuthRoleListResponse'()}|{error,eetcd_error()}.
 role_list(Context) ->
-    eetcd_auth_gen:role_list(eetcd:new(Context)).
+    eetcd_auth_gen:role_list(new(Context)).
 
 %%% @doc RoleRevokePermission revokes a permission from a role.
 %%% <dl>
@@ -320,10 +320,10 @@ role_list(Context) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_revoke_permission(name()|context(), iodata(), iodata(), iodata()) ->
+-spec role_revoke_permission(new_context(), iodata(), iodata(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleRevokePermissionResponse'()}|{error,eetcd_error()}.
 role_revoke_permission(Context, Role, Key, RangeEnd) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(role, Role, C1),
     C3 = maps:put(key, Key, C2),
     C4 = maps:put(range_end, RangeEnd, C3),
@@ -343,15 +343,15 @@ role_revoke_permission(Context, Role, Key, RangeEnd) ->
 %%% </dd> </dl>
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
--spec role_delete(name()|context(), iodata()) ->
+-spec role_delete(new_context(), iodata()) ->
     {ok,router_pb:'Etcd.AuthRoleDeleteResponse'()}|{error,eetcd_error()}.
 role_delete(Context, Role) ->
-    C1 = eetcd:new(Context),
+    C1 = new(Context),
     C2 = maps:put(role, Role, C1),
     eetcd_auth_gen:role_delete(C2).
 
 %%% @doc Create context for request.
--spec new(atom()|reference()) -> context().
+-spec new(new_context()) -> context().
 new(Context) -> eetcd:new(Context).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,

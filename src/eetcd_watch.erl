@@ -4,7 +4,7 @@
 -export_type([watch_conn/0]).
 -type watch_conn() :: #{http2_pid => pid(),
                         monitor_ref => reference(),
-                        stream_ref => reference(),
+                        stream_ref => gun:stream_ref(),
 
                         %% A buffer for incompleted response frame
                         unprocessed => binary(),
@@ -121,13 +121,13 @@ with_range_end(Context, End) ->
 %% @doc @equiv watch(name(), context(), 5000).
 -spec watch(name(), context()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
-    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {error, eetcd_error()}.
 watch(Name, CreateReq) ->
     watch(Name, CreateReq, undefined, 5000).
 
 -spec watch(name(), context(), Timeout :: pos_integer() | watch_conn() | undefined) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
-    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {error, eetcd_error()}.
 watch(Name, CreateReq, Timeout) when is_integer(Timeout) ->
     watch(Name, CreateReq, undefined, Timeout);
 watch(Name, CreateReq, WatchConn) ->
@@ -148,7 +148,7 @@ watch(Name, CreateReq, WatchConn) ->
 %%  in events that are sent to the created watcher through stream channel.
 -spec watch(name(), context(), watch_conn() | undefined, pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
-    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {error, eetcd_error()}.
 watch(_Name, CreateReq, #{http2_pid := Gun,
                           stream_ref := StreamRef,
                           monitor_ref := MRef} = WatchConn, Timeout)
@@ -163,7 +163,7 @@ watch(Name, CreateReq, undefined, Timeout) ->
 %% Do watch request with a new watch stream.
 -spec watch_new_(context(), pid(), reference(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
-    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {error, eetcd_error()}.
 watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
     MRef = erlang:monitor(process, Gun),
@@ -207,7 +207,7 @@ watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
 %% Do watch request with the re-used watch stream.
 -spec watch_reuse_(context(), watch_conn(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
-    {error, {stream_error | conn_error | http2_down, term()} | timeout}.
+    {error, eetcd_error()}.
 watch_reuse_(CreateReq, #{http2_pid   := Gun,
                           stream_ref  := StreamRef,
                           monitor_ref := MRef,
@@ -244,7 +244,7 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
                     };
 
                 {ok, #{created := false} = ReceivedMessage, _} ->
-                    {error, {stream_error, ReceivedMessage}}
+                    {error, {gun_stream_error, ReceivedMessage}}
             end;
 
         {error, _} = Err2 ->
@@ -258,13 +258,13 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
 %%that is, a gun_* message received on the gun connection.
 %%If it is, then this function will parse the message, turn it into  watch responses, and possibly take action given the responses.
 %%If there's no error, this function returns {ok, WatchConn, 'Etcd.WatchResponse'()}|{more, WatchConn}
-%%If there's an error, {error, {grpc_error, stream_error | conn_error | http2_down, term()} | timeout} is returned.
+%%If there's an error, {error, eetcd_error()} is returned.
 %%If the given message is not from the gun connection, this function returns unknown.
 -spec watch_stream(watch_conn(), Message) ->
     {ok, watch_conn(), router_pb:'Etcd.WatchResponse'()}
     | {more, watch_conn()}
     | unknown
-    | {error, {grpc_error, stream_error | conn_error | http2_down, term()}} when
+    | {error, eetcd_error()} when
     Message :: term().
 
 watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed, watch_ids := Ids} = Conn,
@@ -287,21 +287,21 @@ watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_trailers, Pid, SRef, [{<<"grpc-status">>, Status}, {<<"grpc-message">>, Msg}]}) ->
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, {grpc_error, ?GRPC_ERROR(Status, Msg)}};
+    {error, ?GRPC_ERROR(Status, Msg)};
 watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, {stream_error, Reason}};
+    {error, {gun_stream_error, Reason}};
 watch_stream(#{http2_pid := Pid, stream_ref := SRef, monitor_ref := MRef},
     {gun_error, Pid, Reason}) -> %% gun connection process state error
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, {conn_error, Reason}};
+    {error, {gun_conn_error, Reason}};
 watch_stream(#{http2_pid := Pid, monitor_ref := MRef},
     {'DOWN', MRef, process, Pid, Reason}) -> %% gun connection down
     erlang:demonitor(MRef, [flush]),
-    {error, {http2_down, Reason}};
+    {error, {gun_down, Reason}};
 watch_stream(_Conn, _UnKnow) -> unknown.
 
 %% @doc Rev returns the current revision of the KV the stream watches on.
@@ -315,7 +315,7 @@ rev(#{revision := Rev}) -> Rev.
 %% Notice that this function will cancel all the watches in the same stream.
 -spec unwatch(watch_conn(), Timeout) ->
     {ok, Responses, OtherEvents}
-    | {error, {stream_error | conn_error | http2_down, term()} | timeout, Responses, OtherEvents} when
+    | {error, eetcd_error(), Responses, OtherEvents} when
     Timeout :: pos_integer(),
     Responses :: [router_pb:'Etcd.WatchResponse'()],
     OtherEvents :: [router_pb:'Etcd.WatchResponse'()].

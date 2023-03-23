@@ -23,7 +23,7 @@
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_list(context()|name()) ->
+-spec member_list(new_context()) ->
     {ok,router_pb:'Etcd.MemberListResponse'()}|{error,eetcd_error()}.
 member_list(Context) -> eetcd_cluster_gen:member_list(new(Context)).
 
@@ -41,9 +41,9 @@ member_list(Context) -> eetcd_cluster_gen:member_list(new(Context)).
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_add(context()|name(), PeerURLs) ->
-    {ok,router_pb:'Etcd.MemberListResponse'()}
-    | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}
+-spec member_add(new_context(), PeerURLs) ->
+    {ok,router_pb:'Etcd.MemberAddResponse'()}
+    | {error, eetcd:eetcd_error()}
     when PeerURLs :: [iodata()].
 member_add(Context, PeerAddrs) when is_list(PeerAddrs) ->
     C1 = new(Context),
@@ -65,8 +65,8 @@ member_add(Context, PeerAddrs) when is_list(PeerAddrs) ->
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_add_as_learner(context()|name(), PeerURLs) ->
-    {ok,router_pb:'Etcd.MemberListResponse'()}
+-spec member_add_as_learner(new_context(), PeerURLs) ->
+    {ok,router_pb:'Etcd.MemberAddResponse'()}
     | {error, {'grpc_error', non_neg_integer(), binary()}} | {error, term()}
     when PeerURLs :: [iodata()].
 member_add_as_learner(Context, PeerAddrs) when is_list(PeerAddrs) ->
@@ -89,7 +89,7 @@ member_add_as_learner(Context, PeerAddrs) when is_list(PeerAddrs) ->
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_remove(context()|name(), pos_integer()) ->
+-spec member_remove(new_context(), pos_integer()) ->
     {ok,router_pb:'Etcd.MemberRemoveResponse'()}|{error,eetcd_error()}.
 member_remove(Context, Id) when is_integer(Id) ->
     C1 = new(Context),
@@ -110,7 +110,7 @@ member_remove(Context, Id) when is_integer(Id) ->
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_update(context()|name(), pos_integer(), [list()]) ->
+-spec member_update(new_context(), pos_integer(), [list()]) ->
     {ok,router_pb:'Etcd.MemberUpdateResponse'()}|{error,eetcd_error()}.
 member_update(Context, Id, PeerAddrs)
     when is_integer(Id) andalso is_list(PeerAddrs) ->
@@ -133,7 +133,7 @@ member_update(Context, Id, PeerAddrs)
 %%% </dd> </dl>
 %%% {@link eetcd_cluster:with_timeout/2} {@link eetcd_cluster:new/1}
 %%% @end
--spec member_promote(context()|name(), pos_integer()) ->
+-spec member_promote(new_context(), pos_integer()) ->
     {ok,router_pb:'Etcd.MemberPromoteResponse'()}|{error,eetcd_error()}.
 member_promote(Context, Id) when is_integer(Id) ->
     C1 = new(Context),
@@ -141,7 +141,7 @@ member_promote(Context, Id) when is_integer(Id) ->
     eetcd_cluster_gen:member_promote(C2).
 
 %%% @doc Create context for request.
--spec new(atom()|reference()) -> context().
+-spec new(new_context()) -> context().
 new(Context) -> eetcd:new(Context).
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,

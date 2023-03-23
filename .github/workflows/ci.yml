@@ -75,6 +75,6 @@ jobs:
           otp-version: ${{matrix.otp}}
           rebar3-version: '3.20.0'
           version-type: strict
-      - run: rebar3 do ct -v -c, cover -v
+      - run: rebar3 do xref, dialyzer, gradualizer, ct -v -c, cover -v
         env:
           TERM: xterm-color

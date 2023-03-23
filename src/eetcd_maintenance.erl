@@ -5,7 +5,7 @@
 -export([defragment/2, status/2, hash_kv/3, move_leader/2]).
 
 %%% @doc AlarmList gets all active alarms.
--spec alarm_list(name()|context()) ->
+-spec alarm_list(new_context()) ->
     {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
 alarm_list(ConnName) ->
     C1 = eetcd:new(ConnName),
@@ -15,7 +15,7 @@ alarm_list(ConnName) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarm disarms a given alarm.
--spec alarm_disarm(name()|context(), integer(), integer()) ->
+-spec alarm_disarm(new_context(), integer(), integer()) ->
     {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
 alarm_disarm(Context, MemberId, Alarm) ->
     C1 = eetcd:new(Context),
@@ -25,7 +25,7 @@ alarm_disarm(Context, MemberId, Alarm) ->
     eetcd_maintenance_gen:alarm(C4).
 
 %%% @doc AlarmDisarmAll disarms all alarm.
--spec alarm_disarm_all(name()|context()) ->
+-spec alarm_disarm_all(new_context()) ->
     router_pb:'Etcd.AlarmResponse'().
 alarm_disarm_all(ConnName) ->
     {ok, Acc0 = #{alarms := List}} = alarm_list(ConnName),
@@ -79,7 +79,7 @@ hash_kv(Endpoint, Options, Rev) ->
 
 %%% @doc MoveLeader requests current leader to transfer its leadership to the transferee.
 %%% Request must be made to the leader.
--spec move_leader(name()|context(), pos_integer()) ->
+-spec move_leader(new_context(), pos_integer()) ->
     {ok,router_pb:'Etcd.MoveLeaderResponse'()}|{error,eetcd_error()}.
 move_leader(Context, TargetID) ->
     C1 = eetcd:new(Context),

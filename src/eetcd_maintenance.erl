@@ -36,7 +36,7 @@ alarm_disarm_all(ConnName) ->
                   {ok, #{alarms := L}} ->
                       Acc#{alarms => L ++ Old};
                   {error, Reason} ->
-                      ?LOG_ERROR("~p disarm ~p failed by ~p ", [ConnName, Alarm, Reason]),
+                      ?LOG_ERROR("~p disarm ~p failed by ~p", [ConnName, Alarm, Reason]),
                       Acc
               end
       end, Acc0#{alarms => []}, List).

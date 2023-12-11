@@ -27,7 +27,7 @@
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec auth_enable(new_context()) ->
-    {ok,router_pb:'Etcd.AuthEnableResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthEnableResponse'()}|{error,eetcd_error()}.
 auth_enable(Context) ->
     eetcd_auth_gen:auth_enable(new(Context)).
 
@@ -46,7 +46,7 @@ auth_enable(Context) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec auth_disable(new_context()) ->
-    {ok,router_pb:'Etcd.AuthDisableResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthDisableResponse'()}|{error,eetcd_error()}.
 auth_disable(Context) ->
     eetcd_auth_gen:auth_disable(new(Context)).
 
@@ -65,7 +65,7 @@ auth_disable(Context) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_add(new_context(), iodata(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name, Password) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -87,7 +87,7 @@ user_add(Context, Name, Password) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_add(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserAddResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserAddResponse'()}|{error,eetcd_error()}.
 user_add(Context, Name) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -109,7 +109,7 @@ user_add(Context, Name) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_delete(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserDeleteResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserDeleteResponse'()}|{error,eetcd_error()}.
 user_delete(Context, Name) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -130,7 +130,7 @@ user_delete(Context, Name) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_change_password(new_context(), iodata(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserChangePasswordResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserChangePasswordResponse'()}|{error,eetcd_error()}.
 user_change_password(Context, Name, Password) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -152,7 +152,7 @@ user_change_password(Context, Name, Password) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_grant_role(new_context(), iodata(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserGrantRoleResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserGrantRoleResponse'()}|{error,eetcd_error()}.
 user_grant_role(Context, User, Role) ->
     C1 = new(Context),
     C2 = maps:put(user, User, C1),
@@ -174,7 +174,7 @@ user_grant_role(Context, User, Role) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_get(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserGetResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserGetResponse'()}|{error,eetcd_error()}.
 user_get(Context, Name) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -195,7 +195,7 @@ user_get(Context, Name) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_list(new_context()) ->
-    {ok,router_pb:'Etcd.AuthUserListResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserListResponse'()}|{error,eetcd_error()}.
 user_list(Context) ->
     eetcd_auth_gen:user_list(new(Context)).
 
@@ -214,7 +214,7 @@ user_list(Context) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec user_revoke_role(new_context(), iodata(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthUserRevokeRoleResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthUserRevokeRoleResponse'()}|{error,eetcd_error()}.
 user_revoke_role(Context, Name, Role) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -236,7 +236,7 @@ user_revoke_role(Context, Name, Role) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_add(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthRoleAddResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleAddResponse'()}|{error,eetcd_error()}.
 role_add(Context, Name) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -258,7 +258,7 @@ role_add(Context, Name) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_grant_permission(new_context(), iodata(), iodata(), iodata(), 'READ' | 'WRITE' | 'READWRITE') ->
-    {ok,router_pb:'Etcd.AuthRoleGrantPermissionResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleGrantPermissionResponse'()}|{error,eetcd_error()}.
 role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
     C1 = new(Context),
     C2 = maps:put(name, Name, C1),
@@ -281,7 +281,7 @@ role_grant_permission(Context, Name, Key, RangeEnd, PermType) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_get(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthRoleGetResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleGetResponse'()}|{error,eetcd_error()}.
 role_get(Context, Role) ->
     C1 = new(Context),
     C2 = maps:put(role, Role, C1),
@@ -302,7 +302,7 @@ role_get(Context, Role) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_list(new_context()) ->
-    {ok,router_pb:'Etcd.AuthRoleListResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleListResponse'()}|{error,eetcd_error()}.
 role_list(Context) ->
     eetcd_auth_gen:role_list(new(Context)).
 
@@ -321,7 +321,7 @@ role_list(Context) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_revoke_permission(new_context(), iodata(), iodata(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthRoleRevokePermissionResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleRevokePermissionResponse'()}|{error,eetcd_error()}.
 role_revoke_permission(Context, Role, Key, RangeEnd) ->
     C1 = new(Context),
     C2 = maps:put(role, Role, C1),
@@ -344,7 +344,7 @@ role_revoke_permission(Context, Role, Key, RangeEnd) ->
 %%% {@link eetcd_auth:with_timeout/2} {@link eetcd_auth:new/1}
 %%% @end
 -spec role_delete(new_context(), iodata()) ->
-    {ok,router_pb:'Etcd.AuthRoleDeleteResponse'()}|{error,eetcd_error()}.
+    {ok,rpc_pb:'etcdserverpb.AuthRoleDeleteResponse'()}|{error,eetcd_error()}.
 role_delete(Context, Role) ->
     C1 = new(Context),
     C2 = maps:put(role, Role, C1),

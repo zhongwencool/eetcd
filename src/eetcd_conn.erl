@@ -158,7 +158,7 @@ handle_event(internal, ?ready, ?ready, #{name := Name}) ->
     ?LOG_INFO("ETCD(~p, ~p)'s connections are ready.", [Name, self()]),
     keep_state_and_data;
 handle_event(EventType, EventContent, StateName, Data) ->
-    ?LOG_ERROR("~p: unknown event ~p ~p ~p ~n",
+    ?LOG_ERROR("~p: unknown event ~p ~p ~p",
         [{?MODULE, self()}, {EventType, EventContent}, StateName, Data]),
     keep_state_and_data.
 
@@ -222,7 +222,7 @@ connect_one(Index, Retry, Data, Len) ->
                 {error, Reason} when Retry =< 0 ->
                     {stop, {shutdown, Reason}};
                 {error, Reason} ->
-                    ?LOG_WARNING("~p failed to connect ETCD host: ~p ~p~n",
+                    ?LOG_WARNING("~p failed to connect ETCD host: ~p ~p",
                         [Name, Host, Reason]),
                     NewIndex = (Index + 1) rem Len + 1,
                     connect_one(NewIndex, Retry - 1, Data, Len)
@@ -279,14 +279,14 @@ try_update_conn(IP, Port, Name, Gun, Token) ->
             {error, already_started};
         true ->
             erlang:monitor(process, Gun),
-            ?LOG_INFO("~p connect to ~p:~p gun(~p) successed~n",
+            ?LOG_INFO("~p connect to ~p:~p gun(~p) successed",
                 [Name, IP, Port, Gun]),
             {ok, Gun, Token}
     end.
 
 exit_conn(Log, Gun, Reason, Name, IP, Port) ->
     gun:close(Gun),
-    ?LOG_WARNING("~p failed to connect [~s:~p] by <~s> ~p~n",
+    ?LOG_WARNING("~p failed to connect [~s:~p] by <~s> ~p",
         [Name, IP, Port, Log, Reason]),
     {error, Reason}.
 
@@ -419,13 +419,13 @@ do_check_health(connect_all, Data) ->
                         {error, Reason} ->
                             ets:delete(?ETCD_CONNS, {Host, Name}),
                             gun:close(Gun),
-                            ?LOG_ERROR("~p check (~p) leader failed by ~p ", [Name, Host, Reason]),
+                            ?LOG_ERROR("~p check (~p) leader failed by ~p", [Name, Host, Reason]),
                             {Health, [{Host, ?MIN_RECONN} | Freeze]}
                     end;
                 {error, Reason1} ->
                     ets:delete(?ETCD_CONNS, {Host, Name}),
                     gun:close(Gun),
-                    ?LOG_ERROR("~p check (~p) health failed by ~p ", [Name, Host, Reason1]),
+                    ?LOG_ERROR("~p check (~p) health failed by ~p", [Name, Host, Reason1]),
                     {Health, [{Host, ?MIN_RECONN} | Freeze]}
             end
           end, {[], Freezes}, Actives),
@@ -444,13 +444,13 @@ do_check_health(random, Data) ->
                         {error, Reason} ->
                             ets:delete(?ETCD_CONNS, {Host, Name}),
                             gun:close(Gun),
-                            ?LOG_ERROR("~p check (~p) leader failed by ~p ", [Name, Host, Reason]),
+                            ?LOG_ERROR("~p check (~p) leader failed by ~p", [Name, Host, Reason]),
                             Data#{active_conns => []}
                     end;
                 {error, Reason1} ->
                     ets:delete(?ETCD_CONNS, {Host, Name}),
                     gun:close(Gun),
-                    ?LOG_ERROR("~p check (~p) health failed by ~p ", [Name, Host, Reason1]),
+                    ?LOG_ERROR("~p check (~p) health failed by ~p", [Name, Host, Reason1]),
                     Data#{active_conns => []}
             end;
         [] -> Data
@@ -485,8 +485,7 @@ do_filtermap_url(#{host := Host, port := Port, scheme := Scheme}, Transport, Url
             %% Note: because of the design of eetcd_conn, we need
             %% the member lists' URL use the same transport
             %% options to the active connections.
-            ?LOG_WARNING("Not matched schemes from member list ~s",
-                         [Url]),
+            ?LOG_WARNING("Not matched schemes from member list ~s", [Url]),
             false
     end;
 do_filtermap_url(_, _, Url) ->
@@ -553,7 +552,7 @@ do_sync_memberlist(#{name := Name,
                     Data#{freeze_conns => NewFreezes, member_list => ClientUrls}
             end;
         {error, Reason} ->
-            ?LOG_ERROR("~p get member_list failed by ~p ", [Name, Reason]),
+            ?LOG_ERROR("~p get member_list failed by ~p", [Name, Reason]),
             Data
     end.
 

@@ -146,7 +146,7 @@ handle_info(?TRY_RECONNECTING, State) ->
     try_reconnecting(State);
 
 handle_info({'DOWN', Ref, process, Gun, Reason}, #{gun := Gun, monitor_ref := Ref} = State) ->
-    ?LOG_INFO("Lease KeepAlive: ~p find gun(~p) process stop ~p~n", [self(), Gun, Reason]),
+    ?LOG_INFO("Lease KeepAlive: ~p find gun(~p) process stop ~p", [self(), Gun, Reason]),
     reconnect(State);
 
 handle_info({gun_data, _Pid, Ref, nofin, Data},
@@ -178,7 +178,7 @@ handle_info({gun_error, Gun, _Reason}, State = #{gun := Gun}) ->
     reconnect(State);
 
 handle_info(Info, State) ->
-    ?LOG_ERROR("Leaser({~p,~p}) receive unknown msg ~p~n state~p~n",
+    ?LOG_ERROR("Leaser({~p,~p}) receive unknown msg ~p~n state~p",
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 

@@ -224,7 +224,7 @@ connect_one(Index, Retry, Data, Len) ->
                 {error, Reason} ->
                     ?LOG_WARNING("~p failed to connect ETCD host: ~p ~p",
                         [Name, Host, Reason]),
-                    NewIndex = (Index + 1) rem Len + 1,
+                    NewIndex = Index rem Len + 1,
                     connect_one(NewIndex, Retry - 1, Data, Len)
             end
     end.

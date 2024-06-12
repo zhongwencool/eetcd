@@ -11,14 +11,14 @@
 
 -spec encode(identity | gzip, map(), atom()) -> binary().
 encode(GrpcType, Msg, MsgName) ->
-    PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
+    PbMsg = rpc_pb:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
 -spec decode(identity | gzip, binary(), atom()) -> {ok, map(), binary()} | more.
 decode(Encoding, Frame, PbType) ->
     case decode_(Frame, Encoding) of
         {ok, PbBin, Fragment} ->
-            {ok, router_pb:decode_msg(PbBin, PbType), Fragment};
+            {ok, rpc_pb:decode_msg(PbBin, PbType), Fragment};
         more -> more
     end.
 

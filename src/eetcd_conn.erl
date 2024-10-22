@@ -145,7 +145,7 @@ handle_event({call, From}, {?flush_token, Gun, Token}, _StateName, Data) ->
     {keep_state, NewData, [{reply, From, NewToken}]};
 handle_event(info, {'DOWN', _GunRef, process, Gun, _Reason}, _StateName, Data) ->
     handle_conn_down(Data, Gun);
-handle_event(info, {gun_down, Gun, http2, _Error, _KilledStreams, _UnprocessedStreams}, _StateName, Data) ->
+handle_event(info, {gun_down, Gun, http2, _Error, _KilledStreams}, _StateName, Data) ->
     handle_conn_down(Data, Gun);
 handle_event(EventType, reconnecting, _StateName, Data)
     when EventType =:= internal orelse EventType =:= info ->

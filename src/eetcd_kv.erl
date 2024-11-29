@@ -80,8 +80,8 @@ with_rev(Context, Rev) ->
     'KEY' | 'VERSION' | 'VALUE' | 'CREATE' |'MOD',
     'NONE' | 'ASCEND' | 'DESCEND') -> context().
 with_sort(Context, Target, Order) ->
-    Targets = router_pb:find_enum_def('Etcd.RangeRequest.SortTarget'),
-    Orders = router_pb:find_enum_def('Etcd.RangeRequest.SortOrder'),
+    Targets = rpc_pb:find_enum_def('etcdserverpb.RangeRequest.SortTarget'),
+    Orders = rpc_pb:find_enum_def('etcdserverpb.RangeRequest.SortOrder'),
     (not lists:keymember(Target, 1, Targets)) andalso throw({sort_target, Target}),
     (not lists:keymember(Order, 1, Orders)) andalso throw({sort_order, Order}),
     R1 = maps:put(sort_order, Order, Context),
@@ -216,12 +216,12 @@ with_physical(Context) ->
 %%% {@link eetcd_kv:with_ignore_value/2}, {@link eetcd_kv:with_ignore_lease/2}, {@link eetcd_kv:with_timeout/2}
 %%% @end
 -spec put(context()) ->
-    {ok, router_pb:'Etcd.PutResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.PutResponse'()}|{error, eetcd_error()}.
 put(Context) -> eetcd_kv_gen:put(Context).
 
 %%% @doc Put puts a key-value pair into etcd with options {@link put/1}
 -spec put(new_context(), key(), value()) ->
-    {ok, router_pb:'Etcd.PutResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.PutResponse'()}|{error, eetcd_error()}.
 put(Context, Key, Value) ->
     C1 = new(Context),
     C2 = with_key(C1, Key),
@@ -268,12 +268,12 @@ put(Context, Key, Value) ->
 %%% {@link eetcd_kv:with_max_mod_revision/2} {@link eetcd_kv:with_min_create_revision/2} {@link eetcd_kv:with_max_create_revision/2}
 %%% @end
 -spec get(context()) ->
-    {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.RangeResponse'()}|{error, eetcd_error()}.
 get(Context) when is_map(Context) -> eetcd_kv_gen:range(Context).
 
 %%% @doc Get retrieves keys with options.
 -spec get(new_context(), key()) ->
-    {ok, router_pb:'Etcd.RangeResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.RangeResponse'()}|{error, eetcd_error()}.
 get(Context, Key) ->
     C0 = new(Context),
     C1 = with_key(C0, Key),
@@ -298,11 +298,11 @@ get(Context, Key) ->
 %%% {@link eetcd_kv:with_key/2} {@link eetcd_kv:with_range_end/2} {@link eetcd_kv:with_prev_kv/1}
 %%% @end
 -spec delete(context()) ->
-    {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.DeleteRangeResponse'()}|{error, eetcd_error()}.
 delete(Context) when is_map(Context) -> eetcd_kv_gen:delete_range(Context).
 %%% @doc Delete deletes a key with options
 -spec delete(new_context(), key()) ->
-    {ok, router_pb:'Etcd.DeleteRangeResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.DeleteRangeResponse'()}|{error, eetcd_error()}.
 delete(Context, Key) ->
     C0 = new(Context),
     C1 = with_key(C0, Key),
@@ -326,11 +326,11 @@ delete(Context, Key) ->
 %%% {@link eetcd_kv:with_revision/2} {@link eetcd_kv:with_physical/1}
 %%% @end
 -spec compact(context()) ->
-    {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.CompactionResponse'()}|{error, eetcd_error()}.
 compact(Context) when is_map(Context) -> eetcd_kv_gen:compact(Context).
 %% @doc Compact compacts etcd KV history before the given revision with options
 -spec compact(new_context(), integer()) ->
-    {ok, router_pb:'Etcd.CompactionResponse'()}|{error, eetcd_error()}.
+    {ok, rpc_pb:'etcdserverpb.CompactionResponse'()}|{error, eetcd_error()}.
 compact(Context, Revision) ->
     C0 = new(Context),
     C1 = with_rev(C0, Revision),
@@ -359,8 +359,8 @@ compact(Context, Revision) ->
 %%% {@link eetcd_op:put/1} {@link eetcd_op:get/1}
 %%% {@link eetcd_op:delete/1} {@link eetcd_op:txn/1}
 %%% @end
--spec txn(new_context(), [router_pb:'Etcd.Compare'()], [router_pb:'Etcd.RequestOp'()], [router_pb:'Etcd.RequestOp'()]) ->
-    {ok, router_pb:'Etcd.TxnResponse'()}|{error, eetcd_error()}.
+-spec txn(new_context(), [rpc_pb:'etcdserverpb.Compare'()], [rpc_pb:'etcdserverpb.RequestOp'()], [rpc_pb:'etcdserverpb.RequestOp'()]) ->
+    {ok, rpc_pb:'etcdserverpb.TxnResponse'()}|{error, eetcd_error()}.
 txn(Context, If, Then, Else) ->
     C1 = new(Context),
     Compare = case is_list(If) of true -> If; false -> [If] end,

@@ -261,7 +261,7 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
 %%If there's an error, {error, eetcd_error()} is returned.
 %%If the given message is not from the gun connection, this function returns unknown.
 -spec watch_stream(watch_conn(), Message) ->
-    {ok, watch_conn(), router_pb:'Etcd.WatchResponse'()}
+    {ok, watch_conn(), rpc_pb:'etcdserverpb.WatchResponse'()}
     | {more, watch_conn()}
     | unknown
     | {error, eetcd_error()} when
@@ -317,8 +317,8 @@ rev(#{revision := Rev}) -> Rev.
     {ok, Responses, OtherEvents}
     | {error, eetcd_error(), Responses, OtherEvents} when
     Timeout :: pos_integer(),
-    Responses :: [router_pb:'Etcd.WatchResponse'()],
-    OtherEvents :: [router_pb:'Etcd.WatchResponse'()].
+    Responses :: [rpc_pb:'etcdserverpb.WatchResponse'()],
+    OtherEvents :: [rpc_pb:'etcdserverpb.WatchResponse'()].
 unwatch(WatchConn, Timeout) ->
     unwatch_and_await_resp(WatchConn, Timeout, [], []).
 

@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%% @doc Behaviour to implement for eectd Etcd.Cluster
+%% @doc Behaviour to implement for eetcd etcdserverpb.Cluster
 %% @private
 %%  All detail documents please visit https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2020-04-02T02:00:45+00:00 and should not be modified manually
+%% This module was generated on 2023-12-11T09:36:27+00:00 and should not be modified manually
 
 -module(eetcd_cluster_gen).
 
@@ -15,33 +15,33 @@
 -export([member_list/1]).
 -export([member_promote/1]).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberAdd" 
--spec member_add(router_pb:'Etcd.MemberAddRequest'()) ->
-    {ok, router_pb:'Etcd.MemberAddResponse'()}|{error,eetcd:eetcd_error()}.
+%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberAdd"
+-spec member_add(rpc_pb:'etcdserverpb.MemberAddRequest'()) ->
+    {ok, rpc_pb:'etcdserverpb.MemberAddResponse'()}|{error,eetcd:eetcd_error()}.
 member_add(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MemberAddRequest', <<"/etcdserverpb.Cluster/MemberAdd">>, 'Etcd.MemberAddResponse').
+    eetcd_stream:unary(Request, 'etcdserverpb.MemberAddRequest', <<"/etcdserverpb.Cluster/MemberAdd">>, 'etcdserverpb.MemberAddResponse').
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberRemove" 
--spec member_remove(router_pb:'Etcd.MemberRemoveRequest'()) ->
-    {ok, router_pb:'Etcd.MemberRemoveResponse'()}|{error,eetcd:eetcd_error()}.
+%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberRemove"
+-spec member_remove(rpc_pb:'etcdserverpb.MemberRemoveRequest'()) ->
+    {ok, rpc_pb:'etcdserverpb.MemberRemoveResponse'()}|{error,eetcd:eetcd_error()}.
 member_remove(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MemberRemoveRequest', <<"/etcdserverpb.Cluster/MemberRemove">>, 'Etcd.MemberRemoveResponse').
+    eetcd_stream:unary(Request, 'etcdserverpb.MemberRemoveRequest', <<"/etcdserverpb.Cluster/MemberRemove">>, 'etcdserverpb.MemberRemoveResponse').
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberUpdate" 
--spec member_update(router_pb:'Etcd.MemberUpdateRequest'()) ->
-    {ok, router_pb:'Etcd.MemberUpdateResponse'()}|{error,eetcd:eetcd_error()}.
+%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberUpdate"
+-spec member_update(rpc_pb:'etcdserverpb.MemberUpdateRequest'()) ->
+    {ok, rpc_pb:'etcdserverpb.MemberUpdateResponse'()}|{error,eetcd:eetcd_error()}.
 member_update(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MemberUpdateRequest', <<"/etcdserverpb.Cluster/MemberUpdate">>, 'Etcd.MemberUpdateResponse').
+    eetcd_stream:unary(Request, 'etcdserverpb.MemberUpdateRequest', <<"/etcdserverpb.Cluster/MemberUpdate">>, 'etcdserverpb.MemberUpdateResponse').
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberList" 
--spec member_list(router_pb:'Etcd.MemberListRequest'()) ->
-    {ok, router_pb:'Etcd.MemberListResponse'()}|{error,eetcd:eetcd_error()}.
+%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberList"
+-spec member_list(rpc_pb:'etcdserverpb.MemberListRequest'()) ->
+    {ok, rpc_pb:'etcdserverpb.MemberListResponse'()}|{error,eetcd:eetcd_error()}.
 member_list(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MemberListRequest', <<"/etcdserverpb.Cluster/MemberList">>, 'Etcd.MemberListResponse').
+    eetcd_stream:unary(Request, 'etcdserverpb.MemberListRequest', <<"/etcdserverpb.Cluster/MemberList">>, 'etcdserverpb.MemberListResponse').
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberPromote" 
--spec member_promote(router_pb:'Etcd.MemberPromoteRequest'()) ->
-    {ok, router_pb:'Etcd.MemberPromoteResponse'()}|{error,eetcd:eetcd_error()}.
+%% @doc Unary RPC for service at path "/etcdserverpb.Cluster/MemberPromote"
+-spec member_promote(rpc_pb:'etcdserverpb.MemberPromoteRequest'()) ->
+    {ok, rpc_pb:'etcdserverpb.MemberPromoteResponse'()}|{error,eetcd:eetcd_error()}.
 member_promote(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MemberPromoteRequest', <<"/etcdserverpb.Cluster/MemberPromote">>, 'Etcd.MemberPromoteResponse').
+    eetcd_stream:unary(Request, 'etcdserverpb.MemberPromoteRequest', <<"/etcdserverpb.Cluster/MemberPromote">>, 'etcdserverpb.MemberPromoteResponse').
 

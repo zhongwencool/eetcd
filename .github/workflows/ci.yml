@@ -75,6 +75,9 @@ jobs:
           otp-version: ${{matrix.otp}}
           rebar3-version: '3.20.0'
           version-type: strict
+          hexpm-mirrors: |
+            https://cdn.jsdelivr.net/hex
+            https://builds.hex.pm
       - run: rebar3 do xref, dialyzer, gradualizer, ct -v -c, cover -v
         env:
           TERM: xterm-color

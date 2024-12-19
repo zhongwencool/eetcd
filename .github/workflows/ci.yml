@@ -73,7 +73,7 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
-          rebar3-version: '3.20.0'
+          rebar3-version: '3.22.1'
           version-type: strict
           hexpm-mirrors: |
             https://cdn.jsdelivr.net/hex

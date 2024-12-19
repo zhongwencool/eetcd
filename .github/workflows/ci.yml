@@ -3,11 +3,11 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Erlang/OTP ${{matrix.otp}}
     strategy:
       matrix:
-        otp: ['23', '24', '25']
+        otp: ['24', '25', '26', '27']
 
     services:
       etcd0:

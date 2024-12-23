@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/zhongwencool/eetcd.svg?branch=master)](https://travis-ci.org/zhongwencool/eetcd)
+[![Build Status](https://github.com/zhongwencool/eetcd/actions/workflows/ci.yml/badge.svg)](https://github.com/zhongwencool/eetcd/actions)
 [![GitHub tag](https://img.shields.io/github/tag/zhongwencool/eetcd.svg)](https://github.com/zhongwencool/eetcd)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/eetcd.svg)](https://hex.pm/packages/eetcd)
 

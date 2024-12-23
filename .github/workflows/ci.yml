@@ -69,8 +69,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1.17.2
         with:
           otp-version: ${{matrix.otp}}
           rebar3-version: '3.22.1'

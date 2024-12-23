@@ -10,7 +10,7 @@
     sync/1, check_health/1, flush_token/2]).
 
 -export([init/1, handle_event/4, terminate/3,
-    code_change/4, callback_mode/0, format_status/2]).
+    code_change/4, callback_mode/0]).
 
 -define(ready, ready).
 -define(reconnect, reconnect).
@@ -136,9 +136,6 @@ init({Name, Hosts, Options}) ->
     end.
 
 callback_mode() -> [handle_event_function].
-
-format_status(_Opt, [_PDict, StateName, Data]) ->
-    #{'StateName' => StateName, 'StateData' => Data}.
 
 handle_event({call, From}, {?flush_token, Gun, Token}, _StateName, Data) ->
     {NewToken, NewData} = do_flush_token(Gun, Token, Data),

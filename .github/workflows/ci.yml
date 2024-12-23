@@ -3,11 +3,11 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Erlang/OTP ${{matrix.otp}}
     strategy:
       matrix:
-        otp: ['23', '24', '25']
+        otp: ['24', '25', '26', '27']
 
     services:
       etcd0:
@@ -73,8 +73,11 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
-          rebar3-version: '3.20.0'
+          rebar3-version: '3.22.1'
           version-type: strict
+          hexpm-mirrors: |
+            https://cdn.jsdelivr.net/hex
+            https://builds.hex.pm
       - run: rebar3 do xref, dialyzer, gradualizer, ct -v -c, cover -v
         env:
           TERM: xterm-color

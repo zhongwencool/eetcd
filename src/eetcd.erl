@@ -1,5 +1,10 @@
 -module(eetcd).
 -include("eetcd.hrl").
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 %% API
 -export([open/2, open/3, close/1]).
 -export([info/0]).
@@ -126,17 +131,22 @@ with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
 -define(UNBOUND_RANGE_END, "\0").
 
 get_prefix_range_end(Key) ->
-    case eetcd_data_coercion:to_list(Key) of
-        [] -> ?UNBOUND_RANGE_END;
-        List0 when is_list(List0) ->
-            %% find last character < 0xff (255)
-            {Prefix, Suffix} = lists:splitwith(fun(Ch) -> Ch < 255 end, List0),
-            case Prefix of
-                %% keys where all characters >= 0xff are returned as is
-                []     -> Key;
-                Prefix ->
-                    %% advance the last character
-                    Ord = lists:last(Prefix),
-                    lists:droplast(Prefix) ++ [Ord + 1] ++ Suffix
-            end
-    end.
+    RangeEndRev = lists:reverse(eetcd_data_coercion:to_list(Key)),
+    lists:reverse(find_prefix_rev(RangeEndRev)).
+
+find_prefix_rev([]) -> ?UNBOUND_RANGE_END;
+find_prefix_rev([H | T]) when H < 255 -> [H + 1 | T];
+find_prefix_rev([_ | T]) -> find_prefix_rev(T).
+
+-ifdef(TEST).
+get_prefix_range_end_test() ->
+    ?assertEqual(?UNBOUND_RANGE_END, get_prefix_range_end([])),
+    ?assertEqual("b", get_prefix_range_end("a")),
+    ?assertEqual("a\x01", get_prefix_range_end("a\x00")),
+    ?assertEqual("a\x02", get_prefix_range_end("a\x01")),
+    ?assertEqual("b", get_prefix_range_end("a\xff")),
+    ?assertEqual("c", get_prefix_range_end("b")),
+    ?assertEqual("ab", get_prefix_range_end("aa")),
+    ok.
+-endif.
+

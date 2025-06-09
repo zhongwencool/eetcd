@@ -35,4 +35,8 @@
 
 -define(ETCD_CONNS, eetcd_conns).
 -record(eetcd_conn, {id, gun, conn, token = []}).
+
+-define(ETCD_WATCHERS, eetcd_watchers).
+-record(eetcd_watcher, {name :: atom(), pid :: pid()}).
+
 -endif.

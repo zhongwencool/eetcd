@@ -278,6 +278,55 @@ We can use a single stream for multiplex watches, see [example](/test/eetcd_watc
 - `Active` is normal connection.
 - `Freeze` is a broken connection who try to reconnect after `ReconnectSecond`.
 
+
+##### Watcher - Watcher which use `eetcd_watcher` behaviour
+
+``` erlang
+-module(eetcd_watcher_example).
+
+-include_lib("eetcd/include/eetcd.hrl").
+-behaviour(eetcd_watcher).
+
+-export([ start_link/2, watch/1, unwatch/0, stop/0 ]).
+
+-export([ handle_watch_events/1,  handle_unwatch_response/2 ]).
+
+
+-type options() :: eetcd_watcher:options().
+
+-type response() :: eetcd_watcher:response().
+
+-type event() :: eetcd_watcher:event().
+
+-type watch_req() :: eetcd_watcher:watch_req().
+
+-spec watch(watch_req()) -> ok.
+watch(WatchReq) ->
+    eetcd_watcher:watch(?MODULE, WatchReq).
+
+-spec unwatch() -> ok.
+unwatch() ->
+    eetcd_watcher:unwatch(?MODULE).
+
+-spec start_link(name(), options()) -> ok.
+start_link(Client, Options) ->
+    eetcd_watcher:start_link(?MODULE, Client, Options).
+
+-spec stop() -> ok.
+stop() ->
+    eetcd_watcher:stop(?MODULE).
+
+-spec handle_watch_events([event()]) -> ok.
+handle_watch_events(Events) ->
+    %% Handle watch events ...
+    ok.
+
+-spec handle_unwatch([response()], [event()]) -> ok.
+handle_unwatch(Responses, Events) ->
+    %% Handle unwatch response ...
+    ok.
+```
+
 Test
 -----
 

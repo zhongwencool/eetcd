@@ -87,7 +87,7 @@ unary(Pid, Request, RequestName, Path, ResponseType, Headers) when is_pid(Pid) -
                 case eetcd_grpc:grpc_status(RespHeaders) of
                     #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
                         'grpc-message' := <<"etcdserver: invalid auth token">>} ->
-                        NewHeaders = eetcd_conn:flush_token(Pid, Headers),
+                        NewHeaders = eetcd_conn:refresh_token(Pid, Headers),
                         StreamRef1 = gun:request(Pid, <<"POST">>, Path, NewHeaders, EncodeBody),
                         case await(Pid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->

@@ -33,6 +33,9 @@
 -define(GRPC_STATUS_DATA_LOSS, 15).
 -define(GRPC_STATUS_UNAUTHENTICATED, 16).
 
--define(ETCD_CONNS, eetcd_conns).
--record(eetcd_conn, {id, gun, conn, token = []}).
+-define(ETCD_CLIENT_CACHE, eetcd_client_cache).
+-record(eetcd_client, {
+    name,
+    members = #{}
+}).
 -endif.

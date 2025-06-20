@@ -34,14 +34,14 @@ init([]) ->
         #{id => Http2Sup,
             start => {Http2Sup, start_link, []},
             restart => permanent,
-            shutdown => 5000,
-            type => worker,
+            shutdown => infinity,
+            type => supervisor,
             modules => [Http2Sup]},
         #{id => LeaserSup,
             start => {LeaserSup, start_link, []},
             restart => permanent,
-            shutdown => 5000,
-            type => worker,
+            shutdown => infinity,
+            type => supervisor,
             modules => [LeaserSup]}
     ],
     {ok, {SupFlags, ChildSpecs}}.

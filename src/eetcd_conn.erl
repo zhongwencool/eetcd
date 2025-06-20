@@ -2,564 +2,498 @@
 -module(eetcd_conn).
 -include("eetcd.hrl").
 
--behaviour(gen_statem).
+-behaviour(gen_server).
 
 %% API
--export([open/1, close/1,
-    round_robin_select/1, lookup/1,
-    sync/1, check_health/1, flush_token/2]).
+-export([
+    open/1, close/1,
+    round_robin_select/1,
+    check_health/1, refresh_token/2,
+    set_credentails/3, unset_credentails/1,
+    update_member_list/2,
+    member_id_hex/1
+]).
 
--export([init/1, handle_event/4, terminate/3,
-    code_change/4, callback_mode/0]).
-
--define(ready, ready).
--define(reconnect, reconnect).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_continue/2,
+    terminate/2,
+    code_change/3
+]).
 
 -define(check_health, check_health_msg).
 -define(auto_sync, auto_sync).
--define(flush_token, flush_token_msg).
-
-%%% 200 400 800 1600 3200 6400 12800 25600
--define(MIN_RECONN, 200).
--define(MAX_RECONN, 25600).
+-define(refresh_token, refresh_token_msg).
+-define(reconnect, reconnect).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-open(Args) ->
-    case gen_statem:start_link(?MODULE, Args, []) of
+open({Name, _, _} = Args) ->
+    case gen_server:start_link({local, Name}, ?MODULE, Args, []) of
         {ok, Pid} -> {ok, Pid};
-        {error, {shutdown, Err}} -> Err
+        {error, _} = Err -> Err
     end.
 
 close(Pid) ->
-    gen_statem:stop(Pid).
+    gen_server:stop(Pid, shutdown, infinity).
 
 round_robin_select(Name) ->
-    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_', token = H, gun = G})when N =:= Name ->  {H, G} end),
-    MS = [{#eetcd_conn{id = {'_', '$1'}, gun = '$2', token = '$3', _ = '_'},
-        [{'=:=', '$1', {const, Name}}],
-        [{{'$2', '$3'}}]}],
-    case ets:select(?ETCD_CONNS, MS) of
-        [] -> {error, eetcd_conn_unavailable};
-        [{Gun, undefined}] -> {ok, Gun, ?HEADERS};
-        [{Gun, Token}] -> {ok, Gun, [{<<"authorization">>, Token} | ?HEADERS]};
-        [Uniq] -> Uniq;
-        Lists ->
-            Length = erlang:length(Lists),
-            %% Incr {_, Incr, Lenght, 1} is not negative (>= 0) and the result(Index) would be
-            %% greater than (>) Threshold(Length).
-            %% And the Length is greater than (>) 1 according to the case clauses.
-            Index = ets:update_counter(?ETCD_CONNS, Name, {1, 1, Length, 1}, {1, Name}),
-            case Index of
-                I when is_integer(I), I >=1 ->
-                    case lists:nth(I, Lists) of
-                        {Gun, undefined} -> {ok, Gun, ?HEADERS};
-                        {Gun, Token} -> {ok, Gun, [{<<"authorization">>, Token} | ?HEADERS]}
-                    end
-            end
+    case gen_server:call(Name, round_robin_select) of
+        {ok, GunPid, undefined} ->
+            {ok, GunPid, ?HEADERS};
+        {ok, GunPid, Token} ->
+            {ok, GunPid, [{<<"token">>, Token} | ?HEADERS]};
+        {error, _} = E -> E
     end.
 
-lookup(Name) when is_atom(Name) orelse is_reference(Name) ->
-    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_', conn = G})when N =:= Name -> G end),
-    MS = [{#eetcd_conn{id = {'_', '$1'}, conn = '$2', _ = '_'},
-        [{'=:=', '$1', {const, Name}}],
-        ['$2']}],
-    case ets:select(?ETCD_CONNS, MS) of
-        [] -> {error, eetcd_conn_unavailable};
-        [Pid | _] -> {ok, Pid}
-    end.
+set_credentails(Name, UserName, Password) ->
+    gen_server:call(Name, {set_credentials, {UserName, Password}}).
 
-sync(Name) ->
-    case lookup(Name) of
-        {ok, Pid} -> erlang:send(Pid, ?auto_sync);
-        Err -> Err
-    end.
+unset_credentails(Name) ->
+    gen_server:call(Name, {set_credentials, undefined}).
+
+update_member_list(_Name, Members) when map_size(Members) =:= 0 ->
+    {error, empty_member_list};
+update_member_list(Name, Members) ->
+    gen_server:cast(Name, {update_member_list, Members}).
 
 check_health(Name) ->
-    case lookup(Name) of
-        {ok, Pid} -> erlang:send(Pid, ?check_health);
-        Err -> Err
+    gen_server:cast(Name, ?check_health).
+
+refresh_token(Name, Headers) ->
+    case gen_server:call(Name, ?refresh_token) of
+        {ok, undefined} ->
+            lists:keydelete(<<"token">>, 1, Headers);
+        {ok, NewToken} ->
+            lists:keyreplace(<<"token">>, 1, Headers, {<<"token">>, NewToken});
+        {error, Reason} ->
+            ?LOG_WARNING("Refresh token failed: ~p", [Reason]),
+            Headers
     end.
 
-flush_token(Gun, Headers) ->
-    Token = proplists:get_value(<<"authorization">>, Headers),
-    %% ets:fun2ms(fun(#eetcd_conn{gun = G, _ = '_', conn = C})when G =:= Pid -> C end),
-    MS = [{#eetcd_conn{id = '_', gun = '$1', conn = '$2', _ = '_'},
-        [{'=:=', '$1', {const, Gun}}],
-        ['$2']}],
-    [Pid | _] = ets:select(?ETCD_CONNS, MS),
-    NewToken = gen_statem:call(Pid, {?flush_token, Gun, Token}),
-    lists:keyreplace(<<"authorization">>, 1, Headers, {<<"authorization">>, NewToken}).
 %%%===================================================================
-%%% gen_statem callbacks
+%%% gen_server callbacks
 %%%===================================================================
 init({Name, Hosts, Options}) ->
     erlang:process_flag(trap_exit, true),
-    GunOpts = #{protocols => [http2],
+    GunOpts = #{
+        protocols => [http2],
         connect_timeout => proplists:get_value(connect_timeout, Options, 1000),
         domain_lookup_timeout => proplists:get_value(domain_lookup_timeout, Options, 1000),
         tls_handshake_timeout => proplists:get_value(tls_handshake_timeout, Options, 3000),
-        http2_opts => #{keepalive => 45000},
-        retry => proplists:get_value(retry, Options, 0),
+        http2_opts => #{keepalive => infinity},
         retry_timeout => proplists:get_value(retry_timeout, Options, 5000),
         transport => proplists:get_value(transport, Options, tcp),
         tcp_opts => proplists:get_value(tcp_opts, Options, []),
         tls_opts => proplists:get_value(tls_opts, Options, [])
     },
     AutoSyncInterval = proplists:get_value(auto_sync_interval_ms, Options, 0),
-    Data0 = #{
-        name => Name,
-        auto_sync_interval_ms => AutoSyncInterval,
-        gun_opts => GunOpts,
-        health_ref => undefined,
-        reconn_ref => undefined,
-        active_conns => [],
-        freeze_conns => []
-    },
-    Data = put_in_authenticate(Data0, Options),
-    case proplists:get_value(mode, Options, connect_all) of
-        connect_all ->
-            connect_all(Hosts, Name, Data);
-        random ->
-            AutoSyncInterval > 0 andalso
-            ?LOG_WARNING("~s run under random mode, disabled auto_sync member list", [Name]),
-            case erlang:length(Hosts) of
-                Length when Length >= 1 ->
-                    Data1 = Data#{endpoints => shuffle(Hosts), mode => random},
-                    Index = rand:uniform(Length),
-                    connect_one(Index, 2 * Length, Data1, Length);
-                _ ->
-                    {stop, eetcd_conn_unavailable}
-            end
+
+    try
+        Members =
+            case ets:lookup(?ETCD_CLIENT_CACHE, Name) of
+                [#eetcd_client{members = CachedMembers}] ->
+                    ?LOG_NOTICE("eetcd client ~p found cached members: ~p", [Name, CachedMembers]),
+                    CachedMembers;
+                [] ->
+                    NewMembers = get_member_list(shuffle(Hosts), GunOpts),
+                    ?LOG_NOTICE("eetcd client ~p found members: ~p", [Name, NewMembers]),
+                    ets:insert(?ETCD_CLIENT_CACHE, #eetcd_client{name = Name, members = NewMembers}),
+                    NewMembers
+            end,
+        State0 = #{
+            name => Name,
+            mode => proplists:get_value(mode, Options, connect_all),
+            members => Members,
+            credentials => undefined,
+            auth_token => undefined,
+            auto_sync_interval_ms => AutoSyncInterval,
+            gun_opts => GunOpts,
+            options => Options,
+            health_ref => undefined,
+            reconn_ref => undefined,
+            sync_ref => undefined,
+            active_conns => [],
+            opening_conns => []
+        },
+        State = put_in_credentials(State0, Options),
+        State1 = init_connect(Members, Name, State),
+        #{active_conns := [{_Id, GunPid, _MRef} | _]} = State1,
+        case token_remote(GunPid, State1) of
+            {ok, State1} ->
+                {_, State2} = handle_continue(next_health_check, State1),
+                {_, State3} = handle_continue(reconnect, State2),
+                {_, State4} = handle_continue(auto_sync, State3),
+                {ok, State4};
+            {error, R} -> error(R)
+        end
+    catch
+        error:Reason0 ->
+            ?LOG_ERROR("~p failed to connect etcd endpoints: ~p ~p",
+                       [Name, Hosts, Reason0]),
+            {stop, Reason0}
     end.
 
-callback_mode() -> [handle_event_function].
+handle_call(round_robin_select, _From, #{active_conns := []} = State) ->
+    {reply, {error, eetcd_conn_unavailable}, State};
+handle_call(round_robin_select, _From, #{active_conns := [{_Host, GunPid, _MRef} = Conn | Rest],
+                                         auth_token := Token} = State) ->
+    {reply, {ok, GunPid, Token}, State#{active_conns => Rest ++ [Conn]}};
 
-handle_event({call, From}, {?flush_token, Gun, Token}, _StateName, Data) ->
-    {NewToken, NewData} = do_flush_token(Gun, Token, Data),
-    {keep_state, NewData, [{reply, From, NewToken}]};
-handle_event(info, {'DOWN', _GunRef, process, Gun, _Reason}, _StateName, Data) ->
-    handle_conn_down(Data, Gun);
-handle_event(info, {gun_down, Gun, http2, _Error, _KilledStreams}, _StateName, Data) ->
-    handle_conn_down(Data, Gun);
-handle_event(EventType, reconnecting, _StateName, Data)
-    when EventType =:= internal orelse EventType =:= info ->
-    reconnect_conns(Data);
-handle_event(info, ?check_health, _StateName, Data) ->
-    {keep_state, do_check_health(Data)};
-handle_event(info, ?auto_sync, _StateName, Data) ->
-    handle_do_sync(Data);
-handle_event(internal, ?ready, ?ready, #{name := Name}) ->
-    ?LOG_INFO("ETCD(~p, ~p)'s connections are ready.", [Name, self()]),
-    keep_state_and_data;
-handle_event(EventType, EventContent, StateName, Data) ->
-    ?LOG_ERROR("~p: unknown event ~p ~p ~p",
-        [{?MODULE, self()}, {EventType, EventContent}, StateName, Data]),
-    keep_state_and_data.
+handle_call({set_credentails, undefined}, _From, State) ->
+    {reply, ok, State#{credentials => undefined, auth_token => undefined}};
+handle_call({set_credentails, {UserName, Password}}, _From, State) ->
+    {reply, ok, State#{credentials => #{name => UserName, password => Password}}};
 
-terminate(_Reason, _StateName, Data) ->
-    #{name := Name, active_conns := Actives} = Data,
-    %% ets:fun2ms(fun(#eetcd_conn{id = {_, N}, _ = '_'})->  N =:= Name end),
-    MS = [{#eetcd_conn{id = {'_', '$1'}, _ = '_'}, [], [{'=:=', '$1', {const, Name}}]}],
-    ets:select_delete(?ETCD_CONNS, MS),
-    ets:match_delete(?ETCD_CONNS, {'_', Name}),
-    [begin gun:close(Gun) end || {_Host, Gun, _Token} <- Actives],
+handle_call(?refresh_token, _From, #{active_conns := [{_Host, GunPid, _MRef} | _]} = State) ->
+    case token_remote(GunPid, State) of
+        {ok, #{auth_token := NewToken} = NewState} ->
+            {reply, {ok, NewToken}, NewState};
+        {error, Reason} ->
+            {reply, {error, Reason}, State}
+    end.
+
+handle_cast(?check_health, State) ->
+    {noreply, do_check_health(State)};
+handle_cast({update_member_list, NewMembers}, State) when map_size(NewMembers) =:= 0 ->
+    {noreply, State};
+handle_cast({update_member_list, NewMembers}, #{name := Name,
+                                                active_conns := Actives,
+                                                members := OldMembers,
+                                                opening_conns := Openings} = State) ->
+    %% Close all connections to members that are not in the new list
+    Removes = [R || {Id, _GunPid, _MRef} = R <- Actives ++ Openings, not is_map_key(Id, NewMembers)],
+    lists:foreach(fun({Id, GunPid, MRef}) when is_reference(MRef) ->
+        {Host, Port, _Transport} = maps:get(Id, OldMembers),
+        ?LOG_NOTICE("~p removing member (~s) ~s:~p, conn_pid: ~p",
+                    [Name, member_id_hex(Id), Host, Port, GunPid]),
+        erlang:demonitor(MRef, [flush]),
+        ensure_close(GunPid)
+    end, Removes),
+
+    Added = maps:without(maps:keys(OldMembers), NewMembers),
+    %% elp:ignore W0034
+    [
+        ?LOG_NOTICE("~p found new member (~s) ~s:~p", [Name, member_id_hex(Id), Host, Port])
+        || {Id, {Host, Port, _}} <- maps:to_list(Added)
+    ],
+    ets:insert(?ETCD_CLIENT_CACHE, #eetcd_client{name = Name, members = NewMembers}),
+    {noreply, State#{members => NewMembers}, {continue, reconnect_now}};
+handle_cast(_Req, State) ->
+    {noreply, State}.
+
+handle_info({timeout, TRef, ?auto_sync},
+            #{name := Name, sync_ref := TRef, active_conns := []} = State) ->
+    erlang:cancel_timer(TRef),
+    ?LOG_WARNING("~p failed to sync member list: no active connections", [Name]),
+    {noreply, State#{sync_ref => undefined}, {continue, auto_sync}};
+handle_info({timeout, TRef, ?auto_sync},
+            #{name := Name, sync_ref := TRef, active_conns := Actives} = State) ->
+    erlang:cancel_timer(TRef),
+    Self = self(),
+    spawn(fun() -> check_member_list(Self, Name, shuffle(Actives)) end),
+    {noreply, State#{sync_ref => undefined}, {continue, auto_sync}};
+handle_info({timeout, TRef, ?reconnect}, #{reconn_ref := TRef} = State) ->
+    erlang:cancel_timer(TRef),
+    {noreply, do_reconnect(State#{reconn_ref => undefined}), {continue, reconnect}};
+handle_info({timeout, _TRef, ?reconnect}, State) ->
+    {noreply, State};
+
+handle_info({timeout, TRef, ?check_health}, #{health_ref := TRef} = State) ->
+    erlang:cancel_timer(TRef),
+    {noreply, do_check_health(State#{health_ref => undefined}), {continue, next_health_check}};
+
+handle_info({gun_up, GunPid, http2}, #{opening_conns := Openings} = State) ->
+    case lists:keytake(GunPid, 2, Openings) of
+        {value, {_Id, GunPid, _MRef}, _Rest} ->
+            Self = self(),
+            spawn(fun() ->
+                      try
+                          ok = await_check(GunPid),
+                          Self ! {await_ok, GunPid}
+                      catch
+                          error:Reason ->
+                              Self ! {await_error, GunPid, Reason}
+                      end
+                  end),
+            {noreply, State};
+        false ->
+            ?LOG_WARNING("Received unknown connection pid up: ~p", [GunPid]),
+            {noreply, State}
+    end;
+handle_info({await_ok, GunPid}, #{opening_conns := Openings,
+                                  active_conns := Actives,
+                                  members := Members} = State) ->
+    case lists:keytake(GunPid, 2, Openings) of
+        {value, {Id, GunPid, MRef}, Rest} ->
+            #{Id := {Host, Port, _Transport}} = Members,
+            ?LOG_NOTICE("Connection established to etcd member (~s) ~s:~p",
+                        [member_id_hex(Id), Host, Port]),
+            {noreply, State#{active_conns => Actives ++ [{Id, GunPid, MRef}], opening_conns => Rest}};
+        false ->
+            ?LOG_WARNING("Received unknown connection pid up: ~p", [GunPid]),
+            {noreply, State}
+    end;
+handle_info({await_error, GunPid, Reason}, State) ->
+    {noreply, handle_gun_down(GunPid, Reason, State)};
+handle_info({gun_down, GunPid, http2, Reason, _Streams}, State) ->
+    {noreply, handle_gun_down(GunPid, Reason, State)};
+handle_info({'DOWN', MRef, process, GunPid, Reason}, State) ->
+    erlang:demonitor(MRef, [flush]),
+    {noreply, handle_gun_down(GunPid, Reason, State)};
+handle_info(_Msg, State) ->
+    {noreply, State}.
+
+handle_continue(next_health_check, #{options := Opts, health_ref := undefined} = State) ->
+    After = case proplists:get_value(health_check_ms, Opts, 15000) of
+                N when is_integer(N), N > 0 -> N;
+                _ -> 15000
+            end,
+    TRef = erlang:start_timer(After, self(), ?check_health),
+    {noreply, State#{health_ref => TRef}};
+handle_continue(next_health_check, #{} = State) ->
+    {noreply, State};
+
+handle_continue(auto_sync, #{auto_sync_interval_ms := Interval,
+                             sync_ref := undefined} = State) when Interval > 0 ->
+    TRef = erlang:start_timer(Interval, self(), ?auto_sync),
+    {noreply, State#{sync_ref => TRef}};
+handle_continue(auto_sync, #{} = State) ->
+    {noreply, State};
+handle_continue(reconnect_now, #{reconn_ref := undefined} = State) ->
+    {noreply, do_reconnect(State), {continue, reconnect}};
+handle_continue(reconnect_now, #{reconn_ref := TRef} = State) ->
+    erlang:cancel_timer(TRef),
+    {noreply, do_reconnect(State#{reconn_ref => undefined}), {continue, reconnect}};
+handle_continue(reconnect, #{reconn_ref := undefined} = State) ->
+    TRef = erlang:start_timer(2000, self(), ?reconnect),
+    {noreply, State#{reconn_ref => TRef}};
+handle_continue(reconnect, State) ->
+    {noreply, State}.
+
+terminate(Reason, #{name := Name, active_conns := Actives, opening_conns := Openings} = _State) ->
+    ?LOG_NOTICE("eetcd client ~p terminating with reason: ~p", [Name, Reason]),
+    is_normal(Reason) andalso ets:delete(?ETCD_CLIENT_CACHE, Name),
+    [ensure_close(GunPid) || {_Host, GunPid, _Token} <- Actives ++ Openings],
     ok.
 
-code_change(_OldVsn, StateName, Data, _Extra) ->
-    {ok, StateName, Data}.
+code_change(_OldVsntateName, State, _Extra) ->
+    {ok, State}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+is_normal(normal) -> true;
+is_normal(shutdown) -> true;
+is_normal({shutdown, _}) -> true;
+is_normal(_) -> false.
 
-connect_all(Hosts, Name, #{gun_opts := GunOpts} = Data) ->
-    Auth = maps:get(authenticate, Data, undefined),
-    case fold_connect(Hosts, Name, GunOpts, Auth, [], []) of
+ensure_close(undefined) -> ok;
+ensure_close(GunPid) when is_pid(GunPid) ->
+    try
+        gun:close(GunPid)
+    catch
+        _:_ ->
+            ok
+    end;
+ensure_close(_) ->
+    ok.
+
+init_connect(Members, Name, #{mode := connect_all} = State) ->
+    connect_all(Members, Name, State);
+init_connect(Members, Name, #{mode := random} = State) ->
+    connect_random(shuffle(maps:to_list(Members)), Name, State);
+init_connect(_, _, _) ->
+    error(unsupported_mode).
+
+connect_all(Members, Name, #{gun_opts := GunOpts} = State) ->
+    case fold_connect(maps:to_list(Members), Name, GunOpts, [], []) of
         {Ok, []} ->
-            {ok, ?ready, Data#{
+            State#{
                 mode => connect_all,
-                health_ref => next_check_health(),
-                sync_ref => next_sync(Data),
-                member_list => Hosts,
-                active_conns => Ok,
-                freeze_conns => []}};
+                active_conns => Ok};
         {Ok, Failed} when length(Ok) > length(Failed) ->
-            Freezes = [{Host, ?MIN_RECONN} || {Host, _Reason} <- Failed],
-            {ok, ?reconnect, Data#{
+            State#{
                 mode => connect_all,
-                health_ref => next_check_health(),
-                sync_ref => next_sync(Data),
-                member_list => Hosts,
-                active_conns => Ok,
-                freeze_conns => Freezes},
-                {next_event, internal, reconnecting}};
+                active_conns => Ok};
         {Ok, Failed} ->
-            [begin gun:close(G) end || {_Host, G, _Auth} <- Ok],
-            {stop, {shutdown, Failed}}
+            [ensure_close(G) || {_Host, G, _Auth} <- Ok],
+            error({shutdown, Failed})
     end.
 
-connect_one(Index, Retry, Data, Len) ->
-    #{endpoints := Hosts, name := Name, gun_opts := GunOpts} = Data,
-    case lookup(Name) of
-        {ok, _Pid} ->
-            {stop, {shutdown, {error, already_started}}};
-        {error, eetcd_conn_unavailable} ->
-            Auth = maps:get(authenticate, Data, undefined),
-            Host = lists:nth(Index, Hosts),
-            case connect(Name, Host, GunOpts, Auth) of
-                {ok, Gun, AuthToken} ->
-                    {ok, ?ready, Data#{
-                        index => Index,
-                        health_ref => next_check_health(),
-                        sync_ref => next_sync(Data),
-                        active_conns => [{Host, Gun, AuthToken}]}};
-                {error, Reason} when Retry =< 0 ->
-                    {stop, {shutdown, Reason}};
-                {error, Reason} ->
-                    ?LOG_WARNING("~p failed to connect ETCD host: ~p ~p",
-                        [Name, Host, Reason]),
-                    NewIndex = Index rem Len + 1,
-                    connect_one(NewIndex, Retry - 1, Data, Len)
-            end
+connect_random([], _Name, _State) -> error(eetcd_conn_unavailable);
+connect_random([{Id, {_Host, _Port, _Transport}} = Member | Rest], Name,
+               #{gun_opts := GunOpts} = State) ->
+    case connect_and_await_up(Name, Member, GunOpts) of
+        {ok, {GunPid, MRef}} -> State#{active_conns => [{Id, GunPid, MRef}]};
+        {error, _Reason} -> connect_random(Rest, Name, State)
     end.
 
-fold_connect([], _Name, _GunOpts, _Auth, Ok, Fail) -> {Ok, Fail};
-fold_connect([Host | Hosts], Name, GunOpts, Auth, Ok, Fail) ->
-    case connect(Name, Host, GunOpts, Auth) of
-        {ok, Gun, Token} ->
-            NewOk = [{Host, Gun, Token} | Ok],
-            fold_connect(Hosts, Name, GunOpts, Auth, NewOk, Fail);
+fold_connect([], _Name, _GunOpts, Ok, Fail) -> {Ok, Fail};
+fold_connect([{Id, {_Host, _Port, _Transport}} = Member | Rest], Name, GunOpts, Ok, Fail) ->
+    case connect_and_await_up(Name, Member, GunOpts) of
+        {ok, {GunPid, MRef}} ->
+            NewOk = [{Id, GunPid, MRef} | Ok],
+            fold_connect(Rest, Name, GunOpts, NewOk, Fail);
         {error, Reason} ->
-            ?LOG_ERROR("Failed to connect ETCD: ~p by ~p", [Host, Reason]),
-            NewFail = [{Host, Reason} | Fail],
-            fold_connect(Hosts, Name, GunOpts, Auth, Ok, NewFail)
+            NewFail = [{Id, Reason} | Fail],
+            fold_connect(Rest, Name, GunOpts, Ok, NewFail)
     end.
 
-connect(Name, {IP, Port}, GunOpts, Auth) ->
-    {ok, Gun} = gun:open(IP, Port, GunOpts),
-    Retries = maps:get(retry, GunOpts),
-    ConnectTimeout = maps:get(connect_timeout, GunOpts),
-    RetryTimeout = maps:get(retry_timeout, GunOpts),
-    AwaitTime = (Retries + 1) * ConnectTimeout + Retries * RetryTimeout,
-    case gun:await_up(Gun, AwaitTime) of
-        {ok, http2} ->
-            case check_health_remote(Gun) of
-                ok ->
-                    case check_leader_remote(Gun) of
-                        ok ->
-                            case token_remote(Gun, Auth) of
-                                {ok, Token} ->
-                                    try_update_conn(IP, Port, Name, Gun, Token);
-                                {error, AuthReason} ->
-                                    exit_conn("Authenticate", Gun, AuthReason, Name, IP, Port)
-                            end;
-                        {error, LeaderReason} ->
-                            exit_conn("No Leader", Gun, LeaderReason, Name, IP, Port)
-                    end;
-                {error, HealthReason} ->
-                    exit_conn("GRPC Unhealthy", Gun, HealthReason, Name, IP, Port)
-            end;
-        {error, GunReason} ->
-            exit_conn("Gun Down", Gun, GunReason, Name, IP, Port)
-    end.
-
-try_update_conn(IP, Port, Name, Gun, Token) ->
-    Conn = #eetcd_conn{id = {{IP, Port}, Name},
-        gun = Gun, token = Token,
-        conn = self()},
-    case ets:insert_new(?ETCD_CONNS, Conn) of
-        false ->
-            gun:close(Gun),
-            {error, already_started};
-        true ->
-            erlang:monitor(process, Gun),
-            ?LOG_INFO("~p connect to ~p:~p gun(~p) successed",
-                [Name, IP, Port, Gun]),
-            {ok, Gun, Token}
-    end.
-
-exit_conn(Log, Gun, Reason, Name, IP, Port) ->
-    gun:close(Gun),
-    ?LOG_WARNING("~p failed to connect [~s:~p] by <~s> ~p",
-        [Name, IP, Port, Log, Reason]),
-    {error, Reason}.
-
-handle_conn_down(#{mode := connect_all} = Data, Gun) -> freeze_conn(Data, Gun);
-handle_conn_down(#{mode := random} = Data, Gun) -> clean_stale_conn(Data, Gun).
-
-freeze_conn(Data, Gun) ->
-    #{active_conns := Actives, freeze_conns := Freezes, name := Name} = Data,
-    case lists:keytake(Gun, 2, Actives) of
-        {value, {Endpoint, _, _}, NewActives} ->
-            ets:delete(?ETCD_CONNS, {Endpoint, Name}),
-            gun:close(Gun),
-            NewData = Data#{active_conns => NewActives, freeze_conns => [{Endpoint, ?MIN_RECONN} | Freezes]},
-            {next_state, ?reconnect, NewData, {next_event, internal, reconnecting}};
-        false when Freezes =:= [] ->
-            {next_state, ?ready, Data};
-        false ->
-            {next_state, ?reconnect, Data, {next_event, internal, reconnecting}}
-    end.
-
-clean_stale_conn(Data, Gun) ->
-    #{active_conns := Actives, name := Name} = Data,
-    case lists:keytake(Gun, 2, Actives) of
-        {value, {Endpoint, _, _}, NewActives} ->
-            ets:delete(?ETCD_CONNS, {Endpoint, Name}),
-            gun:close(Gun),
-            NewData = Data#{active_conns => NewActives},
-            {next_state, ?reconnect, NewData, {next_event, internal, reconnecting}};
-        false ->
-            {next_state, ?reconnect, Data, {next_event, internal, reconnecting}}
-    end.
-
-do_flush_token(Gun, OldToken, Data) ->
-    #{
-        active_conns := Actives,
-        name := Name,
-        authenticate := Auth
-    } = Data,
-    case lists:keytake(Gun, 2, Actives) of
-        {value, {Endpoint, Gun, OldToken}, NewActives} ->
-            case token_remote(Gun, Auth) of
-                {ok, NewToken} ->
-                    Conn = #eetcd_conn{conn = self(),
-                        gun = Gun, token = NewToken,
-                        id = {Endpoint, Name}},
-                    ets:insert(?ETCD_CONNS, Conn),
-                    NewData = Data#{active_conns => [{Endpoint, Gun, NewToken} | NewActives]},
-                    {NewToken, NewData};
-                {error, _AuthReason} -> {OldToken, Data}
-            end;
-        {value, {_Endpoint, _Gun, NewToken}, _NewActives} ->
-            {NewToken, Data};
-        _ -> {OldToken, Data}
-    end.
-
-reconnect_conns(#{mode := connect_all} = Data) ->
-    #{
-        name := Name,
-        freeze_conns := Freezes,
-        active_conns := Actives,
-        gun_opts := GunOpts,
-        reconn_ref := ReConnRef
-    } = Data,
-    Auth = maps:get(authenticate, Data, undefined),
-    is_reference(ReConnRef) andalso erlang:cancel_timer(ReConnRef),
-    {NewActives, NewFreezes} =
-        lists:foldl(fun({Host, Ms}, {Ok, Failed}) ->
-            case connect(Name, Host, GunOpts, Auth) of
-                {ok, Gun, Token} ->
-                    {[{Host, Gun, Token} | Ok], Failed};
-                {error, _Reason} ->
-                    {Ok, [{Host, reconnect_time(Ms bsl 1)} | Failed]}
-            end end,
-            {[], []}, Freezes),
-    NewData = Data#{active_conns => NewActives ++ Actives, freeze_conns => NewFreezes},
-    case NewFreezes =:= [] of
-        true -> {next_state, ?ready, NewData, {next_event, internal, ?ready}};
-        false ->
-            NextReconnMs = lists:min([T || {_, T} <- NewFreezes]),
-            NewRef = erlang:send_after(NextReconnMs, self(), reconnecting),
-            {next_state, ?reconnect, NewData#{reconn_ref => NewRef}}
-    end;
-reconnect_conns(#{mode := random, active_conns := []} = Data) ->
-    #{endpoints := Hosts, index := Index, reconn_ref := ReConnRef} = Data,
-    is_reference(ReConnRef) andalso erlang:cancel_timer(ReConnRef),
-    Len = erlang:length(Hosts),
-    case connect_one(Index, Len, Data, Len) of
-        {ok, ?ready, NewData} ->
-            {next_state, ?ready, NewData, {next_event, internal, ?ready}};
-        {stop, {shutdown, _Reason}} ->
-            NewRef = erlang:send_after(1000, self(), reconnecting),
-            {next_state, ?reconnect, Data#{reconn_ref => NewRef}}
-    end;
-reconnect_conns(_Data) -> keep_state_and_data.
-
-next_check_health() ->
-    Ms = application:get_env(eetcd, health_check_ms, 15000),
-    erlang:send_after(Ms, self(), ?check_health).
-
-next_sync(#{auto_sync_interval_ms := Interval}) ->
-    case application:get_env(eetcd, auto_sync_interval_ms, Interval) of
-        Ms when is_number(Ms), Ms > 0 ->
-            erlang:send_after(Ms, self(), ?auto_sync);
-        _ -> undefined
-    end;
-next_sync(_Data) ->
-    undefined.
-
-do_check_health(Data = #{mode := Mode, health_ref := HealthRef}) ->
-    erlang:cancel_timer(HealthRef),
-    NewData = do_check_health(Mode, Data),
-    NewHealthRef = next_check_health(),
-    NewData#{health_ref => NewHealthRef}.
-
-do_check_health(connect_all, Data) ->
-    #{
-        name := Name,
-        active_conns := Actives,
-        freeze_conns := Freezes,
-        member_list := Members
-    } = Data,
-    {NewActives, NewFreezes} =
-        lists:foldl(
-          fun({Host, Gun, _Token} = Endpoint, {Health, Freeze}) ->
-            case check_health_remote(Gun) of
-                ok ->
-                    case check_leader_remote(Gun) of
-                        ok ->
-                            {[Endpoint | Health], Freeze};
-                        {error, Reason} ->
-                            ets:delete(?ETCD_CONNS, {Host, Name}),
-                            gun:close(Gun),
-                            ?LOG_ERROR("~p check (~p) leader failed by ~p", [Name, Host, Reason]),
-                            {Health, [{Host, ?MIN_RECONN} | Freeze]}
-                    end;
-                {error, Reason1} ->
-                    ets:delete(?ETCD_CONNS, {Host, Name}),
-                    gun:close(Gun),
-                    ?LOG_ERROR("~p check (~p) health failed by ~p", [Name, Host, Reason1]),
-                    {Health, [{Host, ?MIN_RECONN} | Freeze]}
-            end
-          end, {[], Freezes}, Actives),
-        NewFreezes1 = [{{H1, P1}, RECONN} || {{H1, P1}, RECONN} <- NewFreezes,
-                                             {H2, P2} <- Members,
-                                             H1 =:= H2, P1 =:= P2],
-    Data#{active_conns => NewActives, freeze_conns => NewFreezes1};
-do_check_health(random, Data) ->
-    #{name := Name, active_conns := ActiveConns} = Data,
-    case ActiveConns of
-        [{Host, Gun, _Token}] ->
-            case check_health_remote(Gun) of
-                ok ->
-                    case check_leader_remote(Gun) of
-                        ok -> Data;
-                        {error, Reason} ->
-                            ets:delete(?ETCD_CONNS, {Host, Name}),
-                            gun:close(Gun),
-                            ?LOG_ERROR("~p check (~p) leader failed by ~p", [Name, Host, Reason]),
-                            Data#{active_conns => []}
-                    end;
-                {error, Reason1} ->
-                    ets:delete(?ETCD_CONNS, {Host, Name}),
-                    gun:close(Gun),
-                    ?LOG_ERROR("~p check (~p) health failed by ~p", [Name, Host, Reason1]),
-                    Data#{active_conns => []}
-            end;
-        [] -> Data
-    end.
-
-handle_do_sync(Data = #{sync_ref := SyncRef}) ->
-    is_reference(SyncRef) andalso erlang:cancel_timer(SyncRef),
-    #{freeze_conns := Freezes} = NewData = do_sync_memberlist(Data),
-    NewSyncRef = next_sync(NewData),
-    NewData1 = NewData#{sync_ref => NewSyncRef},
-    case Freezes of
-        [] ->
-            {keep_state, NewData1};
-        _ ->
-            reconnect_conns(NewData1)
-    end.
-
-filtermap_url(Url, Transport) ->
-    ParseResult = uri_string:parse(Url),
-    do_filtermap_url(ParseResult, Transport, Url).
-
-do_filtermap_url(#{host := Host, port := Port, scheme := Scheme}, Transport, Url)
-  when erlang:is_binary(Host) ->
-    case {erlang:bit_size(Host) > 0, Scheme, Transport} of
-        {true, <<"http">>, tcp} ->
-            {true, {erlang:binary_to_list(Host), Port}};
-        {true, <<"https">>, tls} ->
-            {true, {erlang:binary_to_list(Host), Port}};
-        {true, <<"https">>, ssl} ->
-            {true, {erlang:binary_to_list(Host), Port}};
-        _ ->
-            %% Note: because of the design of eetcd_conn, we need
-            %% the member lists' URL use the same transport
-            %% options to the active connections.
-            ?LOG_WARNING("Not matched schemes from member list ~s", [Url]),
-            false
-    end;
-do_filtermap_url(_, _, Url) ->
-    ?LOG_WARNING("Url ~s from member list is not a valid etcd url", [Url]),
-    false.
-
-do_sync_memberlist(#{mode := random} = Data) ->
-    Data;
-do_sync_memberlist(#{active_conns := [], name := Name} = Data) ->
-    ?LOG_WARNING("~s has no active connections to etcd cluster, cannot get member list", [Name]),
-    Data;
-do_sync_memberlist(#{name := Name,
-                     gun_opts := #{transport := Transport},
-                     active_conns := ActiveConns,
-                     freeze_conns := Freezes} = Data) ->
-    case eetcd_cluster:member_list(Name) of
-        {ok, #{members := []}} ->
-            %% TODO: remove all active connections? That's critical situation.
-            Data;
-        {ok, #{members := Members}} ->
-            %% FIXME: take all clientURLs per member or take one per member?
-            %% Here we take all available clientURLs for every not-a-learner member.
-            ClientUrls0 = lists:filtermap(
-                           fun(#{isLearner := true, 'ID' := MemberId, name := MemberName}) ->
-                                   ?LOG_INFO(#{msg => "Member is a learner, skipped for now",
-                                               member_id => MemberId,
-                                               member_name => MemberName}),
-                                   false;
-                              (#{clientURLs := [], 'ID' := MemberId, name := MemberName}) ->
-                                   ?LOG_INFO(#{msg => "Member not advertise client URLs",
-                                               member_id => MemberId,
-                                               member_name => MemberName}),
-                                   false;
-                              (#{clientURLs := Urls}) ->
-                                   {true, Urls}
-                           end, Members),
-            ClientUrls1 = lists:flatten(ClientUrls0),
-
-            ClientUrls2 = lists:filtermap(
-                           fun(Url) -> filtermap_url(Url, Transport) end, ClientUrls1),
-
-            ClientUrls = lists:usort(ClientUrls2),
-
-            A = [HostPort || {HostPort, _GunPid, _Token} <- ActiveConns],
-            F = [HostPort || {HostPort, _Reconn} <- Freezes ],
-            RemovedEndpoints = (A ++ F) -- ClientUrls,
-            NewEndpoints = (ClientUrls -- A) -- F,
-
-            %% Remove removed_endpoints from freeze_conns
-            NewFreezes = [ {H, ?MIN_RECONN} || H <- (ClientUrls -- A)],
-
-            case RemovedEndpoints of
-                [] -> ok;
-                _ ->
-                    ?LOG_NOTICE(#{msg => "Got removed endpoints",
-                                  removed_endpoints => RemovedEndpoints})
+connect_and_await_up(Name, {Id, {Host, Port, Transport}}, GunOpts0) ->
+    try
+        GunOpts1 = GunOpts0#{retry => 0},
+        GunOpts = case Transport of
+                      tcp -> GunOpts1;
+                      tls -> GunOpts1#{transport => tls}
+                  end,
+        GunPid =
+            case gun:open(Host, Port, GunOpts) of
+                {ok, Gun0} -> Gun0;
+                {error, GunReason0} -> error({undefined, GunReason0})
             end,
+        Retries = maps:get(retry, GunOpts, 0),
+        ConnectTimeout = maps:get(connect_timeout, GunOpts),
+        RetryTimeout = maps:get(retry_timeout, GunOpts),
+        AwaitTime = (Retries + 1) * ConnectTimeout + Retries * RetryTimeout, %% TODO: Simplify
+        case gun:await_up(GunPid, AwaitTime) of
+            {ok, http2} -> ok;
+            {error, GunReason} -> error({GunPid, GunReason})
+        end,
+        case await_check(GunPid) of
+            ok ->
+                MRef = erlang:monitor(process, GunPid),
+                ?LOG_NOTICE("Connection established to etcd member (~s) ~s:~p",
+                            [member_id_hex(Id), Host, Port]),
+                {ok, {GunPid, MRef}};
+            {error, Reason1} -> error({GunPid, Reason1})
+        end
+    catch
+        error:{GunPid0, Reason} ->
+            ensure_close(GunPid0),
+            ?LOG_WARNING("~p failed to connect etcd member (~s) ~s:~p by ~p",
+                         [Name, member_id_hex(Id), Host, Port, Reason]),
+            {error, Reason}
+    end.
 
-            case NewEndpoints of
-                [] ->
-                    Data#{member_list => ClientUrls};
-                _ ->
-                    ?LOG_NOTICE(#{msg => "Got new endpoints", new_endpoints => NewEndpoints}),
-                    Data#{freeze_conns => NewFreezes, member_list => ClientUrls}
+await_check(GunPid) ->
+    case check_health_remote(GunPid) of
+        ok -> ok;
+        {error, HealthReason} -> error(HealthReason)
+    end,
+    case check_leader_remote(GunPid) of
+        ok -> ok;
+        {error, LeaderReason} -> error(LeaderReason)
+    end,
+    ok.
+
+do_reconnect(#{mode := random,
+               members := Members,
+               active_conns := [],
+               opening_conns := [],
+               gun_opts := GunOpts} = State) ->
+    NewOpenings = open_members(shuffle(maps:to_list(Members)), GunOpts, [], one),
+    State#{opening_conns => NewOpenings};
+do_reconnect(#{mode := random} = State) ->
+    State;
+
+do_reconnect(#{mode := connect_all,
+               members := Members,
+               active_conns := Actives,
+               opening_conns := Openings,
+               gun_opts := GunOpts} = State) ->
+    Retries0 = maps:keys(Members) -- [Id || {Id, _GunPid, _MRef} <- Actives],
+    Retries = Retries0 -- [Id || {Id, _} <- Openings],
+    RetriesMembers = maps:to_list(maps:with(Retries, Members)),
+    NewOpenings = open_members(RetriesMembers, GunOpts, [], all),
+    State#{opening_conns => Openings ++ NewOpenings}.
+
+open_members([], _GunOpts, Result, _) -> Result;
+open_members([{Id, {Host, Port, Transport}} | Rest], GunOpts0, Result, AllorOne) ->
+    GunOpts1 = GunOpts0#{retry => 0},
+    GunOpts = case Transport of
+                  tcp -> GunOpts1;
+                  tls -> GunOpts1#{transport => tls}
+              end,
+    case gun:open(Host, Port, GunOpts) of
+        {ok, GunPid} ->
+            MRef = erlang:monitor(process, GunPid),
+            ?LOG_NOTICE("Opening connection to etcd member ~s:~p", [Host, Port]),
+            case AllorOne of
+                all -> open_members(Rest, GunOpts, [{Id, GunPid, MRef} | Result], AllorOne);
+                one -> [{Id, GunPid, MRef}]
             end;
         {error, Reason} ->
-            ?LOG_ERROR("~p get member_list failed by ~p", [Name, Reason]),
-            Data
+            ?LOG_WARNING("Failed to open connection to etcd ~s:~p, reason: ~p",
+                         [Host, Port, Reason]),
+            open_members(Rest, GunOpts, Result, AllorOne)
+    end.
+
+handle_gun_down(GunPid, Reason,
+                #{members := Members,
+                  active_conns := Actives,
+                  opening_conns := Openings} = State) ->
+    case {lists:keyfind(GunPid, 2, Actives), lists:keyfind(GunPid, 2, Openings)} of
+        {{Id, GunPid, MRef}, false} ->
+            erlang:demonitor(MRef, [flush]),
+            {Host, Port, _Transport} = maps:get(Id, Members),
+            ?LOG_WARNING("etcd connection ~p to member ~s:~p down: ~p",
+                         [GunPid, Host, Port, Reason]),
+            State#{active_conns => lists:keydelete(GunPid, 2, Actives)};
+        {false, {Id, GunPid, MRef}} ->
+            erlang:demonitor(MRef, [flush]),
+            {Host, Port, _Transport} = maps:get(Id, Members),
+            ?LOG_WARNING("etcd connecting ~p to member ~s:~p failed: ~p",
+                         [GunPid, Host, Port, Reason]),
+            State#{opening_conns => lists:keydelete(GunPid, 2, Openings)};
+        {false, false} ->
+            ?LOG_WARNING("unknown etcd connection ~p down: ~p", [GunPid, Reason]),
+            State
+    end.
+
+do_check_health(#{active_conns := Actives} = State) ->
+    do_check_health(Actives, State).
+
+do_check_health([], #{} = State) -> State;
+do_check_health([{Id, GunPid, MRef} | Rest], #{name := Name, active_conns := Actives} = State) ->
+    try
+        case check_health_remote(GunPid) of
+            ok ->
+                case check_leader_remote(GunPid) of
+                    ok -> do_check_health(Rest, State);
+                    {error, Reason2} -> error({leader, Reason2})
+                end;
+            {error, Reason1} ->
+                error({health, Reason1})
+        end
+    catch
+        error:{Type, Reason} ->
+            ConnInfo = gun:info(GunPid),
+            erlang:demonitor(MRef, [flush]),
+            ensure_close(GunPid),
+            ?LOG_ERROR("~p check member (~s) ~s:~p (~p) failed: ~p",
+                       [Name,
+                        member_id_hex(Id),
+                        inet:ntoa(maps:get(sock_ip, ConnInfo)),
+                        maps:get(sock_port, ConnInfo),
+                        Type,
+                        Reason]),
+            State1 = State#{active_conns => lists:keydelete(Id, 1, Actives)},
+            do_check_health(Rest, State1)
     end.
 
 %% UNKNOWN = 0;
 %% SERVING = 1;
 %% NOT_SERVING = 2;
 %% SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
-check_health_remote(Gun) ->
+check_health_remote(GunPid) ->
     Path = <<"/grpc.health.v1.Health/Check">>,
-    case eetcd_stream:unary(Gun, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', ?HEADERS) of
+    case eetcd_stream:unary(GunPid, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', ?HEADERS) of
         {ok, #{status := 'SERVING'}} -> ok;
         {ok, #{status := 'UNKNOWN'}} -> ok;
         %% etcd does not support health checks in early versions of v3 API
@@ -569,42 +503,110 @@ check_health_remote(Gun) ->
         {error, _Reason} = Err -> Err
     end.
 
-check_leader_remote(Gun) ->
+check_leader_remote(GunPid) ->
     Path = <<"/etcdserverpb.Maintenance/Status">>,
     Request = eetcd:with_timeout(#{}, 10000),
-    case eetcd_stream:unary(Gun, Request, 'Etcd.StatusRequest', Path, 'Etcd.StatusResponse', ?HEADERS) of
+    case eetcd_stream:unary(GunPid, Request, 'Etcd.StatusRequest', Path, 'Etcd.StatusResponse', ?HEADERS) of
         {ok, #{leader := Leader}} when Leader > 0 -> ok;
         {ok, #{errors := Errors, leader := 0}} -> {error, {no_leader, Errors}};
         {error, _Reason} = Err -> Err
     end.
 
-token_remote(_Gun, undefined) -> {ok, undefined};
-token_remote(Gun, #{name := Name, password := Passwd}) ->
+token_remote(GunPid, #{credentials := #{name := Name, password := Password}} = State) ->
     Path = <<"/etcdserverpb.Auth/Authenticate">>,
     Req1 = eetcd:with_timeout(#{}, 10000),
-    Req2 = maps:put(name, Name, Req1),
-    Req3 =
-        case Passwd of
-            undefined -> Req2;
-            _ -> maps:put(password, Passwd, Req2)
-        end,
-    case eetcd_stream:unary(Gun, Req3, 'Etcd.AuthenticateRequest', Path, 'Etcd.AuthenticateResponse', ?HEADERS) of
-        {ok, #{token := Token}} -> {ok, Token};
+    Req2 = Req1#{name => Name, password => Password},
+    case eetcd_stream:unary(GunPid, Req2, 'Etcd.AuthenticateRequest', Path, 'Etcd.AuthenticateResponse', ?HEADERS) of
+        {ok, #{token := Token}} -> {ok, State#{auth_token => Token}};
+        {error, _Reason} = Err -> Err
+    end;
+token_remote(_Gun, State) -> {ok, State#{auth_token => undefined}}.
+
+with_gun(Host, Port, GunOpts, Fun) ->
+    case gun:open(Host, Port, GunOpts) of
+        {ok, GunPid} ->
+            try
+                case gun:await_up(GunPid, 5000) of
+                    {ok, http2} -> Fun(GunPid);
+                    {error, _Reason} = E -> E
+                end
+            after
+                ensure_close(GunPid)
+            end;
+        Other -> Other
+    end.
+
+get_member_list([], _GunOpts) -> error(no_available_members);
+get_member_list([{Host, Port}| Rest], GunOpts) ->
+    case with_gun(Host, Port, GunOpts, fun member_list/1) of
+        {ok, Members} -> Members;
+        {error, Reason} ->
+            ?LOG_WARNING("Failed to get member list from ~s:~p, reason: ~p",
+                         [Host, Port, Reason]),
+            get_member_list(Rest, GunOpts)
+    end.
+
+check_member_list(_SelfPid, Name, []) ->
+    ?LOG_WARNING("~p failed to sync member list: no active connections", [Name]);
+check_member_list(SelfPid, Name, [{_Id, GunPid, _MRef} | _]) ->
+    try member_list(GunPid) of
+        {ok, Members} ->
+            case update_member_list(SelfPid, Members) of
+                ok -> ok;
+                {error, Reason} ->
+                    ?LOG_WARNING("~p failed to update member list: ~p", [Name, Reason]),
+                    ok
+            end;
+        {error, Reason} ->
+            ?LOG_WARNING("~p failed to get member list: ~p", [Name, Reason]),
+            ok
+    catch
+        error:_Reason ->
+            ok
+    end.
+
+member_list(GunPid) ->
+    Path = <<"/etcdserverpb.Cluster/MemberList">>,
+    case eetcd_stream:unary(GunPid, #{}, 'Etcd.MemberListRequest', Path, 'Etcd.MemberListResponse', ?HEADERS) of
+        {ok, #{members := Members0}} when is_list(Members0) ->
+            Members = lists:filter(
+                        fun(M) when is_map(M) ->
+                                IsLearner = maps:get(isLearner, M, false),
+                                IsLearner =/= true orelse IsLearner =/= 1
+                        end, Members0),
+            % {ok, Members};
+            {ok, parse_members(Members)};
         {error, _Reason} = Err -> Err
     end.
 
-reconnect_time(Ms) when Ms > ?MAX_RECONN -> ?MIN_RECONN;
-reconnect_time(Ms) -> Ms.
+parse_members(Members) ->
+    Result = [{Id, parse_client_url(Url)} || #{'ID' := Id, clientURLs := [Url | _]} <- Members],
+    maps:from_list(Result).
 
-put_in_authenticate(Data, Options) ->
-    case proplists:get_value(name, Options, undefined) of
-        undefined -> Data;
-        UserName ->
-            Password = proplists:get_value(password, Options),
-            Auth = #{name => UserName, password => Password},
-            Data#{authenticate => Auth}
+parse_client_url(Url) when is_binary(Url) ->
+    parse_client_url(binary_to_list(Url));
+parse_client_url(Url) when is_list(Url) ->
+    case uri_string:parse(Url) of
+        #{host := Host, port := Port, scheme := "http"} ->
+            {Host, Port, tcp};
+        #{host := Host, port := Port, scheme := "https"} ->
+            {Host, Port, tls};
+        _ ->
+            ?LOG_WARNING("Invalid client URL: ~s", [Url]),
+            error(invalid_url)
+    end.
+
+put_in_credentials(Data, Options) ->
+    case {proplists:get_value(name, Options, undefined),
+          proplists:get_value(password, Options, undefined)} of
+        {undefined, _} -> Data;
+        {_, undefined} -> Data;
+        {UserName, Password} ->
+            Data#{credentials => #{name => UserName, password => Password}}
     end.
 
 shuffle(List) ->
-    Disorders = [begin {rand:uniform(), K} end||K <-List],
-    [begin K end||{_, K} <- lists:keysort(1, Disorders)].
+    [X || {_, X} <- lists:sort([{rand:uniform(), N} || N <- List])].
+
+member_id_hex(Id) when is_integer(Id) ->
+    string:lowercase(binary:encode_hex(<<Id:64>>)).

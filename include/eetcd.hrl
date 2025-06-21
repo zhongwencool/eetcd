@@ -9,8 +9,9 @@
 -type key() :: iodata().
 -type value() :: iodata().
 -type context() :: map().
--type name() :: atom() | reference().
--type new_context() :: atom() | reference() | context().
+-type name() :: atom().
+-type member_id() :: pos_integer().
+-type new_context() :: name() | context().
 -type eetcd_error() :: timeout|{grpc_error,grpc_status()}|{gun_down,any()}|{gun_conn_error,any()}|{gun_stream_error,any()}|eetcd_conn_unavailable.
 -type grpc_status() :: #{'grpc-status' => integer(), 'grpc-message' => binary()}.
 

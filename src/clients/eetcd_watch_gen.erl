@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2021-12-22T07:01:11+00:00 and should not be modified manually
+%% This module was generated on 2025-06-21T09:30:26+00:00 and should not be modified manually
 
 -module(eetcd_watch_gen).
 
@@ -13,7 +13,7 @@
 
 %% @doc Stream RPC 
 -spec watch(atom()|reference()) ->
-    {ok, GunPid :: pid(), Http2Ref:: reference()}|{error,eetcd:eetcd_error()}.
+    {ok, GunPid :: pid(), Http2Ref:: reference(), PbModule :: module()}|{error,eetcd:eetcd_error()}.
 watch(Request) ->
-    eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>).
+    eetcd_stream:new(Request, <<"/etcdserverpb.Watch/Watch">>, router_pb).
 

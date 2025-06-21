@@ -85,9 +85,9 @@ keep_alive(Name, LeaseID) ->
     {ok, router_pb:'Etcd.LeaseKeepAliveResponse'()}|{error, eetcd_error()}.
 keep_alive_once(Name, LeaseID) when is_atom(Name) orelse is_reference(Name) ->
     case eetcd_lease_gen:lease_keep_alive(Name) of
-        {ok, Gun, StreamRef} ->
+        {ok, Gun, StreamRef, PbModule} ->
             MRef = erlang:monitor(process, Gun),
-            Res = keep_alive_once(Gun, StreamRef, LeaseID, MRef),
+            Res = keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule),
             gun:cancel(Gun, StreamRef),
             erlang:demonitor(MRef, [flush]),
             Res;
@@ -121,10 +121,10 @@ start_link(Caller, Name, LeaseID) ->
 
 init([Caller, Name, LeaseID]) ->
     case first_keep_alive_once(Name, LeaseID) of
-        {ok, Gun, Ref, MRef, TTL} ->
+        {ok, Gun, Ref, MRef, TTL, PbModule} ->
             After = erlang:max(round(TTL / ?BLOCK), 1) * 1000,
             TimeRef = schedule_next_keep_alive(After),
-            {ok, #{name => Name, gun => Gun, caller => Caller,
+            {ok, #{name => Name, gun => Gun, caller => Caller, pb_module => PbModule,
                 ttl => TTL, lease_id => LeaseID,
                 stream_ref => Ref, monitor_ref => MRef, next_ref => TimeRef,
                 ongoing => 0, last_disconnect => 0}
@@ -150,8 +150,8 @@ handle_info({'DOWN', Ref, process, Gun, Reason}, #{gun := Gun, monitor_ref := Re
     reconnect(State);
 
 handle_info({gun_data, _Pid, Ref, nofin, Data},
-    State = #{stream_ref := Ref, ongoing := Ongoing, caller := Caller}) ->
-    case eetcd_grpc:decode(identity, Data, 'Etcd.LeaseKeepAliveResponse') of
+    State = #{stream_ref := Ref, ongoing := Ongoing, caller := Caller, pb_module := PbModule}) ->
+    case eetcd_grpc:decode(identity, Data, 'Etcd.LeaseKeepAliveResponse', PbModule) of
         {ok, #{'ID' := ID, 'TTL' := TTL}, <<>>} when TTL =< 0 ->
             Event = ?Event(ID, ?LeaseNotFound),
             erlang:send(Caller, Event),
@@ -194,22 +194,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 first_keep_alive_once(Name, LeaseID) ->
     case eetcd_lease_gen:lease_keep_alive(Name) of
-        {ok, Gun, StreamRef} ->
+        {ok, Gun, StreamRef, PbModule} ->
             MRef = erlang:monitor(process, Gun),
-            case keep_alive_once(Gun, StreamRef, LeaseID, MRef) of
-                {ok, #{'TTL' := TTL}} -> {ok, Gun, StreamRef, MRef, TTL};
+            case keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule) of
+                {ok, #{'TTL' := TTL}} -> {ok, Gun, StreamRef, MRef, TTL, PbModule};
                 Err -> Err
             end;
         {error, _Reason} = Err -> Err
     end.
 
-keep_alive_once(Gun, StreamRef, LeaseID, MRef) ->
-    eetcd_stream:data(Gun, StreamRef, #{'ID' => LeaseID}, 'Etcd.LeaseKeepAliveRequest', nofin),
+keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule) ->
+    eetcd_stream:data(Gun, StreamRef, #{'ID' => LeaseID}, 'Etcd.LeaseKeepAliveRequest', nofin, PbModule),
     case eetcd_stream:await(Gun, StreamRef, 5000, MRef) of
         {response, nofin, 200, _Headers} ->
             case eetcd_stream:await(Gun, StreamRef, 5000, MRef) of
                 {data, nofin, ResBody} ->
-                    case eetcd_grpc:decode(identity, ResBody, 'Etcd.LeaseKeepAliveResponse') of
+                    case eetcd_grpc:decode(identity, ResBody, 'Etcd.LeaseKeepAliveResponse', PbModule) of
                         {ok, #{'TTL' := TTL}, <<>>} when TTL =< 0 ->
                             {error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}};
                         {ok, Resp, <<>>} -> {ok, Resp}
@@ -221,12 +221,12 @@ keep_alive_once(Gun, StreamRef, LeaseID, MRef) ->
     end.
 
 keep_ttl(Next, State) ->
-    #{stream_ref := Ref, gun := Gun,
-        lease_id := ID, ongoing := Ongoing,
+    #{stream_ref := Ref, gun := Gun, pb_module := PbModule,
+      lease_id := ID, ongoing := Ongoing,
         name := Name, caller := Caller} = State,
     case Ongoing =< 2 * ?BLOCK of
         true ->
-            eetcd_stream:data(Gun, Ref, #{'ID' => ID}, 'Etcd.LeaseKeepAliveRequest', nofin),
+            eetcd_stream:data(Gun, Ref, #{'ID' => ID}, 'Etcd.LeaseKeepAliveRequest', nofin, PbModule),
             TimeRef = schedule_next_keep_alive(Next),
             {noreply, State#{ongoing => Ongoing + 1, next_ref => TimeRef}};
         false ->

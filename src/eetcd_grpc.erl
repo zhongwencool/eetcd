@@ -2,23 +2,23 @@
 -module(eetcd_grpc).
 -include("eetcd.hrl").
 
--export([decode/3, encode/3]).
+-export([decode/4, encode/4]).
 -export([grpc_status/1]).
 
 %%====================================================================
 %% API functions
 %%====================================================================
 
--spec encode(identity | gzip, map(), atom()) -> binary().
-encode(GrpcType, Msg, MsgName) ->
-    PbMsg = router_pb:encode_msg(Msg, MsgName, [{verify, true}]),
+-spec encode(identity | gzip, map(), atom(), PbModule :: module()) -> binary().
+encode(GrpcType, Msg, MsgName, PbModule) ->
+    PbMsg = PbModule:encode_msg(Msg, MsgName, [{verify, true}]),
     encode_(GrpcType, PbMsg).
 
--spec decode(identity | gzip, binary(), atom()) -> {ok, map(), binary()} | more.
-decode(Encoding, Frame, PbType) ->
+-spec decode(identity | gzip, binary(), atom(), PbModule :: module()) -> {ok, map(), binary()} | more.
+decode(Encoding, Frame, PbType, PbModule) ->
     case decode_(Frame, Encoding) of
         {ok, PbBin, Fragment} ->
-            {ok, router_pb:decode_msg(PbBin, PbType), Fragment};
+            {ok, PbModule:decode_msg(PbBin, PbType), Fragment};
         more -> more
     end.
 

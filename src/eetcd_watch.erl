@@ -5,6 +5,7 @@
 -type watch_conn() :: #{http2_pid => pid(),
                         monitor_ref => reference(),
                         stream_ref => gun:stream_ref(),
+                        pb_module := module(),
 
                         %% A buffer for incompleted response frame
                         unprocessed => binary(),
@@ -156,18 +157,18 @@ watch(_Name, CreateReq, #{http2_pid := Gun,
     watch_reuse_(CreateReq, WatchConn, Timeout);
 watch(Name, CreateReq, undefined, Timeout) ->
     case eetcd_watch_gen:watch(Name) of
-        {ok, Gun, StreamRef} -> watch_new_(CreateReq, Gun, StreamRef, Timeout);
+        {ok, Gun, StreamRef, PbModule} -> watch_new_(CreateReq, Gun, StreamRef, PbModule, Timeout);
         {error, _Reason} = E -> E
     end.
 
 %% Do watch request with a new watch stream.
--spec watch_new_(context(), pid(), reference(), pos_integer()) ->
+-spec watch_new_(context(), pid(), reference(), module(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
-watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
+watch_new_(CreateReq, Gun, StreamRef, PbModule, Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
     MRef = erlang:monitor(process, Gun),
-    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin, PbModule),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {response, nofin, 200, _Headers} ->
             case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
@@ -180,12 +181,13 @@ watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
                             header := #{revision := Rev},
                             watch_id := WatchId
                         }, <<>>}
-                        = eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse'),
+                        = eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse', PbModule),
                     {ok,
                         #{
                             http2_pid => Gun,
                             monitor_ref => MRef,
                             stream_ref => StreamRef,
+                            pb_module => PbModule,
                             watch_ids => #{ WatchId => #{ revision => Rev,
                                                           compact_revision => CompactRev}},
                             unprocessed => <<>>
@@ -211,10 +213,11 @@ watch_new_(CreateReq, Gun, StreamRef, Timeout) ->
 watch_reuse_(CreateReq, #{http2_pid   := Gun,
                           stream_ref  := StreamRef,
                           monitor_ref := MRef,
+                          pb_module   := PbModule,
                           watch_ids   := Ids} = WatchConn,
              Timeout) ->
     Request = #{request_union => {create_request, CreateReq}},
-    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin),
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', nofin, PbModule),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {response, fin, 200, RespHeaders} ->
             erlang:demonitor(MRef, [flush]),
@@ -222,7 +225,7 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
 
         %% Response for the watch request with the existed/re-used watch stream.
         {data, nofin, Body} ->
-            case eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse') of
+            case eetcd_grpc:decode(identity, Body, 'Etcd.WatchResponse', PbModule) of
                 {ok,
                     #{
                         created := true,
@@ -267,10 +270,11 @@ watch_reuse_(CreateReq, #{http2_pid   := Gun,
     | {error, eetcd_error()} when
     Message :: term().
 
-watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed, watch_ids := Ids} = Conn,
-    {gun_data, Pid, Ref, nofin, Data}) ->
+watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed,
+               pb_module := PbModule, watch_ids := Ids} = Conn,
+    {gun_data, Pid, Ref, nofin, <<_/binary>> = Data}) ->
     Bin = <<Unprocessed/binary, Data/binary>>,
-    case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse') of
+    case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse', PbModule) of
         {ok, Resp, NewUnprocessed} ->
             #{compact_revision := CompactRev,
                 header := #{revision := Rev},
@@ -336,6 +340,7 @@ unwatch_and_await_resp(#{http2_pid := Gun,
     {ok, lists:reverse(RespAcc), lists:reverse(Acc)};
 unwatch_and_await_resp(#{http2_pid := Gun,
                          stream_ref := StreamRef,
+                         pb_module := PbModule,
                          watch_ids := WatchIds} = WatchConn, Timeout, RespAcc, Acc) ->
     [WatchId|_Rest] = maps:keys(WatchIds),
     IsFin = case maps:size(WatchIds) of
@@ -343,24 +348,25 @@ unwatch_and_await_resp(#{http2_pid := Gun,
                 _ -> nofin
             end,
     Request = #{request_union => {cancel_request, #{watch_id => WatchId}}},
-    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', IsFin),
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.WatchRequest', IsFin, PbModule),
     await_unwatch_resp(WatchConn, Timeout, RespAcc, Acc).
 
 await_unwatch_resp(#{http2_pid := Gun,
                      monitor_ref := MRef,
                      stream_ref := StreamRef,
+                     pb_module := PbModule,
                      watch_ids := WatchIds,
                      unprocessed := Unprocessed} = WatchConn, Timeout, RespAcc, Acc) ->
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {data, nofin, Data} ->
             Bin = <<Unprocessed/binary, Data/binary>>,
-            case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse') of
+            case eetcd_grpc:decode(identity, Bin, 'Etcd.WatchResponse', PbModule) of
                 {ok, Resp, NewUnprocessed} ->
                     case Resp of
                         #{created := false, watch_id := WatchId, canceled := true} ->
                             unwatch_and_await_resp(WatchConn#{unprocessed => NewUnprocessed,
-                                                          watch_ids => maps:without([WatchId], WatchIds)
-                                                         }, Timeout, [Resp|RespAcc], Acc);
+                                                              watch_ids => maps:without([WatchId], WatchIds)
+                                                             }, Timeout, [Resp|RespAcc], Acc);
                         OtherEvent ->
                             await_unwatch_resp(WatchConn#{unprocessed => NewUnprocessed}, Timeout, RespAcc, [OtherEvent | Acc])
                     end;

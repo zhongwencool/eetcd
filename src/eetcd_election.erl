@@ -22,6 +22,8 @@
     stream_ref => gun:stream_ref()
 }.
 
+-define(PB_MODULE, router_pb).
+
 %%% @doc Creates a blank context for a request.
 -spec new(new_context()) -> context().
 new(Ctx) -> eetcd:new(Ctx).
@@ -117,10 +119,10 @@ campaign_request(ConnName, Name, LeaseId, Value) ->
     Request0 = with_name(#{}, Name),
     Request1 = with_lease(Request0, LeaseId),
     Request = with_value(Request1, Value),
-    case eetcd_stream:new(ConnName, <<"/v3electionpb.Election/Campaign">>) of
-        {ok, Gun, StreamRef} ->
+    case eetcd_stream:new(ConnName, <<"/v3electionpb.Election/Campaign">>, ?PB_MODULE) of
+        {ok, Gun, StreamRef, _PbModule} ->
             MRef = erlang:monitor(process, Gun),
-            eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.CampaignRequest', fin),
+            eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.CampaignRequest', fin, ?PB_MODULE),
             {ok,
                 #{
                     http2_pid => Gun,
@@ -145,7 +147,7 @@ campaign_response(CCtx, Msg) ->
                     ok
             end,
             {ok, #{leader := Leader}, <<>>}
-                = eetcd_grpc:decode(identity, Bin, 'Etcd.CampaignResponse'),
+                = eetcd_grpc:decode(identity, Bin, 'Etcd.CampaignResponse', ?PB_MODULE),
             {ok, #{campaign => Leader}};
         Other -> Other
     end.
@@ -243,15 +245,15 @@ leader(Ctx, Name) ->
 -spec observe(name(), binary(), timeout()) -> {ok, observe_ctx()}|{error, eetcd_error()}.
 observe(ConnName, Name, Timeout) ->
     Request = #{name => Name},
-    {ok, Gun, StreamRef} = eetcd_election_gen:observe(ConnName),
+    {ok, Gun, StreamRef, _PbModule} = eetcd_election_gen:observe(ConnName),
     MRef = erlang:monitor(process, Gun),
-    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.LeaderRequest', fin),
+    eetcd_stream:data(Gun, StreamRef, Request, 'Etcd.LeaderRequest', fin, ?PB_MODULE),
     case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
         {response, nofin, 200, _Headers} ->
             case eetcd_stream:await(Gun, StreamRef, Timeout, MRef) of
                 {data, nofin, Body} ->
                     {ok, #{kv := KV}, <<>>}
-                        = eetcd_grpc:decode(identity, Body, 'Etcd.LeaderResponse'),
+                        = eetcd_grpc:decode(identity, Body, 'Etcd.LeaderResponse', ?PB_MODULE),
                     {ok,
                         #{
                             http2_pid => Gun,
@@ -287,7 +289,7 @@ observe(ConnName, Name, Timeout) ->
 observe_stream(OCtx, Msg) ->
     case resp_stream(OCtx, Msg) of
         {ok, Bin} ->
-            {ok, #{kv := KV}, <<>>} = eetcd_grpc:decode(identity, Bin, 'Etcd.LeaderResponse'),
+            {ok, #{kv := KV}, <<>>} = eetcd_grpc:decode(identity, Bin, 'Etcd.LeaderResponse', ?PB_MODULE),
             {ok, OCtx#{leader => KV}};
         Other -> Other
     end.

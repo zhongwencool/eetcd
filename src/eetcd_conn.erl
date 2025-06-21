@@ -7,7 +7,7 @@
 %% API
 -export([
     open/1, close/1,
-    round_robin_select/1,
+    round_robin_select/1, pick_member/2,
     check_health/1, refresh_token/2,
     set_credentails/3, unset_credentails/1,
     update_member_list/2,
@@ -44,6 +44,15 @@ close(Pid) ->
 
 round_robin_select(Name) ->
     case gen_server:call(Name, round_robin_select) of
+        {ok, GunPid, undefined} ->
+            {ok, GunPid, ?HEADERS};
+        {ok, GunPid, Token} ->
+            {ok, GunPid, [{<<"token">>, Token} | ?HEADERS]};
+        {error, _} = E -> E
+    end.
+
+pick_member(Name, MemberId) ->
+    case gen_server:call(Name, {pick_member, MemberId}) of
         {ok, GunPid, undefined} ->
             {ok, GunPid, ?HEADERS};
         {ok, GunPid, Token} ->
@@ -101,7 +110,7 @@ init({Name, Hosts, Options}) ->
                     ?LOG_NOTICE("eetcd client ~p found cached members: ~p", [Name, CachedMembers]),
                     CachedMembers;
                 [] ->
-                    NewMembers = get_member_list(shuffle(Hosts), GunOpts),
+                    NewMembers = get_member_list(Name, shuffle(Hosts), GunOpts),
                     ?LOG_NOTICE("eetcd client ~p found members: ~p", [Name, NewMembers]),
                     ets:insert(?ETCD_CLIENT_CACHE, #eetcd_client{name = Name, members = NewMembers}),
                     NewMembers
@@ -122,8 +131,7 @@ init({Name, Hosts, Options}) ->
             opening_conns => []
         },
         State = put_in_credentials(State0, Options),
-        State1 = init_connect(Members, Name, State),
-        #{active_conns := [{_Id, GunPid, _MRef} | _]} = State1,
+        #{active_conns := [{_Id, GunPid, _MRef} | _]} = State1 = init_connect(Members, Name, State),
         case token_remote(GunPid, State1) of
             {ok, State1} ->
                 {_, State2} = handle_continue(next_health_check, State1),
@@ -149,6 +157,20 @@ handle_call({set_credentails, undefined}, _From, State) ->
     {reply, ok, State#{credentials => undefined, auth_token => undefined}};
 handle_call({set_credentails, {UserName, Password}}, _From, State) ->
     {reply, ok, State#{credentials => #{name => UserName, password => Password}}};
+
+handle_call({pick_member, _MemberId}, _From, #{mode := random} = State) ->
+    {reply, {error, random_mode}, State};
+handle_call({pick_member, MemberId}, _From, #{mode := connect_all,
+                                              members := Members,
+                                              auth_token := Token,
+                                              active_conns := Actives} = State)
+  when is_map_key(MemberId, Members) ->
+    case lists:keyfind(MemberId, 1, Actives) of
+        {_MemberId, GunPid, _MRef} -> {reply, {ok, GunPid, Token}, State};
+        false -> {reply, {error, eetcd_conn_unavailable}, State}
+    end;
+handle_call({pick_member, _MemberId}, _From, State) ->
+    {reply, {error, eetcd_member_not_found}, State};
 
 handle_call(?refresh_token, _From, #{active_conns := [{_Host, GunPid, _MRef} | _]} = State) ->
     case token_remote(GunPid, State) of
@@ -208,27 +230,12 @@ handle_info({timeout, TRef, ?check_health}, #{health_ref := TRef} = State) ->
     erlang:cancel_timer(TRef),
     {noreply, do_check_health(State#{health_ref => undefined}), {continue, next_health_check}};
 
-handle_info({gun_up, GunPid, http2}, #{opening_conns := Openings} = State) ->
-    case lists:keytake(GunPid, 2, Openings) of
-        {value, {_Id, GunPid, _MRef}, _Rest} ->
-            Self = self(),
-            spawn(fun() ->
-                      try
-                          ok = await_check(GunPid),
-                          Self ! {await_ok, GunPid}
-                      catch
-                          error:Reason ->
-                              Self ! {await_error, GunPid, Reason}
-                      end
-                  end),
-            {noreply, State};
-        false ->
-            ?LOG_WARNING("Received unknown connection pid up: ~p", [GunPid]),
-            {noreply, State}
-    end;
-handle_info({await_ok, GunPid}, #{opening_conns := Openings,
-                                  active_conns := Actives,
-                                  members := Members} = State) ->
+handle_info({gun_up, GunPid, http2}, State) ->
+    handle_gun_up(GunPid, State),
+    {noreply, State};
+handle_info({await_check_ok, GunPid}, #{opening_conns := Openings,
+                                        active_conns := Actives,
+                                        members := Members} = State) ->
     case lists:keytake(GunPid, 2, Openings) of
         {value, {Id, GunPid, MRef}, Rest} ->
             #{Id := {Host, Port, _Transport}} = Members,
@@ -239,7 +246,7 @@ handle_info({await_ok, GunPid}, #{opening_conns := Openings,
             ?LOG_WARNING("Received unknown connection pid up: ~p", [GunPid]),
             {noreply, State}
     end;
-handle_info({await_error, GunPid, Reason}, State) ->
+handle_info({await_check_error, GunPid, Reason}, State) ->
     {noreply, handle_gun_down(GunPid, Reason, State)};
 handle_info({gun_down, GunPid, http2, Reason, _Streams}, State) ->
     {noreply, handle_gun_down(GunPid, Reason, State)};
@@ -294,6 +301,9 @@ is_normal({shutdown, _}) -> true;
 is_normal(_) -> false.
 
 ensure_close(undefined) -> ok;
+ensure_close({GunPid, MRef}) when is_pid(GunPid), is_reference(MRef) ->
+    erlang:demonitor(MRef, [flush]),
+    ensure_close(GunPid);
 ensure_close(GunPid) when is_pid(GunPid) ->
     try
         gun:close(GunPid)
@@ -322,7 +332,7 @@ connect_all(Members, Name, #{gun_opts := GunOpts} = State) ->
                 mode => connect_all,
                 active_conns => Ok};
         {Ok, Failed} ->
-            [ensure_close(G) || {_Host, G, _Auth} <- Ok],
+            [ensure_close({GunPid, MRef}) || {_Id, GunPid, MRef} <- Ok],
             error({shutdown, Failed})
     end.
 
@@ -365,7 +375,7 @@ connect_and_await_up(Name, {Id, {Host, Port, Transport}}, GunOpts0) ->
             {ok, http2} -> ok;
             {error, GunReason} -> error({GunPid, GunReason})
         end,
-        case await_check(GunPid) of
+        case await_check(Name, GunPid) of
             ok ->
                 MRef = erlang:monitor(process, GunPid),
                 ?LOG_NOTICE("Connection established to etcd member (~s) ~s:~p",
@@ -381,12 +391,12 @@ connect_and_await_up(Name, {Id, {Host, Port, Transport}}, GunOpts0) ->
             {error, Reason}
     end.
 
-await_check(GunPid) ->
-    case check_health_remote(GunPid) of
+await_check(Name, GunPid) ->
+    case check_health_remote(Name, GunPid) of
         ok -> ok;
         {error, HealthReason} -> error(HealthReason)
     end,
-    case check_leader_remote(GunPid) of
+    case check_leader_remote(Name, GunPid) of
         ok -> ok;
         {error, LeaderReason} -> error(LeaderReason)
     end,
@@ -434,6 +444,24 @@ open_members([{Id, {Host, Port, Transport}} | Rest], GunOpts0, Result, AllorOne)
             open_members(Rest, GunOpts, Result, AllorOne)
     end.
 
+handle_gun_up(GunPid, #{name := Name, opening_conns := Openings} = _State) ->
+    case lists:keytake(GunPid, 2, Openings) of
+        {value, {_Id, GunPid, _MRef}, _Rest} ->
+            Self = self(),
+            spawn(fun() ->
+                      try
+                          ok = await_check(Name, GunPid),
+                          Self ! {await_check_ok, GunPid}
+                      catch
+                          error:Reason ->
+                              Self ! {await_check_error, GunPid, Reason}
+                      end
+                  end);
+        false ->
+            ?LOG_WARNING("Received unknown connection pid up: ~p", [GunPid])
+    end,
+    ok.
+
 handle_gun_down(GunPid, Reason,
                 #{members := Members,
                   active_conns := Actives,
@@ -462,9 +490,9 @@ do_check_health(#{active_conns := Actives} = State) ->
 do_check_health([], #{} = State) -> State;
 do_check_health([{Id, GunPid, MRef} | Rest], #{name := Name, active_conns := Actives} = State) ->
     try
-        case check_health_remote(GunPid) of
+        case check_health_remote(Name, GunPid) of
             ok ->
-                case check_leader_remote(GunPid) of
+                case check_leader_remote(Name, GunPid) of
                     ok -> do_check_health(Rest, State);
                     {error, Reason2} -> error({leader, Reason2})
                 end;
@@ -491,11 +519,14 @@ do_check_health([{Id, GunPid, MRef} | Rest], #{name := Name, active_conns := Act
 %% SERVING = 1;
 %% NOT_SERVING = 2;
 %% SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
-check_health_remote(GunPid) ->
-    Path = <<"/grpc.health.v1.Health/Check">>,
-    case eetcd_stream:unary(GunPid, #{}, 'Etcd.HealthCheckRequest', Path, 'Etcd.HealthCheckResponse', ?HEADERS) of
+check_health_remote(Name, GunPid) ->
+    Request0 = eetcd:new_with_conn(Name, GunPid),
+    Request = eetcd:with_timeout(Request0, 10000),
+    case eetcd_health_gen:check(Request) of
         {ok, #{status := 'SERVING'}} -> ok;
+        {ok, #{status := 1}} -> ok;
         {ok, #{status := 'UNKNOWN'}} -> ok;
+        {ok, #{status := 0}} -> ok;
         %% etcd does not support health checks in early versions of v3 API
         {error, {grpc_error, #{'grpc-message' := <<"unknown service grpc.health.v1.Health">>,
                                'grpc-status'  := ?GRPC_STATUS_UNIMPLEMENTED}}} -> ok;
@@ -503,31 +534,30 @@ check_health_remote(GunPid) ->
         {error, _Reason} = Err -> Err
     end.
 
-check_leader_remote(GunPid) ->
-    Path = <<"/etcdserverpb.Maintenance/Status">>,
-    Request = eetcd:with_timeout(#{}, 10000),
-    case eetcd_stream:unary(GunPid, Request, 'Etcd.StatusRequest', Path, 'Etcd.StatusResponse', ?HEADERS) of
+check_leader_remote(Name, GunPid) ->
+    Request0 = eetcd:new_with_conn(Name, GunPid),
+    Request = eetcd:with_timeout(Request0, 10000),
+    case eetcd_maintenance_gen:status(Request) of
         {ok, #{leader := Leader}} when Leader > 0 -> ok;
         {ok, #{errors := Errors, leader := 0}} -> {error, {no_leader, Errors}};
         {error, _Reason} = Err -> Err
     end.
 
 token_remote(GunPid, #{credentials := #{name := Name, password := Password}} = State) ->
-    Path = <<"/etcdserverpb.Auth/Authenticate">>,
-    Req1 = eetcd:with_timeout(#{}, 10000),
-    Req2 = Req1#{name => Name, password => Password},
-    case eetcd_stream:unary(GunPid, Req2, 'Etcd.AuthenticateRequest', Path, 'Etcd.AuthenticateResponse', ?HEADERS) of
+    Request0 = eetcd:new_with_conn(Name, GunPid),
+    Request = eetcd:with_timeout(Request0, 10000),
+    case eetcd_auth_gen:authenticate(Request#{name => Name, password => Password}) of
         {ok, #{token := Token}} -> {ok, State#{auth_token => Token}};
         {error, _Reason} = Err -> Err
     end;
 token_remote(_Gun, State) -> {ok, State#{auth_token => undefined}}.
 
-with_gun(Host, Port, GunOpts, Fun) ->
+with_gun(Name, Host, Port, GunOpts, Fun) ->
     case gun:open(Host, Port, GunOpts) of
         {ok, GunPid} ->
             try
                 case gun:await_up(GunPid, 5000) of
-                    {ok, http2} -> Fun(GunPid);
+                    {ok, http2} -> Fun(Name, GunPid);
                     {error, _Reason} = E -> E
                 end
             after
@@ -536,20 +566,20 @@ with_gun(Host, Port, GunOpts, Fun) ->
         Other -> Other
     end.
 
-get_member_list([], _GunOpts) -> error(no_available_members);
-get_member_list([{Host, Port}| Rest], GunOpts) ->
-    case with_gun(Host, Port, GunOpts, fun member_list/1) of
+get_member_list(_Name, [], _GunOpts) -> error(no_available_members);
+get_member_list(Name, [{Host, Port}| Rest], GunOpts) ->
+    case with_gun(Name, Host, Port, GunOpts, fun member_list/2) of
         {ok, Members} -> Members;
         {error, Reason} ->
             ?LOG_WARNING("Failed to get member list from ~s:~p, reason: ~p",
                          [Host, Port, Reason]),
-            get_member_list(Rest, GunOpts)
+            get_member_list(Name, Rest, GunOpts)
     end.
 
 check_member_list(_SelfPid, Name, []) ->
     ?LOG_WARNING("~p failed to sync member list: no active connections", [Name]);
 check_member_list(SelfPid, Name, [{_Id, GunPid, _MRef} | _]) ->
-    try member_list(GunPid) of
+    try member_list(Name, GunPid) of
         {ok, Members} ->
             case update_member_list(SelfPid, Members) of
                 ok -> ok;
@@ -565,16 +595,16 @@ check_member_list(SelfPid, Name, [{_Id, GunPid, _MRef} | _]) ->
             ok
     end.
 
-member_list(GunPid) ->
-    Path = <<"/etcdserverpb.Cluster/MemberList">>,
-    case eetcd_stream:unary(GunPid, #{}, 'Etcd.MemberListRequest', Path, 'Etcd.MemberListResponse', ?HEADERS) of
+member_list(Name, GunPid) ->
+    Request0 = eetcd:new_with_conn(Name, GunPid),
+    Request = eetcd:with_timeout(Request0, 10000),
+    case eetcd_cluster_gen:member_list(Request) of
         {ok, #{members := Members0}} when is_list(Members0) ->
             Members = lists:filter(
                         fun(M) when is_map(M) ->
                                 IsLearner = maps:get(isLearner, M, false),
                                 IsLearner =/= true orelse IsLearner =/= 1
                         end, Members0),
-            % {ok, Members};
             {ok, parse_members(Members)};
         {error, _Reason} = Err -> Err
     end.

@@ -8,7 +8,7 @@
 %% API
 -export([open/2, open/3, close/1]).
 -export([info/0]).
--export([new/1, with_timeout/2]).
+-export([new/1, with_timeout/2, new_with_name/1, new_with_conn/2, new_with_conn/3]).
 -export([get_prefix_range_end/1]).
 -export_type([opts/0]).
 
@@ -118,9 +118,22 @@ info() ->
     ok.
 
 %%% @doc Create context for request.
--spec new(atom()|reference()|context()) -> context().
-new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) -> #{eetcd_conn_name => ConnName};
+-spec new(atom() | context()) -> context().
+new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) ->
+    #{eetcd_conn_name => {name, ConnName}};
 new(Context) when is_map(Context) -> Context.
+
+-spec new_with_name(atom()) -> context().
+new_with_name(ConnName) when is_atom(ConnName) ->
+    #{eetcd_conn_name => {name, ConnName}}.
+
+-spec new_with_conn(atom() | context(), pid()) -> context().
+new_with_conn(ConnName, GunPid) when is_atom(ConnName), is_pid(GunPid) ->
+    new_with_conn(ConnName, GunPid, []).
+
+-spec new_with_conn(atom() | context(), pid(), [{binary(), binary()}]) -> context().
+new_with_conn(ConnName, GunPid, Headers) when is_atom(ConnName), is_pid(GunPid) ->
+    #{eetcd_conn_name => {gun, ConnName, GunPid, ?HEADERS ++ Headers }}.
 
 %% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
 %% or the atom infinity to wait indefinitely.

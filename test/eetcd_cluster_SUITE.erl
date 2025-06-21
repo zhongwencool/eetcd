@@ -1,4 +1,3 @@
-
 -module(eetcd_cluster_SUITE).
 
 %% API
@@ -42,13 +41,13 @@ member(_Config) ->
     %%    member = #'Etcd.Member'{peerURLs = FakePeerURLs, clientURLs = []},
     %%    members = [_, _]}}
     %%    = eetcd_cluster:member_add(#'Etcd.MemberAddRequest'{'peerURLs' = FakePeerURLs}),
-    
+
     %% list
     %% members is a list of all members associated with the cluster.
-    {ok,#{members := Members}} = eetcd_cluster:member_list(?Name),
+    {ok, #{members := Members}} = eetcd_cluster:member_list(?Name),
     true = (length(Members) >= 1),
     %% #'Etcd.Member'{'ID' = ID} = lists:keyfind(FakePeerURLs, #'Etcd.Member'.peerURLs, Members),
-    
+
     %% update
     %% ID is the member ID of the member to update.
     %% peerURLs is the new list of URLs the member will use to communicate with the cluster.
@@ -57,7 +56,7 @@ member(_Config) ->
     %% {ok, #'Etcd.MemberUpdateResponse'{members = Members2}}
     %%    = eetcd_cluster:member_update(#'Etcd.MemberUpdateRequest'{'ID' = ID, peerURLs = [<<"http://127.0.0.1:2480">>]}),
     %% #'Etcd.Member'{'ID' = ID} = lists:keyfind([<<"http://127.0.0.1:2480">>], #'Etcd.Member'.peerURLs, Members2),
-    
+
     %% remove
     %% members is a list of all members after updating the member.
     %% {ok, #'Etcd.MemberRemoveResponse'{members = [_]}}

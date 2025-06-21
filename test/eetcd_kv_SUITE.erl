@@ -119,7 +119,7 @@ range(Config) ->
     {ok, #{header := #{}, more := false, count := 2, kvs := Kvs}}
         = eetcd_kv:get(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3)),
     [#{key := Kv1, value := Vv1}, #{key := Kv2, value := Vv2}] = lists:usort(Kvs),
-    
+
     %% limit prefix key
     %% limit is a limit on the number of keys returned for the request.
     %% When limit is set to 0, it is treated as no limit.
@@ -127,31 +127,31 @@ range(Config) ->
     CLimit2 = eetcd_kv:with_top(CLimit1, 'MOD', 'ASCEND'),
     {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1, mod_revision := Mod}]}}
         = eetcd_kv:get(CLimit2),
-    
+
     {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1}]}}
         = eetcd_kv:get(eetcd_kv:with_min_mod_rev(CLimit2, Mod)),
-    
+
     %% revision is the point-in-time of the key-value store to use for the range.
     %% If revision is less or equal to zero, the range is over the newest key-value store.
     %% If the revision has been compacted, ErrCompacted is returned as a response.
     PrevKv = eetcd_kv:with_prev_kv(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv2)),
     {ok, #{prev_kv := #{key := Kv1, value := Vv1, mod_revision := Revision}}} =
         eetcd_kv:put(PrevKv),
-    
+
     WithRev = eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), Revision),
     {ok, #{more := false, count := 1, kvs := [#{key := Kv1, value := Vv1}]}}
         = eetcd_kv:get(WithRev),
-    
+
     WithRev0 = eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), 0),
     {ok, #{more := false, count := 1, kvs := [#{key := Kv1, value := Vv2}]}}
         = eetcd_kv:get(WithRev0),
-    
+
     %% sort_order is the order for returned sorted results.
     %% sort_target is the key-value field to use for sorting.
     WithSort = eetcd_kv:with_sort(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, "\0"), "\0"), 'KEY', 'ASCEND'),
     {ok, #{more := false, count := 2, kvs := [#{key := Kv1, value := Vv2}, #{key := Kv2, value := Vv2}]}}
         = eetcd_kv:get(WithSort),
-    
+
     %% serializable sets the range request to use serializable member-local reads.
     %% Range requests are linearizable by default;
     %% linearizable requests have higher latency and lower throughput than serializable requests
@@ -165,11 +165,11 @@ range(Config) ->
     %% keys_only when set returns only the keys and not the values.
     {ok, #{more := false, count := 2, kvs := [#{key := Kv1, value := <<>>}, #{key := Kv2, value := <<>>}]}}
         = eetcd_kv:get(WithKeyOnly),
-    
+
     %% count_only when set returns only the count of the keys in the range.
     WithCountOnly = eetcd_kv:with_count_only(WithSort),
     {ok, #{more := false, count := 2, kvs := []}} = eetcd_kv:get(WithCountOnly),
-    
+
     %% min_mod_revision is the lower bound for returned key mod revisions;
     %% all keys with lesser mod revisions will be filtered away.
     %% max_mod_revision is the upper bound for returned key mod revisions;
@@ -182,15 +182,15 @@ range(Config) ->
     Ctx41 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv4), Vv4),
     eetcd_kv:put(Ctx31),
     eetcd_kv:put(Ctx41),
-    
+
     All = eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, "\0"), "\0"),
     WithSortCreate = eetcd_kv:with_sort(All, 'CREATE', 'ASCEND'),
     {ok, #{kvs := [_, #{create_revision := K2}, #{create_revision := K3}, _]}}
         = eetcd_kv:get(WithSortCreate),
-    
+
     WithSortMod = eetcd_kv:with_sort(All, 'MOD', 'ASCEND'),
     {ok, #{kvs := [_, #{mod_revision := K22}, #{mod_revision := K33}, _]}} = eetcd_kv:get(WithSortMod),
-    
+
     {ok, #{count := 4, kvs := [#{create_revision := K2}, #{create_revision := K3}]}}
         = eetcd_kv:get(eetcd_kv:with_min_create_rev(eetcd_kv:with_max_create_rev(All, K3), K2)),
     {ok, #{count := 4, kvs := [#{mod_revision := K22}, #{mod_revision := K33}]}}
@@ -207,13 +207,13 @@ delete_range(Config) ->
     eetcd_kv:put(Ctx2),
     %% no key
     {ok, #{deleted := 0, prev_kvs := []}} = eetcd_kv:delete(Ctx3),
-    
+
     %% one key
     %% If prev_kv is set, etcd gets the previous key-value pairs before deleting it.
     %% The previous key-value pairs will be returned in the delete response.
     {ok, #{deleted := 1, prev_kvs := [#{key := Kv1, value := Vv1}]}}
         = eetcd_kv:delete(eetcd_kv:with_prev_kv(eetcd_kv:with_key(Ctx, Kv1))),
-    
+
     %% prefix key with prev_kvs
     %% range_end is the key following the last key to delete for the range [key, range_end).
     %% If range_end is not given, the range is defined to contain only the key argument.
@@ -221,7 +221,7 @@ delete_range(Config) ->
     %% then the range is all the keys with the prefix (the given key).
     %% If range_end is '\0', the range is all keys greater than or equal to the key argument.
     eetcd_kv:put(Ctx1),
-    
+
     DeleteRange = eetcd_kv:with_prev_kv(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3)),
     {ok, #{deleted := 2, prev_kvs := Kvs}} = eetcd_kv:delete(DeleteRange),
     [Vv1] = [begin V end|| #{key := K, value := V} <- Kvs, K =:= Kv1],
@@ -248,7 +248,7 @@ txn(Config) ->
     %% Two different operations in the list may apply to the same or different entries in the database.
     %% These operations are executed if guard evaluates to true. 3. A list of database operations called f op.
     %% Like t op, but executed if guard evaluates to false.
-    
+
     %% success success is a list of requests which will be applied when compare evaluates to true.
     %% succeeded succeeded is set to true if the compare evaluated to true or false otherwise.
     %% responses is a list of responses corresponding to the results from applying success if succeeded is true or failure if succeeded is false.
@@ -265,7 +265,7 @@ txn(Config) ->
         responses := [#{response := {response_put, #{}}
         }]}}
         = eetcd_kv:txn(?NAME(Config), If, Then, Else),
-    
+
     Cmp1 = eetcd_compare:with_range_end(eetcd_compare:new(Kv1), Kv3),
     If1 = eetcd_compare:value(Cmp1, "=", "1"),
     Then1 = eetcd_op:put(
@@ -281,7 +281,7 @@ txn(Config) ->
     %% implement etcd v2 CompareAndSwap by Txn
     {ok, #{kvs := [#{key := Kv1, value := Vv1, mod_revision := ModRevision}]}}
         = eetcd_kv:get(eetcd_kv:with_key(Ctx, Kv1)),
-    
+
     Cmp2 = eetcd_compare:new(Kv1),
     If2 = eetcd_compare:mod_revision(Cmp2, "=", ModRevision - 1),
     Then2 = eetcd_op:put(
@@ -289,9 +289,9 @@ txn(Config) ->
             eetcd_kv:with_value(
                 eetcd_kv:with_key(
                     eetcd_kv:new(), Kv1), Vv4))),
-    
+
     {ok, #{succeeded := false, responses := []}} = eetcd_kv:txn(?NAME(Config), If2, Then2, []),
-    
+
     Cmp3 = eetcd_compare:new(Kv1),
     If3 = eetcd_compare:mod_revision(Cmp3, "=", ModRevision),
     Then3 = eetcd_op:put(

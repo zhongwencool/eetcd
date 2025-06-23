@@ -15,15 +15,12 @@ start_child(Name, Hosts, Options) ->
     ChildSpec = child_spec(Name, Hosts, Options),
     supervisor:start_child(?MODULE, ChildSpec).
 
+-spec stop_child(atom()) -> ok | {error, not_found}.
 stop_child(Name) ->
-    Children = supervisor:which_children(?MODULE),
-    case lists:keyfind(Name, 1, Children) of
-        false ->
-            {error, not_found};
-        {_, _, _, _} ->
-            ok = supervisor:terminate_child(?MODULE, Name),
-            supervisor:delete_child(?MODULE, Name),
-            ok
+    case supervisor:terminate_child(?MODULE, Name) of
+        ok ->
+            ok = supervisor:delete_child(?MODULE, Name);
+        {error, not_found} = E -> E
     end.
 
 info() ->

@@ -29,6 +29,25 @@
 -define(refresh_token, refresh_token_msg).
 -define(reconnect, reconnect).
 
+-type state() :: #{
+    name := atom(),
+    mode := random | connect_all,
+    members := members(),
+    credentials := undefined | #{name := string(), password := string()},
+    auth_token := undefined | iodata(),
+    auto_sync_interval_ms := non_neg_integer(),
+    gun_opts := gun:opts(),
+    options := eetcd:opts(),
+    health_ref := undefined | reference(),
+    reconn_ref := undefined | reference(),
+    sync_ref := undefined | reference(),
+    active_conns := [conn()],
+    opening_conns := [conn()]
+}.
+
+-type conn() :: {member_id(), GunPid :: pid(), MonitorRef :: reference()}.
+-type members() :: #{member_id() => {Host :: string(), inet:port_number(), tcp | tls}}.
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -39,8 +58,8 @@ open({Name, _, _} = Args) ->
         {error, _} = Err -> Err
     end.
 
-close(Pid) ->
-    gen_server:stop(Pid, shutdown, infinity).
+close(Name) ->
+    eetcd:close(Name).
 
 round_robin_select(Name) ->
     case gen_server:call(Name, round_robin_select) of
@@ -314,6 +333,7 @@ ensure_close(GunPid) when is_pid(GunPid) ->
 ensure_close(_) ->
     ok.
 
+-spec init_connect(members(), atom(), state()) -> state() | no_return().
 init_connect(Members, Name, #{mode := connect_all} = State) ->
     connect_all(Members, Name, State);
 init_connect(Members, Name, #{mode := random} = State) ->
@@ -355,6 +375,8 @@ fold_connect([{Id, {_Host, _Port, _Transport}} = Member | Rest], Name, GunOpts, 
             fold_connect(Rest, Name, GunOpts, Ok, NewFail)
     end.
 
+-spec connect_and_await_up(atom(), {member_id(), {Host :: string(), inet:port_number(), tcp | tls}}, gun:opts()) ->
+    {ok, {GunPid :: pid(), MRef :: reference()}} | {error, any()}.
 connect_and_await_up(Name, {Id, {Host, Port, Transport}}, GunOpts0) ->
     try
         GunOpts1 = GunOpts0#{retry => 0},
@@ -391,6 +413,7 @@ connect_and_await_up(Name, {Id, {Host, Port, Transport}}, GunOpts0) ->
             {error, Reason}
     end.
 
+-spec await_check(atom(), pid()) -> ok | no_return().
 await_check(Name, GunPid) ->
     case check_health_remote(Name, GunPid) of
         ok -> ok;
@@ -519,6 +542,7 @@ do_check_health([{Id, GunPid, MRef} | Rest], #{name := Name, active_conns := Act
 %% SERVING = 1;
 %% NOT_SERVING = 2;
 %% SERVICE_UNKNOWN = 3;  // Used only by the Watch method.
+-spec check_health_remote(atom(), pid()) -> ok | {error, any()}.
 check_health_remote(Name, GunPid) ->
     Request0 = eetcd:new_with_conn(Name, GunPid),
     Request = eetcd:with_timeout(Request0, 10000),
@@ -553,6 +577,9 @@ token_remote(GunPid, #{name := ConnName, credentials := #{name := Name, password
     end;
 token_remote(_Gun, State) -> {ok, State#{auth_token => undefined}}.
 
+-spec with_gun(atom(), Host :: string(), inet:port_number(), gun:opts(), Fun) -> Result when
+    Fun ::  fun((atom(), pid()) -> T),
+    Result :: T | {error, any()}.
 with_gun(Name, Host, Port, GunOpts, Fun) ->
     case gun:open(Host, Port, GunOpts) of
         {ok, GunPid} ->
@@ -596,6 +623,7 @@ check_member_list(SelfPid, Name, [{_Id, GunPid, _MRef} | _]) ->
             ok
     end.
 
+-spec member_list(atom(), pid()) -> {ok, members()} | {error, any()}.
 member_list(Name, GunPid) ->
     Request0 = eetcd:new_with_conn(Name, GunPid),
     Request = eetcd:with_timeout(Request0, 10000),
@@ -610,6 +638,7 @@ member_list(Name, GunPid) ->
         {error, _Reason} = Err -> Err
     end.
 
+-spec parse_members([router_pb:'Etcd.Member'()]) -> members() | no_return().
 parse_members(Members) ->
     Result = [{Id, parse_client_url(Url)} || #{'ID' := Id, clientURLs := [Url | _]} <- Members],
     maps:from_list(Result).

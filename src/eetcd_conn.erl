@@ -543,8 +543,9 @@ check_leader_remote(Name, GunPid) ->
         {error, _Reason} = Err -> Err
     end.
 
-token_remote(GunPid, #{credentials := #{name := Name, password := Password}} = State) ->
-    Request0 = eetcd:new_with_conn(Name, GunPid),
+-spec token_remote(pid(), state()) -> {ok, state()} | {error, any()}.
+token_remote(GunPid, #{name := ConnName, credentials := #{name := Name, password := Password}} = State) ->
+    Request0 = eetcd:new_with_conn(ConnName, GunPid),
     Request = eetcd:with_timeout(Request0, 10000),
     case eetcd_auth_gen:authenticate(Request#{name => Name, password => Password}) of
         {ok, #{token := Token}} -> {ok, State#{auth_token => Token}};

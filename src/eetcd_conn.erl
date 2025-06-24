@@ -149,14 +149,14 @@ init({Name, Hosts, Options}) ->
             active_conns => [],
             opening_conns => []
         },
-        State = put_in_credentials(State0, Options),
-        #{active_conns := [{_Id, GunPid, _MRef} | _]} = State1 = init_connect(Members, Name, State),
-        case token_remote(GunPid, State1) of
-            {ok, State1} ->
-                {_, State2} = handle_continue(next_health_check, State1),
-                {_, State3} = handle_continue(reconnect, State2),
-                {_, State4} = handle_continue(auto_sync, State3),
-                {ok, State4};
+        State1 = put_in_credentials(State0, Options),
+        #{active_conns := [{_Id, GunPid, _MRef} | _]} = State2 = init_connect(Members, Name, State1),
+        case token_remote(GunPid, State2) of
+            {ok, State3} ->
+                {_, State4} = handle_continue(next_health_check, State3),
+                {_, State5} = handle_continue(reconnect, State4),
+                {_, State6} = handle_continue(auto_sync, State5),
+                {ok, State6};
             {error, R} -> error(R)
         end
     catch

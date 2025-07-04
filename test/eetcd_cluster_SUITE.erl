@@ -44,7 +44,7 @@ member(_Config) ->
 
     %% list
     %% members is a list of all members associated with the cluster.
-    {ok, #{members := Members}} = eetcd_cluster:member_list(?Name),
+    {ok, #{members := Members}} = eetcd_cluster_gen:member_list(?Name, #{}),
     true = (length(Members) >= 1),
     %% #'Etcd.Member'{'ID' = ID} = lists:keyfind(FakePeerURLs, #'Etcd.Member'.peerURLs, Members),
 

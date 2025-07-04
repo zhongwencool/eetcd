@@ -23,8 +23,8 @@ groups() ->
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
     {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
-    eetcd_auth:user_add(?Name, "root"),
-    eetcd_auth:user_grant_role(?Name, "root", "root"),
+    eetcd_auth_gen:user_add(?Name, #{name => "root", options => #{no_password => true}}),
+    eetcd_auth_gen:user_grant_role(?Name, #{user => "root", role => "root"}),
     Config.
 
 end_per_suite(_Config) ->
@@ -33,26 +33,29 @@ end_per_suite(_Config) ->
     ok.
 
 auth(_Config) ->
-    {ok, #{}} = eetcd_auth:auth_enable(?Name),
-    {ok, #{}} = eetcd_auth:auth_disable(?Name),
+    {ok, #{}} = eetcd_auth_gen:auth_enable(?Name, #{}),
+    {ok, #{}} = eetcd_auth_gen:auth_disable(?Name, #{}),
     ok.
 
-user(Name) ->
-    {ok, #{}} = eetcd_auth:auth_enable(Name),
+user(EtcdName) ->
+    {ok, #{}} = eetcd_auth_gen:auth_enable(EtcdName, #{}),
     %% list
-    {ok, _AuthRoleListResponse} = eetcd_auth:user_list(Name),
+    {ok, _AuthRoleListResponse} = eetcd_auth_gen:user_list(EtcdName, #{}),
     %% add
-    {ok, _AuthRoleAddResponse} = eetcd_auth:user_add(Name, <<"name1">>, <<"12345">>),
+    {ok, _AuthRoleAddResponse} = eetcd_auth_gen:user_add(EtcdName, #{name => <<"name1">>,
+                                                                     password => <<"12345">>}),
     %% get
-    {ok, _AuthUserGetResponse} = eetcd_auth:user_get(Name, <<"name1">>),
+    {ok, _AuthUserGetResponse} = eetcd_auth_gen:user_get(EtcdName, #{name => <<"name1">>}),
     %% change password
-    {ok, _AuthUserChangePasswordResponse} = eetcd_auth:user_change_password(Name, <<"name1">>,<<"54321">>),
+    {ok, _AuthUserChangePasswordResponse} =
+        eetcd_auth_gen:user_change_password(EtcdName, #{name => <<"name1">>,
+                                                        password => <<"54321">>}),
     %% get
-    {ok, _AuthUserGetResponse1} = eetcd_auth:user_get(Name, <<"name1">>),
+    {ok, _AuthUserGetResponse1} = eetcd_auth_gen:user_get(EtcdName, #{name => <<"name1">>}),
     %% delete
-    {ok, _AuthUserDeleteResponse} = eetcd_auth:user_delete(Name, <<"name1">>),
+    {ok, _AuthUserDeleteResponse} = eetcd_auth_gen:user_delete(EtcdName, #{name => <<"name1">>}),
     %% list
-    {ok, _AuthRoleListResponse2} = eetcd_auth:user_list(Name),
-    {ok, _AuthDisableResponse2} = eetcd_auth:auth_disable(Name),
+    {ok, _AuthRoleListResponse2} = eetcd_auth_gen:user_list(EtcdName, #{}),
+    {ok, _AuthDisableResponse2} = eetcd_auth_gen:auth_disable(EtcdName, #{}),
     ok.
 

@@ -50,44 +50,41 @@ end_per_suite(Config) ->
 
 acquire_lock_and_release_it(_Config) ->
     TTL = 3,
-    Ctx = eetcd_lock:new(?Name),
-    {ok, #{'ID' := LeaseID}} = eetcd_lease:grant(Ctx, TTL),
+    {ok, #{'ID' := LeaseID}} = eetcd_lease_gen:lease_grant(?Name, #{'TTL' => TTL}),
     Key = <<"eetcd_key1">>,
-    {ok, #{key := GeneratedKey}} = eetcd_lock:lock(Ctx, Key, LeaseID),
-    ?assertMatch({ok, _}, eetcd_lock:unlock(Ctx, GeneratedKey)),
+    {ok, #{key := GeneratedKey}} = eetcd_lock_gen:lock(?Name, #{name => Key, lease => LeaseID}),
+    ?assertMatch({ok, _}, eetcd_lock_gen:unlock(?Name, #{key => GeneratedKey})),
     ok.
 
 acquire_lock_and_reacquire_after_expiration(_Config) ->
     TTL = 1,
 
-    Ctx1 = eetcd_lock:new(?Name),
-    {ok, #{'ID' := LeaseID1}} = eetcd_lease:grant(Ctx1, TTL),
+    {ok, #{'ID' := LeaseID1}} = eetcd_lease_gen:lease_grant(?Name, #{'TTL' => TTL}),
     Key = <<"eetcd_key2">>,
-    {ok, _} = eetcd_lock:lock(Ctx1, Key, LeaseID1),
+    {ok, _} = eetcd_lock_gen:lock(?Name, #{name => Key, lease => LeaseID1}),
 
     %% wait till the lease expires
     timer:sleep(1500),
-    Ctx2 = eetcd_lock:new(?Name),
-    {ok, #{'ID' := LeaseID2}} = eetcd_lease:grant(Ctx1, TTL),
+    {ok, #{'ID' := LeaseID2}} = eetcd_lease_gen:lease_grant(?Name, #{'TTL' => TTL}),
     %% the user provided key remains the same
-    {ok, #{key := GeneratedKey}} = eetcd_lock:lock(Ctx2, Key, LeaseID2),
+    {ok, #{key := GeneratedKey}} = eetcd_lock_gen:lock(?Name, #{name => Key, lease => LeaseID2}),
 
-    ?assertMatch({ok, _}, eetcd_lock:unlock(Ctx2, GeneratedKey)),
+    ?assertMatch({ok, _}, eetcd_lock_gen:unlock(?Name, #{key => GeneratedKey})),
     ok.
 
 acquire_lock_and_attempt_to_reacquire_that_times_out(_Config) ->
     TTL = 4,
     Key = <<"eetcd_key3">>,
 
-    Ctx1 = eetcd_lock:new(?Name),
-    {ok, #{'ID' := LeaseID1}} = eetcd_lease:grant(Ctx1, TTL),
-    {ok, #{key := GeneratedKey}} = eetcd_lock:lock(Ctx1, Key, LeaseID1),
+    {ok, #{'ID' := LeaseID1}} = eetcd_lease_gen:lease_grant(?Name, #{'TTL' => TTL}),
+    {ok, #{key := GeneratedKey}} = eetcd_lock_gen:lock(?Name, #{name => Key, lease => LeaseID1}),
 
     %% this with a different session call will block and time out
-    Ctx2 = eetcd_lock:new(?Name),
-    {ok, #{'ID' := LeaseID2}} = eetcd_lease:grant(Ctx2, TTL),
-    ?assertEqual({error, timeout}, eetcd_lock:lock(eetcd_lock:with_timeout(eetcd_lock:new(?Name), 2000), Key, LeaseID2)),
-    ?assertMatch({ok, _}, eetcd_lock:unlock(Ctx1, GeneratedKey)),
+    {ok, #{'ID' := LeaseID2}} = eetcd_lease_gen:lease_grant(?Name, #{'TTL' => TTL}),
+    ?assertEqual({error, timeout},
+                 eetcd_lock_gen:lock(?Name, #{name => Key, lease => LeaseID2},
+                                     [{reply_timeout, 2000}])),
+    ?assertMatch({ok, _}, eetcd_lock_gen:unlock(?Name, #{key => GeneratedKey})),
     ok.
 
 
@@ -96,7 +93,7 @@ acquire_lock_and_attempt_to_reacquire_that_times_out(_Config) ->
 %%%===================================================================
 
 revoke_all_leases(?Name) ->
-    {ok, #{leases := Leases}} = eetcd_lease:leases(?Name),
+    {ok, #{leases := Leases}} = eetcd_lease_gen:lease_leases(?Name, #{}),
     lists:foreach(fun(#{'ID' := ID}) ->
-      eetcd_lease:revoke(?Name, ID)
+      eetcd_lease_gen:lease_revoke(?Name, #{'ID' => ID})
     end, Leases).

@@ -2,8 +2,7 @@
 -include("eetcd.hrl").
 -behaviour(gen_server).
 
--export([new/1, with_timeout/2]).
--export([grant/2, revoke/2, time_to_live/3, leases/1]).
+-export([time_to_live/3]).
 -export([keep_alive/2, keep_alive_once/2]).
 -export([close/0]).
 
@@ -15,53 +14,17 @@
 -define(Event(ID, Reason), #{event => 'KeepAliveHalted', lease_id => ID, reason => Reason}).
 -define(TRY_RECONNECTING, try_reconnecting).
 
-%%% @doc Create context for request.
--spec new(new_context()) -> context().
-new(Context) -> eetcd:new(Context).
-
-%% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
-%% or the atom infinity to wait indefinitely. Default value is 5000.
-%% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
--spec with_timeout(context(), pos_integer()|infinity) -> context().
-with_timeout(Context, Timeout) -> eetcd:with_timeout(Context, Timeout).
-
-%% @doc Grant creates a new lease with the provided TTL in seconds.
--spec grant(new_context(), pos_integer()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
-grant(Context, TTL) ->
-    C1 = new(Context),
-    C2 = maps:put('TTL', TTL, C1),
-    eetcd_lease_gen:lease_grant(C2).
-
-%% @doc Revoke revokes the given lease.
--spec revoke(new_context(), pos_integer()) ->
-    {ok, router_pb:'Etcd.LeaseGrantResponse'()}|{error, eetcd_error()}.
-revoke(Context, LeaseID) ->
-    C1 = new(Context),
-    C2 = maps:put('ID', LeaseID, C1),
-    eetcd_lease_gen:lease_revoke(C2).
-
 %% @doc TimeToLive retrieves the lease information of the given lease ID.
 %% The 3rd argument is a option of `NeedAttachedKeys'.
--spec time_to_live(new_context(), pos_integer(), boolean()) ->
+-spec time_to_live(etcd_name(), pos_integer(), boolean()) ->
     {ok, router_pb:'Etcd.LeaseTimeToLiveResponse'()}|{error, eetcd_error()}.
-time_to_live(Context, LeaseID, WithKeys) when is_boolean(WithKeys) ->
-    C1 = new(Context),
-    C2 = maps:put('ID', LeaseID, C1),
-    C3 = maps:put(keys, WithKeys, C2),
-    case eetcd_lease_gen:lease_time_to_live(C3) of
+time_to_live(EtcdName, LeaseID, WithKeys) when is_boolean(WithKeys) ->
+    case eetcd_lease_gen:lease_time_to_live(EtcdName, #{'ID' => LeaseID, keys => WithKeys}) of
         {ok, #{'TTL' := TTL}} when TTL =< 0 ->
             {error, {grpc_error, #{'grpc-status' => ?GRPC_STATUS_NOT_FOUND, 'grpc-message' => ?LeaseNotFound}}};
         {ok, _Reps} = Status -> Status;
         {error, _Reason} = Err -> Err
     end.
-
-%% @doc Leases retrieves all leases.
--spec leases(new_context()) ->
-    {ok, router_pb:'Etcd.LeaseLeasesResponse'()}|{error, eetcd_error()}.
-leases(ConnName) ->
-    C1 = new(ConnName),
-    eetcd_lease_gen:lease_leases(C1).
 
 %% @doc KeepAlive attempts to keep the given lease alive forever.
 %%
@@ -70,9 +33,9 @@ leases(ConnName) ->
 %%
 %% KeepAlive makes best efforts to keep lease TTL, event the connection disconnect in 0 to ttl seconds.
 %% todo more detail
--spec keep_alive(name(), pos_integer()) -> {ok, pid()} |{error, term()}.
-keep_alive(Name, LeaseID) ->
-    case eetcd_lease_sup:start_child(Name, LeaseID) of
+-spec keep_alive(etcd_name(), pos_integer()) -> {ok, pid()} |{error, term()}.
+keep_alive(EtcdName, LeaseID) ->
+    case eetcd_lease_sup:start_child(EtcdName, LeaseID) of
         {ok, Pid} -> {ok, Pid};
         {error, {shutdown, Reason}} -> {error, Reason}
     end.
@@ -81,10 +44,10 @@ keep_alive(Name, LeaseID) ->
 %% first message from calling KeepAlive. If the response has a recoverable
 %% error, KeepAliveOnce will not retry the RPC with a new keep alive message.
 %% In most of the cases, Keepalive should be used instead of KeepAliveOnce.
--spec keep_alive_once(name(), pos_integer()) ->
+-spec keep_alive_once(etcd_name(), pos_integer()) ->
     {ok, router_pb:'Etcd.LeaseKeepAliveResponse'()}|{error, eetcd_error()}.
-keep_alive_once(Name, LeaseID) when is_atom(Name) orelse is_reference(Name) ->
-    case eetcd_lease_gen:lease_keep_alive(Name) of
+keep_alive_once(EtcdName, LeaseID) when is_atom(EtcdName) ->
+    case eetcd_lease_gen:lease_keep_alive(EtcdName) of
         {ok, Gun, StreamRef, PbModule} ->
             MRef = erlang:monitor(process, Gun),
             Res = keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule),
@@ -106,25 +69,25 @@ close() ->
         end, 0,
         supervisor:which_children(eetcd_lease_sup)).
 
--spec start_link(pid(), name(), integer()) -> Result
+-spec start_link(pid(), etcd_name(), integer()) -> Result
       when Result :: {ok, Pid} | ignore | {error, Error},
            Pid :: pid(),
            Error :: {already_started, Pid} | term().
 %% The gen_server:start_ret() return type was introduced since OTP 25,
 %% but for backward compatibility, we still use the old return type.
-start_link(Caller, Name, LeaseID) ->
-    gen_server:start_link(?MODULE, [Caller, Name, LeaseID], []).
+start_link(Caller, EtcdName, LeaseID) ->
+    gen_server:start_link(?MODULE, [Caller, EtcdName, LeaseID], []).
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Caller, Name, LeaseID]) ->
-    case first_keep_alive_once(Name, LeaseID) of
+init([Caller, EtcdName, LeaseID]) ->
+    case first_keep_alive_once(EtcdName, LeaseID) of
         {ok, Gun, Ref, MRef, TTL, PbModule} ->
             After = erlang:max(round(TTL / ?BLOCK), 1) * 1000,
             TimeRef = schedule_next_keep_alive(After),
-            {ok, #{name => Name, gun => Gun, caller => Caller, pb_module => PbModule,
+            {ok, #{name => EtcdName, gun => Gun, caller => Caller, pb_module => PbModule,
                 ttl => TTL, lease_id => LeaseID,
                 stream_ref => Ref, monitor_ref => MRef, next_ref => TimeRef,
                 ongoing => 0, last_disconnect => 0}
@@ -161,14 +124,14 @@ handle_info({gun_data, _Pid, Ref, nofin, Data},
 
 %% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}
 handle_info({gun_trailers, Gun, StreamRef, Header},
-    State = #{name := Name, stream_ref := StreamRef, gun := Gun}) ->
-    check_leader(Header, Name),
+    State = #{name := EtcdName, stream_ref := StreamRef, gun := Gun}) ->
+    check_leader(Header, EtcdName),
     reconnect(State);
 %% it will receive another stream_ref gun_response to this process, notifying no leader event.
 %% [{<<"grpc-status">>,<<"14">>},{<<"grpc-message">>,<<"etcdserver: no leader">>}]}
 handle_info({gun_response, Gun, _StreamRef, _Fin, 200, Header},
-    State = #{name := Name, gun := Gun}) ->
-    check_leader(Header, Name),
+    State = #{name := EtcdName, gun := Gun}) ->
+    check_leader(Header, EtcdName),
     reconnect(State);
 handle_info({keep_ttl, Next}, State) ->
     keep_ttl(Next, State);
@@ -192,8 +155,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-first_keep_alive_once(Name, LeaseID) ->
-    case eetcd_lease_gen:lease_keep_alive(Name) of
+first_keep_alive_once(EtcdName, LeaseID) ->
+    case eetcd_lease_gen:lease_keep_alive(EtcdName) of
         {ok, Gun, StreamRef, PbModule} ->
             MRef = erlang:monitor(process, Gun),
             case keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule) of
@@ -223,14 +186,14 @@ keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule) ->
 keep_ttl(Next, State) ->
     #{stream_ref := Ref, gun := Gun, pb_module := PbModule,
       lease_id := ID, ongoing := Ongoing,
-        name := Name, caller := Caller} = State,
+        name := EtcdName, caller := Caller} = State,
     case Ongoing =< 2 * ?BLOCK of
         true ->
             eetcd_stream:data(Gun, Ref, #{'ID' => ID}, 'Etcd.LeaseKeepAliveRequest', nofin, PbModule),
             TimeRef = schedule_next_keep_alive(Next),
             {noreply, State#{ongoing => Ongoing + 1, next_ref => TimeRef}};
         false ->
-            case time_to_live(Name, ID, false) of
+            case time_to_live(EtcdName, ID, false) of
                 {ok, _} -> reconnect(State);
                 {error, Reason} ->
                     Event = ?Event(ID, Reason),
@@ -251,13 +214,13 @@ reconnect(State) ->
 
 try_reconnecting(State) ->
     #{
-        name := Name, lease_id := LeaseID,
+        name := EtcdName, lease_id := LeaseID,
         last_disconnect := LastDisconnect, ttl := TTL,
         caller := Caller
     } = State,
     case erlang:system_time(second) - LastDisconnect > TTL of
         true ->
-            case time_to_live(Name, LeaseID, false) of
+            case time_to_live(EtcdName, LeaseID, false) of
                 {ok, _} -> reconnect(State);
                 {error, Reason} ->
                     Event = ?Event(LeaseID, Reason),
@@ -265,7 +228,7 @@ try_reconnecting(State) ->
                     {stop, {shutdown, Event}, State}
             end;
         false ->
-            case init([Caller, Name, LeaseID]) of
+            case init([Caller, EtcdName, LeaseID]) of
                 {ok, NewState} -> {noreply, NewState};
                 {stop, {shutdown, #{'grpc-status' := ?GRPC_STATUS_NOT_FOUND} = Reason}} ->
                     Event = ?Event(LeaseID, Reason),
@@ -276,8 +239,8 @@ try_reconnecting(State) ->
                     {noreply, State}
             end
     end.
-check_leader(Header, Name) ->
+check_leader(Header, EtcdName) ->
     case eetcd_grpc:grpc_status(Header) of
-        #{'grpc-status' := 14} -> eetcd_conn:check_health(Name);
+        #{'grpc-status' := 14} -> eetcd_conn:check_health(EtcdName);
         _ -> ok
     end.

@@ -8,9 +8,8 @@
 %% API
 -export([open/2, open/3, close/1]).
 -export([info/0]).
--export([new/1, with_timeout/2, new_with_name/1, new_with_conn/2, new_with_conn/3]).
 -export([get_prefix_range_end/1]).
--export_type([opts/0]).
+-export_type([opts/0, request_opts/0, stream_ref/0]).
 
 -type opts() :: [ {mode, connect_all | random} |
                   {transport, tcp | tls | ssl} |
@@ -26,12 +25,15 @@
                   {tls_opts, [ssl:tls_client_option()]}
                 ].
 
+-type request_opts() :: [ {reply_timeout, pos_integer()} ].
+-type stream_ref() :: gun:stream_ref().
+
 %% @doc Connects to a etcd server on TCP port
 %% Port on the host with IP address Address, such as:
 %% `open(test,["127.0.0.1:2379","127.0.0.1:2479","127.0.0.1:2579"]).'
--spec open(name(), [string()]) -> {ok, pid()} | {error, any()}.
-open(Name, Hosts) ->
-    open(Name, Hosts, [{transport, tcp}]).
+-spec open(etcd_name(), [string()]) -> {ok, pid()} | {error, any()}.
+open(EtcdName, Hosts) ->
+    open(EtcdName, Hosts, [{transport, tcp}]).
 
 %% @doc Connects to a etcd server.
 %%
@@ -74,10 +76,10 @@ open(Name, Hosts) ->
 %% [https://ninenines.eu/docs/en/gun/2.0/manual/gun/ Gun 2.0 manual].
 %%
 %% You can use `eetcd:info/0' to see the internal connection status.
--spec open(name(), [string()], opts()) -> {ok, pid()} | {error, any()}.
-open(Name, Hosts, Options) ->
+-spec open(etcd_name(), [string()], opts()) -> {ok, pid()} | {error, any()}.
+open(EtcdName, Hosts, Options) ->
     Hosts1 = [begin [IP, Port] = string:tokens(Host, ":"), {IP, list_to_integer(Port)} end || Host <- Hosts],
-    case eetcd_conn_sup:start_child(Name, Hosts1, Options) of
+    case eetcd_conn_sup:start_child(EtcdName, Hosts1, Options) of
         {ok, Pid} ->
             {ok, Pid};
         {error, {already_started, _}} ->
@@ -87,9 +89,9 @@ open(Name, Hosts, Options) ->
     end.
 
 %% @doc close connections with etcd server.
--spec close(name()) -> ok | {error, not_found}.
-close(Name) ->
-    eetcd_conn_sup:stop_child(Name).
+-spec close(etcd_name()) -> ok | {error, not_found}.
+close(EtcdName) ->
+    eetcd_conn_sup:stop_child(EtcdName).
 
 %%% @doc etcd's overview.
 -spec info() -> any().
@@ -116,39 +118,6 @@ info() ->
           end || {Id, Host, Port, Ms} <- Freezes]
      end || Conn <- Conns],
     ok.
-
-%%% @doc Create context for request.
--spec new(atom() | context()) -> context().
-new(ConnName) when is_atom(ConnName) orelse is_reference(ConnName) ->
-    #{eetcd_conn_name => {name, ConnName}};
-new(Context) when is_map(Context) -> Context.
-
--spec new_with_name(atom()) -> context().
-new_with_name(ConnName) when is_atom(ConnName) ->
-    #{eetcd_conn_name => {name, ConnName}}.
-
--spec new_with_conn(atom() | context(), pid()) -> context().
-new_with_conn(ConnName, GunPid) when is_atom(ConnName), is_pid(GunPid) ->
-    new_with_conn(ConnName, GunPid, []).
-
--spec new_with_conn(atom() | context(), pid(), [{binary(), binary()}]) -> context().
-new_with_conn(ConnName, GunPid, Headers) when is_atom(ConnName), is_pid(GunPid) ->
-    #{eetcd_conn_name => {gun, ConnName, GunPid, ?HEADERS ++ Headers }}.
-
-%% @doc Timeout is an integer greater than zero which specifies how many milliseconds to wait for a reply,
-%% or the atom infinity to wait indefinitely.
-%% If no reply is received within the specified time, the function call fails with `{error, timeout}'.
--spec with_timeout(context(), pos_integer()|infinity) -> context().
-with_timeout(Context, Timeout) when is_integer(Timeout); Timeout == infinity ->
-    case Timeout < 100 of
-        true ->
-            Reason =
-                lists:flatten(
-                    io_lib:format("Setting timeout to ~wms(less than 100ms) is not allowed", [Timeout])),
-            throw({error, Reason});
-        false -> ok
-    end,
-    maps:put(eetcd_reply_timeout, Timeout, Context).
 
 -define(UNBOUND_RANGE_END, "\0").
 

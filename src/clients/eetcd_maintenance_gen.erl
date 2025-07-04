@@ -5,57 +5,99 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-06-21T09:30:26+00:00 and should not be modified manually
+%% This module was generated on 2025-07-04T09:57:21+00:00 and should not be modified manually
 
 -module(eetcd_maintenance_gen).
 
--export([alarm/1]).
--export([status/1]).
--export([defragment/1]).
--export([hash/1]).
--export([hash_kv/1]).
--export([snapshot/1]).
--export([move_leader/1]).
+-export([alarm/2, alarm/3]).
+-export([status/2, status/3]).
+-export([defragment/2, defragment/3]).
+-export([hash/2, hash/3]).
+-export([hash_kv/2, hash_kv/3]).
+-export([snapshot/2, snapshot/3]).
+-export([move_leader/2, move_leader/3]).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/Alarm" 
--spec alarm(router_pb:'Etcd.AlarmRequest'()) ->
-    {ok, router_pb:'Etcd.AlarmResponse'()}|{error,eetcd:eetcd_error()}.
-alarm(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.AlarmRequest', <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Alarm'
+-spec alarm(Client :: eetcd:client(), Request :: router_pb:'Etcd.AlarmRequest'()) ->
+    {ok, router_pb:'Etcd.AlarmResponse'()} | {error, eetcd:eetcd_error()}.
+alarm(Client, Request) ->
+    alarm(Client, Request, []).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/Status" 
--spec status(router_pb:'Etcd.StatusRequest'()) ->
-    {ok, router_pb:'Etcd.StatusResponse'()}|{error,eetcd:eetcd_error()}.
-status(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.StatusRequest', <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Alarm'
+-spec alarm(Client :: eetcd:client(), Request :: router_pb:'Etcd.AlarmRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.AlarmResponse'()} | {error, eetcd:eetcd_error()}.
+alarm(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.AlarmRequest', <<"/etcdserverpb.Maintenance/Alarm">>, 'Etcd.AlarmResponse', router_pb, Opts).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/Defragment" 
--spec defragment(router_pb:'Etcd.DefragmentRequest'()) ->
-    {ok, router_pb:'Etcd.DefragmentResponse'()}|{error,eetcd:eetcd_error()}.
-defragment(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.DefragmentRequest', <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Status'
+-spec status(Client :: eetcd:client(), Request :: router_pb:'Etcd.StatusRequest'()) ->
+    {ok, router_pb:'Etcd.StatusResponse'()} | {error, eetcd:eetcd_error()}.
+status(Client, Request) ->
+    status(Client, Request, []).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/Hash" 
--spec hash(router_pb:'Etcd.HashRequest'()) ->
-    {ok, router_pb:'Etcd.HashResponse'()}|{error,eetcd:eetcd_error()}.
-hash(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.HashRequest', <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Status'
+-spec status(Client :: eetcd:client(), Request :: router_pb:'Etcd.StatusRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.StatusResponse'()} | {error, eetcd:eetcd_error()}.
+status(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.StatusRequest', <<"/etcdserverpb.Maintenance/Status">>, 'Etcd.StatusResponse', router_pb, Opts).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/HashKV" 
--spec hash_kv(router_pb:'Etcd.HashKVRequest'()) ->
-    {ok, router_pb:'Etcd.HashKVResponse'()}|{error,eetcd:eetcd_error()}.
-hash_kv(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.HashKVRequest', <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Defragment'
+-spec defragment(Client :: eetcd:client(), Request :: router_pb:'Etcd.DefragmentRequest'()) ->
+    {ok, router_pb:'Etcd.DefragmentResponse'()} | {error, eetcd:eetcd_error()}.
+defragment(Client, Request) ->
+    defragment(Client, Request, []).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/Snapshot" 
--spec snapshot(router_pb:'Etcd.SnapshotRequest'()) ->
-    {ok, router_pb:'Etcd.SnapshotResponse'()}|{error,eetcd:eetcd_error()}.
-snapshot(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.SnapshotRequest', <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Defragment'
+-spec defragment(Client :: eetcd:client(), Request :: router_pb:'Etcd.DefragmentRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.DefragmentResponse'()} | {error, eetcd:eetcd_error()}.
+defragment(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.DefragmentRequest', <<"/etcdserverpb.Maintenance/Defragment">>, 'Etcd.DefragmentResponse', router_pb, Opts).
 
-%% @doc Unary RPC for service at path "/etcdserverpb.Maintenance/MoveLeader" 
--spec move_leader(router_pb:'Etcd.MoveLeaderRequest'()) ->
-    {ok, router_pb:'Etcd.MoveLeaderResponse'()}|{error,eetcd:eetcd_error()}.
-move_leader(Request) ->
-    eetcd_stream:unary(Request, 'Etcd.MoveLeaderRequest', <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse', router_pb).
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Hash'
+-spec hash(Client :: eetcd:client(), Request :: router_pb:'Etcd.HashRequest'()) ->
+    {ok, router_pb:'Etcd.HashResponse'()} | {error, eetcd:eetcd_error()}.
+hash(Client, Request) ->
+    hash(Client, Request, []).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Hash'
+-spec hash(Client :: eetcd:client(), Request :: router_pb:'Etcd.HashRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.HashResponse'()} | {error, eetcd:eetcd_error()}.
+hash(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.HashRequest', <<"/etcdserverpb.Maintenance/Hash">>, 'Etcd.HashResponse', router_pb, Opts).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/HashKV'
+-spec hash_kv(Client :: eetcd:client(), Request :: router_pb:'Etcd.HashKVRequest'()) ->
+    {ok, router_pb:'Etcd.HashKVResponse'()} | {error, eetcd:eetcd_error()}.
+hash_kv(Client, Request) ->
+    hash_kv(Client, Request, []).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/HashKV'
+-spec hash_kv(Client :: eetcd:client(), Request :: router_pb:'Etcd.HashKVRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.HashKVResponse'()} | {error, eetcd:eetcd_error()}.
+hash_kv(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.HashKVRequest', <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', router_pb, Opts).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
+-spec snapshot(Client :: eetcd:client(), Request :: router_pb:'Etcd.SnapshotRequest'()) ->
+    {ok, router_pb:'Etcd.SnapshotResponse'()} | {error, eetcd:eetcd_error()}.
+snapshot(Client, Request) ->
+    snapshot(Client, Request, []).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
+-spec snapshot(Client :: eetcd:client(), Request :: router_pb:'Etcd.SnapshotRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.SnapshotResponse'()} | {error, eetcd:eetcd_error()}.
+snapshot(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.SnapshotRequest', <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', router_pb, Opts).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/MoveLeader'
+-spec move_leader(Client :: eetcd:client(), Request :: router_pb:'Etcd.MoveLeaderRequest'()) ->
+    {ok, router_pb:'Etcd.MoveLeaderResponse'()} | {error, eetcd:eetcd_error()}.
+move_leader(Client, Request) ->
+    move_leader(Client, Request, []).
+
+%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/MoveLeader'
+-spec move_leader(Client :: eetcd:client(), Request :: router_pb:'Etcd.MoveLeaderRequest'(), Opts :: eetcd:request_opts()) ->
+    {ok, router_pb:'Etcd.MoveLeaderResponse'()} | {error, eetcd:eetcd_error()}.
+move_leader(Client, Request, Opts) ->
+    eetcd_stream:unary(Client, Request, 'Etcd.MoveLeaderRequest', <<"/etcdserverpb.Maintenance/MoveLeader">>, 'Etcd.MoveLeaderResponse', router_pb, Opts).
 

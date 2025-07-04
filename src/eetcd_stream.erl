@@ -2,37 +2,47 @@
 -module(eetcd_stream).
 
 %% API
--export([unary/5, unary/8]).
--export([new/3, new/5]).
+-export([unary/7, unary/9]).
+-export([new/4, new/6]).
 -export([data/6]).
 -export([await/4]).
 
 -include("eetcd.hrl").
 
--spec new(Name, Path, PbModule) -> {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()} when
-    Name :: name(),
+-export_type([conn/0]).
+
+-type conn() :: {GunPid :: pid(), Headers :: gun:req_headers()}.
+
+-spec new(Client, Path, PbModule, Opts) -> Result when
+    Result :: {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()},
+    Client :: eetcd:client(),
     Path :: iodata(),
     PbModule :: module(),
+    Opts :: eetcd:request_opts(),
     GunPid :: pid(),
-    Http2Ref :: gun:stream_ref().
-new(Name, Path, PbModule) ->
-    case eetcd_conn:round_robin_select(Name) of
-        {ok, Pid, Headers} ->
-            Ref = gun:headers(Pid, <<"POST">>, Path, Headers),
-            {ok, Pid, Ref, PbModule};
+    Http2Ref :: eetcd:stream_ref().
+new(EtcdName, Path, PbModule, _Opts) when is_atom(EtcdName) ->
+    case eetcd_conn:round_robin_select(EtcdName) of
+        {ok, GunPid, Headers} ->
+            new({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts);
         Err -> Err
-    end.
+    end;
+new({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts) when is_atom(EtcdName) ->
+    Ref = gun:headers(GunPid, <<"POST">>, Path, Headers),
+    {ok, GunPid, Ref, PbModule}.
 
--spec new(Name, EtcdMsg, EtcdMsgName, Http2Path, PbModule) -> {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()} when
-    Name :: name(),
+-spec new(EtcdName, EtcdMsg, EtcdMsgName, Http2Path, PbModule, Opts) -> Result when
+    Result :: {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()},
+    EtcdName :: etcd_name(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
     PbModule :: module(),
+    Opts :: eetcd:request_opts(),
     GunPid :: pid(),
-    Http2Ref :: gun:stream_ref().
-new(Name, Msg, MsgName, Path, PbModule) ->
-    case new(Name, Path, PbModule) of
+    Http2Ref :: eetcd:stream_ref().
+new(EtcdName, Msg, MsgName, Path, PbModule, Opts) ->
+    case new(EtcdName, Path, PbModule, Opts) of
         {ok, Pid, Ref, _} ->
             data(Pid, Ref, Msg, MsgName, nofin, PbModule),
             {ok, Pid, Ref, PbModule};
@@ -41,7 +51,7 @@ new(Name, Msg, MsgName, Path, PbModule) ->
 
 -spec data(GunPid, Http2Ref, EtcdMsg, EtcdMsgName, IsFin, PbModule) -> Http2Ref when
     GunPid :: pid(),
-    Http2Ref :: gun:stream_ref(),
+    Http2Ref :: eetcd:stream_ref(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     IsFin :: fin | nofin,
@@ -51,43 +61,44 @@ data(Pid, Ref, Msg, MsgName, IsFin, PbModule) ->
     gun:data(Pid, Ref, IsFin, EncodeBody),
     Ref.
 
--spec unary(EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, PbModule) -> EtcdResponse when
+-spec unary(EtcdName, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, PbModule, Opts) -> EtcdResponse when
+    EtcdName :: etcd_name() | {etcd_name(), conn()},
     EtcdRequest :: map(),
     EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
     PbModule :: module(),
-    EtcdResponse :: {ok, term()} | {error, eetcd_error()}.
-unary(Request0, RequestName, Path, ResponseType, PbModule) ->
-    case maps:take(eetcd_conn_name, Request0) of
-        {{gun, Name, GunPid, Headers}, Request} ->
-            unary(Name, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule);
-        {{name, Name}, Request} when is_atom(Name) ->
-            case eetcd_conn:round_robin_select(Name) of
-                {ok, GunPid, Headers} ->
-                    unary(Name, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule);
-                Err -> Err
-            end;
-        error -> {error, eetcd_conn_unavailable}
-    end.
+    Opts :: eetcd:request_opts(),
+    EtcdResponse :: {ok, ResponseMsg :: map()} | {error, eetcd_error()}.
+unary(EtcdName, Request, RequestName, Path, ResponseType, PbModule, Opts) when is_atom(EtcdName) ->
+    case eetcd_conn:round_robin_select(EtcdName) of
+        {ok, GunPid, Headers} ->
+            unary(EtcdName, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule,
+                 Opts);
+        Err -> Err
+    end;
+unary({EtcdName, {GunPid, Headers}}, Request, RequestName, Path, ResponseType, PbModule, Opts) ->
+    unary(EtcdName, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule, Opts).
 
--spec unary(Name, GunPid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers,
-            PbModule) -> EtcdResponse when
-    Name :: name(),
+-spec unary(EtcdName, GunPid, EtcdRequest, EtcdRequestName, Http2Path, EtcdResponseType, Http2Headers,
+            PbModule, Opts) -> EtcdResponse when
+    EtcdName :: etcd_name(),
     GunPid :: pid(),
     EtcdRequest :: map(),
     EtcdRequestName :: atom(),
     Http2Path :: iodata(),
     EtcdResponseType :: atom(),
-    Http2Headers :: list(),
+    Http2Headers :: gun:req_headers(),
     PbModule :: module(),
-    EtcdResponse :: {ok, term()} | {error, eetcd_error()}.
-unary(Name, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule) when is_pid(GunPid) ->
-    Timeout = maps:get(eetcd_reply_timeout, Request, 9000),
-    EncodeBody = eetcd_grpc:encode(identity, maps:remove(eetcd_reply_timeout, Request), RequestName, PbModule),
+    Opts :: eetcd:request_opts(),
+    EtcdResponse :: {ok, ResponseMsg :: map()} | {error, eetcd_error()}.
+unary(EtcdName, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule, Opts) when is_pid(GunPid) ->
+    Timeout = proplists:get_value(reply_timeout, Opts, 9000),
+    EncodeBody = eetcd_grpc:encode(identity, Request, RequestName, PbModule),
     MRef = erlang:monitor(process, GunPid),
     StreamRef = gun:request(GunPid, <<"POST">>, Path, Headers, EncodeBody),
     Res =
+        %% eqwalizer:ignore 
         case await(GunPid, StreamRef, Timeout, MRef) of
             {response, nofin, 200, _Headers} ->
                 await_body(GunPid, StreamRef, Timeout, MRef, ResponseType, PbModule);
@@ -95,8 +106,9 @@ unary(Name, GunPid, Request, RequestName, Path, ResponseType, Headers, PbModule)
                 case eetcd_grpc:grpc_status(RespHeaders) of
                     #{'grpc-status' := ?GRPC_STATUS_UNAUTHENTICATED,
                         'grpc-message' := <<"etcdserver: invalid auth token">>} ->
-                        NewHeaders = eetcd_conn:refresh_token(Name, Headers),
+                        NewHeaders = eetcd_conn:refresh_token(EtcdName, Headers),
                         StreamRef1 = gun:request(GunPid, <<"POST">>, Path, NewHeaders, EncodeBody),
+                        %% eqwalizer:ignore 
                         case await(GunPid, StreamRef1, Timeout, MRef) of
                             {response, nofin, 200, _Headers} ->
                                 await_body(GunPid, StreamRef1, Timeout, MRef, ResponseType, PbModule);

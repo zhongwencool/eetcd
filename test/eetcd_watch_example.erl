@@ -35,11 +35,12 @@ init([]) ->
                         retry_ref => undefined})}.
 
 get_exist_services(KeyPrefix) ->
-    Ctx = eetcd_kv:new(?NAME),
-    Ctx1 = eetcd_kv:with_key(Ctx, KeyPrefix),
-    Ctx2 = eetcd_kv:with_prefix(Ctx1),
-    Ctx3 = eetcd_kv:with_keys_only(Ctx2),
-    {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv:get(Ctx3),
+    Req = #{
+        key => KeyPrefix,
+        range_end => eetcd:get_prefix_range_end(KeyPrefix),
+        keys_only => true
+    },
+    {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv_gen:range(?NAME, Req),
     Services1 =
         [begin
              [_, Type, IP, Port] = binary:split(Key, [<<"|">>], [global]),

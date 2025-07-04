@@ -34,26 +34,36 @@ resign(Pid) ->
 init([Etcd, LeaderKey, Value]) ->
     logger:set_primary_config(#{level => info}),
     erlang:process_flag(trap_exit, true),
-    {ok, #{'ID' := LeaseID}} = eetcd_lease:grant(Etcd, 8),
+    {ok, #{'ID' := LeaseID}} = eetcd_lease_gen:lease_grant(Etcd, #{'TTL' => 8}),
     {ok, _} = eetcd_lease:keep_alive(Etcd, LeaseID),
-    {ok, Campaign} = eetcd_election:campaign_request(Etcd, LeaderKey, LeaseID, Value),
+    Self = self(),
+    Pid = spawn_link(fun() ->
+        Res = eetcd_election_gen:campaign(Etcd, #{name => LeaderKey,
+                                                  lease => LeaseID,
+                                                  value => Value}),
+        Self ! {campaign_response, self(), Res}
+    end),
     {ok, Observe} = eetcd_election:observe(Etcd, LeaderKey, 2500),
-    {ok, #{etcd => Etcd, lease => LeaseID, campaign => Campaign, observe => Observe}}.
+    {ok, #{etcd => Etcd, lease => LeaseID, observe => Observe, campaign_pid => Pid}}.
 
 handle_call(get_leader, _From, State = #{observe := Observe}) ->
     #{leader := Leader} = Observe,
     {reply, {ok, Leader}, State};
 
-handle_call(get_campaign, _From, State = #{campaign := Campaign}) ->
-    {reply, {ok, Campaign}, State};
+handle_call(get_campaign, _From, State) ->
+    {reply, {ok, maps:get(campaign, State, undefined)}, State};
 
-handle_call(resign, _From, State) ->
-    #{etcd := Etcd, campaign := #{campaign := Leader}} = State,
-    case is_map(Leader) of
-        true -> eetcd_election:resign(Etcd, Leader);
-        false -> ignore
-    end,
-    {reply, is_map(Leader), State};
+handle_call(resign, _From, #{etcd := Etcd} = State) ->
+    Result = 
+        case maps:get(campaign, State, undefined) of
+            undefined -> ignored; %% no campaign, nothing to resign
+            #{leader := Leader} ->
+                case eetcd_election_gen:resign(Etcd, #{leader => Leader}) of
+                    {ok, _} -> ok;
+                    {error, _Reason} = E -> E
+                end
+        end,
+    {reply, Result, State};
 handle_call(stop, _From, State = #{}) ->
     {stop, normal, ok, State};
 
@@ -63,33 +73,33 @@ handle_call(_Request, _From, State = #{}) ->
 handle_cast(_Request, State = #{}) ->
     {noreply, State}.
 
-handle_info(Msg, State) ->
-    #{campaign := Campaign, observe := Observe} = State,
-    case eetcd_election:campaign_response(Campaign, Msg) of
-        {ok, NewCampaign = #{campaign := Leader}} ->
+handle_info({campaign_response, Pid, Resp}, #{campaign_pid := Pid} = State) ->
+    case Resp of
+        {ok, #{leader := Leader} = NewCampaign} ->
             %% Only get this response when you win campaign by yourself.
             %% You are leader!
             win_campaign_event(Leader),
             {noreply, State#{campaign => NewCampaign}};
         {error, Reason} -> %% you can just let it crash and restart process or recampaign !!!
             campaign_unexpected_error(Reason),
+            {noreply, State}
+    end;
+
+handle_info(Msg, #{observe := Observe} = State) ->
+    case eetcd_election:observe_stream(Observe, Msg) of
+        {ok, NewObserve = #{leader := Leader}} ->
+            leader_change_event(Leader),
+            {noreply, State#{observe => NewObserve}};
+        {error, Reason} -> %% you can just let it crash and restart process
+            observe_unexpected_error(Reason),
             {noreply, State};
         unknown ->
-            case eetcd_election:observe_stream(Observe, Msg) of
-                {ok, NewObserve = #{leader := Leader}} ->
-                    leader_change_event(Leader),
-                    {noreply, State#{observe => NewObserve}};
-                {error, Reason} -> %% you can just let it crash and restart process
-                    observe_unexpected_error(Reason),
-                    {noreply, State};
-                unknown ->
-                    handle_info_your_own_msg(Msg, State),
-                    {noreply, State}
-            end
+            handle_info_your_own_msg(Msg, State),
+            {noreply, State}
     end.
 
 terminate(_Reason, _State = #{etcd := Etcd, lease := LeaseID}) ->
-    eetcd_lease:revoke(Etcd, LeaseID),
+    eetcd_lease_gen:lease_revoke(Etcd, #{'ID' => LeaseID}),
     ok.
 
 code_change(_OldVsn, State = #{}, _Extra) ->

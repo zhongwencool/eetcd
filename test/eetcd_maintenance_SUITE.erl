@@ -24,7 +24,7 @@ groups() ->
 init_per_suite(Config) ->
     application:ensure_all_started(eetcd),
     {ok, _Pid} = eetcd:open(?Name, ["127.0.0.1:2379", "127.0.0.1:2479", "127.0.0.1:2579"]),
-    {ok, #{members := Members}} = eetcd_cluster_gen:member_list(eetcd:new(?Name)),
+    {ok, #{members := Members}} = eetcd_cluster_gen:member_list(?Name, #{}),
     [{members, Members} | Config].
 
 end_per_suite(Config) ->

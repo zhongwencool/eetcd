@@ -5,14 +5,19 @@
 -define(HEADERS, [{<<"grpc-encoding">>, <<"identity">>}, {<<"content-type">>, <<"application/grpc+proto">>}]).
 -define(GRPC_ERROR(Status, Message), {grpc_error, #{'grpc-status' => Status, 'grpc-message' => Message}}).
 
--export_type([key/0, value/0, context/0, name/0, grpc_status/0, eetcd_error/0]).
+-export_type([key/0, value/0, request/0, etcd_name/0, client/0, grpc_status/0, eetcd_error/0]).
 -type key() :: iodata().
 -type value() :: iodata().
--type context() :: map().
--type name() :: atom().
+-type request() :: map().
+-type etcd_name() :: atom().
+-type client() :: etcd_name() | {etcd_name(), eetcd_stream:conn()}.
 -type member_id() :: pos_integer().
--type new_context() :: name() | context().
--type eetcd_error() :: timeout|{grpc_error,grpc_status()}|{gun_down,any()}|{gun_conn_error,any()}|{gun_stream_error,any()}|eetcd_conn_unavailable.
+-type eetcd_error() :: timeout
+                     | {grpc_error,grpc_status()}
+                     | {gun_down,any()}
+                     | {gun_conn_error,any()}
+                     | {gun_stream_error,any()}
+                     | eetcd_conn_unavailable.
 -type grpc_status() :: #{'grpc-status' => integer(), 'grpc-message' => binary()}.
 
 %% Grpc status code

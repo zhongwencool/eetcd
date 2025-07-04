@@ -1,7 +1,7 @@
 -module(eetcd_watch).
 -include("eetcd.hrl").
 
--export_type([watch_conn/0]).
+-export_type([watch_request/0, watch_conn/0]).
 -type watch_conn() :: #{http2_pid => pid(),
                         monitor_ref => reference(),
                         stream_ref => gun:stream_ref(),
@@ -23,7 +23,8 @@
                        }.
 
 %% API
--export([new/0, with_key/2,
+-export([
+    new/0, with_key/2,
     with_range_end/2, with_prefix/1, with_from_key/1,
     with_start_revision/2,
     with_filter_delete/1, with_filter_put/1,
@@ -37,20 +38,22 @@
 -export([unwatch/2]).
 -export([rev/1]).
 
+-type watch_request() :: router_pb:'Etcd.WatchCreateRequest'().
+
 %%% @doc init watch request
--spec new() -> context().
+-spec new() -> watch_request().
 new() -> #{}.
 
 %% @doc AutoWatchID is the watcher ID passed in WatchStream.Watch when no
 %% user-provided ID is available, an ID will automatically be assigned.
-with_watch_id(Context, WatchId) ->
-    maps:put(watch_id, WatchId, Context).
+with_watch_id(Request, WatchId) ->
+    Request#{watch_id => WatchId}.
 
 %% @doc Get the previous key-value pair before the event happens.
 %% If the previous KV is already compacted, nothing will be returned.
--spec with_prev_kv(context()) -> context().
-with_prev_kv(Context) ->
-    maps:put(prev_kv, true, Context).
+-spec with_prev_kv(watch_request()) -> watch_request().
+with_prev_kv(Request) ->
+    Request#{prev_kv => true}.
 
 %% @doc WithFragment to receive raw watch response with fragmentation.
 %%Fragmentation is disabled by default. If fragmentation is enabled,
@@ -58,9 +61,9 @@ with_prev_kv(Context) ->
 %%when the total size of watch events exceed server-side request limit.
 %%The default server-side request limit is 1.5 MiB, which can be configured
 %%as "--max-request-bytes" flag value + gRPC-overhead 512 bytes.
--spec with_fragment(context()) -> context().
-with_fragment(Context) ->
-    maps:put(fragment, true, Context).
+-spec with_fragment(watch_request()) -> watch_request().
+with_fragment(Request) ->
+    Request#{fragment => true}.
 
 %% @doc Start revision, an optional revision for where to inclusively begin watching.
 %% If not given, it will stream events following the revision of the watch creation
@@ -70,69 +73,69 @@ with_fragment(Context) ->
 %% Note that the start revision is inclusive, so for example, if the start revision is 100,
 %% the first event returned will be at revision 100. So in practice, the start revision is better
 %% set to the last **GET** revision + 1 to exclude the previous change before the watch.
-with_start_revision(Context, Rev) ->
-    maps:put(start_revision, Rev, Context).
+with_start_revision(Request, StartRevision) ->
+    Request#{start_revision => StartRevision}.
 
 %% @doc Make watch server send periodic progress updates
 %% every 10 minutes when there is no incoming events.
 %% Progress updates have zero events in WatchResponse.
--spec with_progress_notify(context()) -> context().
-with_progress_notify(Context) ->
-    maps:put(progress_notify, true, Context).
+-spec with_progress_notify(watch_request()) -> watch_request().
+with_progress_notify(Request) ->
+    Request#{progress_notify => true}.
 
 %% @doc discards PUT events from the watcher.
--spec with_filter_put(context()) -> context().
-with_filter_put(Context) ->
+-spec with_filter_put(watch_request()) -> watch_request().
+with_filter_put(Request) ->
     maps:update_with(filters,
         fun(V) -> lists:usort(['NOPUT' | V]) end,
         ['NOPUT'],
-        Context).
+        Request).
 
 %% @doc discards DELETE events from the watcher.
--spec with_filter_delete(context()) -> context().
-with_filter_delete(Context) ->
+-spec with_filter_delete(watch_request()) -> watch_request().
+with_filter_delete(Request) ->
     maps:update_with(filters,
         fun(V) -> lists:usort(['NODELETE' | V]) end,
         ['NODELETE'],
-        Context).
+        Request).
 
 %%% @doc Sets the byte slice for the Op's `key'.
--spec with_key(context(), key()) -> context().
-with_key(Context, Key) ->
-    maps:put(key, Key, Context).
+-spec with_key(watch_request(), key()) -> watch_request().
+with_key(Request, Key) ->
+    Request#{key => Key}.
 
 %% @doc Enables `watch' requests to operate
 %% on the keys with matching prefix. For example, `watch("foo", with_prefix())'
 %% can return 'foo1', 'foo2', and so on.
--spec with_prefix(context()) -> context().
-with_prefix(#{key := Key} = Context) ->
-    with_range_end(Context, eetcd:get_prefix_range_end(Key)).
+-spec with_prefix(watch_request()) -> watch_request().
+with_prefix(#{key := Key} = Request) ->
+    with_range_end(Request, eetcd:get_prefix_range_end(Key)).
 
 %%  @doc Specifies the range of `get', `delete' requests
 %% to be equal or greater than the key in the argument.
--spec with_from_key(context()) -> context().
-with_from_key(Context) ->
-    with_range_end(Context, "\x00").
+-spec with_from_key(watch_request()) -> watch_request().
+with_from_key(Request) ->
+    with_range_end(Request, "\x00").
 
 %% @doc Sets the byte slice for the Op's `range_end'.
--spec with_range_end(context(), iodata()) -> context().
-with_range_end(Context, End) ->
-    maps:put(range_end, End, Context).
+-spec with_range_end(watch_request(), iodata()) -> watch_request().
+with_range_end(Request, End) ->
+    Request#{range_end => End}.
 
 %% @doc @equiv watch(name(), context(), 5000).
--spec watch(name(), context()) ->
+-spec watch(etcd_name(), watch_request()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
-watch(Name, CreateReq) ->
-    watch(Name, CreateReq, undefined, 5000).
+watch(EtcdName, CreateReq) ->
+    watch(EtcdName, CreateReq, undefined, 5000).
 
--spec watch(name(), context(), Timeout :: pos_integer() | watch_conn() | undefined) ->
+-spec watch(etcd_name(), watch_request(), Timeout :: pos_integer() | watch_conn() | undefined) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
-watch(Name, CreateReq, Timeout) when is_integer(Timeout) ->
-    watch(Name, CreateReq, undefined, Timeout);
-watch(Name, CreateReq, WatchConn) ->
-    watch(Name, CreateReq, WatchConn, 5000).
+watch(EtcdName, CreateReq, Timeout) when is_integer(Timeout) ->
+    watch(EtcdName, CreateReq, undefined, Timeout);
+watch(EtcdName, CreateReq, WatchConn) ->
+    watch(EtcdName, CreateReq, WatchConn, 5000).
 
 %% @doc Watch watches for events happening or that have happened. Both input and output are streams;
 %% the input stream is for creating watchers and the output stream sends events.
@@ -147,22 +150,22 @@ watch(Name, CreateReq, WatchConn) ->
 %%
 %%	The returned "id" is the ID of this watcher. It appears as WatchID
 %%  in events that are sent to the created watcher through stream channel.
--spec watch(name(), context(), watch_conn() | undefined, pos_integer()) ->
+-spec watch(etcd_name(), watch_request(), watch_conn() | undefined, pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
-watch(_Name, CreateReq, #{http2_pid := Gun,
-                          stream_ref := StreamRef,
-                          monitor_ref := MRef} = WatchConn, Timeout)
+watch(_EtcdName, CreateReq, #{http2_pid := Gun,
+                              stream_ref := StreamRef,
+                              monitor_ref := MRef} = WatchConn, Timeout)
   when is_pid(Gun), is_reference(StreamRef), is_reference(MRef) ->
     watch_reuse_(CreateReq, WatchConn, Timeout);
-watch(Name, CreateReq, undefined, Timeout) ->
-    case eetcd_watch_gen:watch(Name) of
+watch(EtcdName, CreateReq, undefined, Timeout) ->
+    case eetcd_watch_gen:watch(EtcdName) of
         {ok, Gun, StreamRef, PbModule} -> watch_new_(CreateReq, Gun, StreamRef, PbModule, Timeout);
         {error, _Reason} = E -> E
     end.
 
 %% Do watch request with a new watch stream.
--spec watch_new_(context(), pid(), reference(), module(), pos_integer()) ->
+-spec watch_new_(watch_request(), pid(), eetcd:stream_ref(), module(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
 watch_new_(CreateReq, Gun, StreamRef, PbModule, Timeout) ->
@@ -207,7 +210,7 @@ watch_new_(CreateReq, Gun, StreamRef, PbModule, Timeout) ->
     end.
 
 %% Do watch request with the re-used watch stream.
--spec watch_reuse_(context(), watch_conn(), pos_integer()) ->
+-spec watch_reuse_(watch_request(), watch_conn(), pos_integer()) ->
     {ok, watch_conn(), WatchId :: pos_integer()} |
     {error, eetcd_error()}.
 watch_reuse_(CreateReq, #{http2_pid   := Gun,
@@ -288,10 +291,10 @@ watch_stream(#{stream_ref := Ref, http2_pid := Pid, unprocessed := Unprocessed,
         more -> {more, Conn#{unprocessed => Bin}}
     end;
 watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
-    {gun_trailers, Pid, SRef, [{<<"grpc-status">>, Status}, {<<"grpc-message">>, Msg}]}) ->
+    {gun_trailers, Pid, SRef, Headers}) ->
     erlang:demonitor(MRef, [flush]),
     gun:cancel(Pid, SRef),
-    {error, ?GRPC_ERROR(Status, Msg)};
+    {error, {grpc_error, eetcd_grpc:grpc_status(Headers)}}; %% gun trailers
 watch_stream(#{stream_ref := SRef, http2_pid := Pid, monitor_ref := MRef},
     {gun_error, Pid, SRef, Reason}) -> %% stream error
     erlang:demonitor(MRef, [flush]),

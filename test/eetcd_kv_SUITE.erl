@@ -56,10 +56,8 @@ end_per_suite(Config) ->
     ok.
 
 init_per_testcase(_TestCase, Config) ->
-    Ctx0 = eetcd_kv:new(?NAME(Config)),
-    Ctx1 = eetcd_kv:with_key(Ctx0, "\0"),
-    Ctx2 = eetcd_kv:with_range_end(Ctx1, "\0"),
-    {ok, #{header := #{}}} = eetcd_kv:delete(Ctx2),
+    Req = #{key => "\0", range_end => "\0"},
+    {ok, #{header := #{}}} = eetcd_kv_gen:delete_range(?NAME(Config), Req),
     Config.
 
 end_per_testcase(_TestCase, _Config) ->
@@ -68,48 +66,38 @@ end_per_testcase(_TestCase, _Config) ->
 put(Config) ->
     [{Kv1, Vv1}, {Kv2, Vv2} | _] = get_kvs(Config),
     %% base
-    BasePut1 = eetcd_kv:new(?NAME(Config)),
-    BasePut2 = eetcd_kv:with_key(BasePut1, Kv1),
-    BasePut3 = eetcd_kv:with_value(BasePut2, Vv1),
-    {ok, #{header := #{}}} = eetcd_kv:put(BasePut3),
+    {ok, #{header := #{}}} = eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1}),
     %% pre_kv
     %% If prev_kv is set, etcd gets the previous key-value pair before changing it.
     %% The previous key-value pair will be returned in the put response.
-    BasePut4 = eetcd_kv:with_prev_kv(BasePut3),
-    {ok, #{header := #{}, prev_kv := #{key := Kv1, value := Vv1}}} = eetcd_kv:put(BasePut4),
+    {ok, #{header := #{}, prev_kv := #{key := Kv1, value := Vv1}}}
+        = eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1, prev_kv => true}),
+
     %% ignore_value
     %% If ignore_value is set, etcd updates the key using its current value.
     %% Returns an error if the key does not exist.
-    IgnoreV1 = eetcd_kv:new(?NAME(Config)),
-    IgnoreV2 = eetcd_kv:with_key(IgnoreV1, Kv2),
-    IgnoreV3 = eetcd_kv:with_value(IgnoreV2, Vv2),
-    IgnoreV4 = eetcd_kv:with_ignore_value(IgnoreV3),
-    {error, {grpc_error, #{'grpc-status' := 3}}} = eetcd_kv:put(IgnoreV4),
+    {error, {grpc_error, #{'grpc-status' := 3}}}
+        = eetcd_kv_gen:put(?NAME(Config), #{key => Kv2, value => Vv2, ignore_value => true}),
+
     %% ignore_lease
     %% If ignore_lease is set, etcd updates the key using its current lease.
     %% Returns an error if the key does not exist.
-    IgnoreL1 = eetcd_kv:new(?NAME(Config)),
-    IgnoreL2 = eetcd_kv:with_key(IgnoreL1, Kv1),
-    IgnoreL3 = eetcd_kv:with_value(IgnoreL2, Vv1),
-    IgnoreL4 = eetcd_kv:with_lease(IgnoreL3, 100),
-    IgnoreL5 = eetcd_kv:with_ignore_lease(IgnoreL4),
-    {error, {grpc_error, #{'grpc-status' := 3}}} = eetcd_kv:put(IgnoreL5),
+    {error, {grpc_error, #{'grpc-status' := 3}}}
+        = eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1,
+                                            lease => 100, ignore_lease => true}),
     ok.
 
 range(Config) ->
     [{Kv1, Vv1}, {Kv2, Vv2}, {Kv3, Vv3}, {Kv4, Vv4} | _] = get_kvs(Config),
-    Ctx = eetcd_kv:new(?NAME(Config)),
-    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv1),
-    Ctx2 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv2), Vv2),
-    Ctx3 = eetcd_kv:with_key(Ctx, Kv3),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx2),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv2, value => Vv2}),
     %% no key
-    {ok, #{header := #{}, more := false, count := 0, kvs := []}} = eetcd_kv:get(Ctx3),
+    {ok, #{header := #{}, more := false, count := 0, kvs := []}}
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv3}),
     %% one key
     {ok, #{
         header := #{}, more := false, count := 1, kvs := [#{key := Kv1, value := Vv1}]}}
-        = eetcd_kv:get(eetcd_kv:with_key(Ctx, Kv1)),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1}),
     %% prefix key
     %% range_end is the upper bound on the requested range [key, range_end).
     %% If range_end is '\0', the range is all keys >= key.
@@ -117,40 +105,39 @@ range(Config) ->
     %% then the range request gets all keys prefixed with key.
     %% If both key and range_end are '\0', then the range request returns all keys.
     {ok, #{header := #{}, more := false, count := 2, kvs := Kvs}}
-        = eetcd_kv:get(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3)),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1, range_end => Kv3}),
     [#{key := Kv1, value := Vv1}, #{key := Kv2, value := Vv2}] = lists:usort(Kvs),
 
     %% limit prefix key
     %% limit is a limit on the number of keys returned for the request.
     %% When limit is set to 0, it is treated as no limit.
-    CLimit1 = eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3),
+    % CLimit1 = eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3),
+    CLimit1 = #{key => Kv1, range_end => Kv3},
     CLimit2 = eetcd_kv:with_top(CLimit1, 'MOD', 'ASCEND'),
     {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1, mod_revision := Mod}]}}
-        = eetcd_kv:get(CLimit2),
+        = eetcd_kv_gen:range(?NAME(Config), CLimit2),
 
     {ok, #{header := #{}, more := false, count := 1, kvs := [#{key := Kv1}]}}
-        = eetcd_kv:get(eetcd_kv:with_min_mod_rev(CLimit2, Mod)),
+        = eetcd_kv_gen:range(?NAME(Config), CLimit2#{min_mod_revision => Mod}),
 
     %% revision is the point-in-time of the key-value store to use for the range.
     %% If revision is less or equal to zero, the range is over the newest key-value store.
     %% If the revision has been compacted, ErrCompacted is returned as a response.
-    PrevKv = eetcd_kv:with_prev_kv(eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv2)),
+    PrevKv = #{key => Kv1, value => Vv2, prev_kv => true},
     {ok, #{prev_kv := #{key := Kv1, value := Vv1, mod_revision := Revision}}} =
-        eetcd_kv:put(PrevKv),
+        eetcd_kv_gen:put(?NAME(Config), PrevKv),
 
-    WithRev = eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), Revision),
     {ok, #{more := false, count := 1, kvs := [#{key := Kv1, value := Vv1}]}}
-        = eetcd_kv:get(WithRev),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1, revision => Revision}),
 
-    WithRev0 = eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), 0),
     {ok, #{more := false, count := 1, kvs := [#{key := Kv1, value := Vv2}]}}
-        = eetcd_kv:get(WithRev0),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1, revision => 0}),
 
     %% sort_order is the order for returned sorted results.
     %% sort_target is the key-value field to use for sorting.
-    WithSort = eetcd_kv:with_sort(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, "\0"), "\0"), 'KEY', 'ASCEND'),
+    WithSort = eetcd_kv:with_sort(#{key => "\0", range_end => "\0"}, 'KEY', 'ASCEND'),
     {ok, #{more := false, count := 2, kvs := [#{key := Kv1, value := Vv2}, #{key := Kv2, value := Vv2}]}}
-        = eetcd_kv:get(WithSort),
+        = eetcd_kv_gen:range(?NAME(Config), WithSort),
 
     %% serializable sets the range request to use serializable member-local reads.
     %% Range requests are linearizable by default;
@@ -158,17 +145,15 @@ range(Config) ->
     %% but reflect the current consensus of the cluster.
     %% For better performance, in exchange for possible stale reads, a serializable range request is served locally
     %% without needing to reach consensus with other nodes in the cluster.
-    WithSerializable = eetcd_kv:with_serializable(WithSort),
     {ok, #{more := false, count := 2, kvs := [#{key := Kv1, value := Vv2}, #{key := Kv2, value := Vv2}]}}
-        = eetcd_kv:get(WithSerializable),
-    WithKeyOnly = eetcd_kv:with_keys_only(WithSort),
+        = eetcd_kv_gen:range(?NAME(Config), WithSort#{serializable => true}),
     %% keys_only when set returns only the keys and not the values.
     {ok, #{more := false, count := 2, kvs := [#{key := Kv1, value := <<>>}, #{key := Kv2, value := <<>>}]}}
-        = eetcd_kv:get(WithKeyOnly),
+        = eetcd_kv_gen:range(?NAME(Config), WithSort#{keys_only => true}),
 
     %% count_only when set returns only the count of the keys in the range.
-    WithCountOnly = eetcd_kv:with_count_only(WithSort),
-    {ok, #{more := false, count := 2, kvs := []}} = eetcd_kv:get(WithCountOnly),
+    {ok, #{more := false, count := 2, kvs := []}}
+        = eetcd_kv_gen:range(?NAME(Config), WithSort#{count_only => true}),
 
     %% min_mod_revision is the lower bound for returned key mod revisions;
     %% all keys with lesser mod revisions will be filtered away.
@@ -178,41 +163,38 @@ range(Config) ->
     %% all keys with lesser create revisions will be filtered away.
     %% max_create_revision is the upper bound for returned key create revisions;
     %% all keys with greater create revisions will be filtered away.
-    Ctx31 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv3), Vv3),
-    Ctx41 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv4), Vv4),
-    eetcd_kv:put(Ctx31),
-    eetcd_kv:put(Ctx41),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv3, value => Vv3}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv4, value => Vv4}),
 
-    All = eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, "\0"), "\0"),
+    All = #{key => "\0", range_end => "\0"},
     WithSortCreate = eetcd_kv:with_sort(All, 'CREATE', 'ASCEND'),
     {ok, #{kvs := [_, #{create_revision := K2}, #{create_revision := K3}, _]}}
-        = eetcd_kv:get(WithSortCreate),
+        = eetcd_kv_gen:range(?NAME(Config), WithSortCreate),
 
     WithSortMod = eetcd_kv:with_sort(All, 'MOD', 'ASCEND'),
-    {ok, #{kvs := [_, #{mod_revision := K22}, #{mod_revision := K33}, _]}} = eetcd_kv:get(WithSortMod),
+    {ok, #{kvs := [_, #{mod_revision := K22}, #{mod_revision := K33}, _]}}
+        = eetcd_kv_gen:range(?NAME(Config), WithSortMod),
 
     {ok, #{count := 4, kvs := [#{create_revision := K2}, #{create_revision := K3}]}}
-        = eetcd_kv:get(eetcd_kv:with_min_create_rev(eetcd_kv:with_max_create_rev(All, K3), K2)),
+        = eetcd_kv_gen:range(?NAME(Config), All#{max_create_revision => K3,
+                                                 min_create_revision => K2}),
     {ok, #{count := 4, kvs := [#{mod_revision := K22}, #{mod_revision := K33}]}}
-        = eetcd_kv:get(eetcd_kv:with_min_mod_rev(eetcd_kv:with_max_mod_rev(All, K33), K22)),
+        = eetcd_kv_gen:range(?NAME(Config), All#{max_mod_revision => K33,
+                                                 min_mod_revision => K22}),
     ok.
 
 delete_range(Config) ->
     [{Kv1, Vv1}, {Kv2, Vv2}, {Kv3, _Vv3} | _] = get_kvs(Config),
-    Ctx = eetcd_kv:new(?NAME(Config)),
-    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv1),
-    Ctx2 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv2), Vv2),
-    Ctx3 = eetcd_kv:with_key(Ctx, Kv3),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx2),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv2, value => Vv2}),
     %% no key
-    {ok, #{deleted := 0, prev_kvs := []}} = eetcd_kv:delete(Ctx3),
+    {ok, #{deleted := 0, prev_kvs := []}} = eetcd_kv_gen:delete_range(?NAME(Config), #{key => Kv3}),
 
     %% one key
     %% If prev_kv is set, etcd gets the previous key-value pairs before deleting it.
     %% The previous key-value pairs will be returned in the delete response.
     {ok, #{deleted := 1, prev_kvs := [#{key := Kv1, value := Vv1}]}}
-        = eetcd_kv:delete(eetcd_kv:with_prev_kv(eetcd_kv:with_key(Ctx, Kv1))),
+        = eetcd_kv_gen:delete_range(?NAME(Config), #{key => Kv1, prev_kv => true}),
 
     %% prefix key with prev_kvs
     %% range_end is the key following the last key to delete for the range [key, range_end).
@@ -220,23 +202,21 @@ delete_range(Config) ->
     %% If range_end is one bit larger than the given key,
     %% then the range is all the keys with the prefix (the given key).
     %% If range_end is '\0', the range is all keys greater than or equal to the key argument.
-    eetcd_kv:put(Ctx1),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1}),
 
-    DeleteRange = eetcd_kv:with_prev_kv(eetcd_kv:with_range_end(eetcd_kv:with_key(Ctx, Kv1), Kv3)),
-    {ok, #{deleted := 2, prev_kvs := Kvs}} = eetcd_kv:delete(DeleteRange),
+    {ok, #{deleted := 2, prev_kvs := Kvs}}
+        = eetcd_kv_gen:delete_range(?NAME(Config), #{key => Kv1,
+                                                     range_end => Kv3,
+                                                     prev_kv => true}),
     [Vv1] = [begin V end|| #{key := K, value := V} <- Kvs, K =:= Kv1],
     [Vv2] = [begin V end|| #{key := K, value := V} <- Kvs, K =:= Kv2],
     ok.
 
 txn(Config) ->
     [{Kv1, Vv1}, {Kv2, Vv2}, {Kv3, Vv3}, {Kv4, Vv4} | _] = get_kvs(Config),
-    Ctx = eetcd_kv:new(?NAME(Config)),
-    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv1),
-    Ctx2 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv2), Vv2),
-    Ctx3 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv3), Vv3),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx2),
-    eetcd_kv:put(Ctx3),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv1, value => Vv1}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv2, value => Vv2}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv3, value => Vv3}),
     %% From google paxosdb paper: Our implementation hinges around a powerful primitive which we call MultiOp.
     %% All other database operations except for iteration are implemented as a single call to MultiOp.
     %% A MultiOp is applied atomically and consists of three components: 1. A list of tests called guard.
@@ -254,12 +234,8 @@ txn(Config) ->
     %% responses is a list of responses corresponding to the results from applying success if succeeded is true or failure if succeeded is false.
     Cmp = eetcd_compare:with_range_end(eetcd_compare:new(Kv1), Kv3),
     If = eetcd_compare:value(Cmp, "!=", "1"),
-    Then = eetcd_op:put(
-        eetcd_kv:with_prev_kv(
-            eetcd_kv:with_value(
-                eetcd_kv:with_key(
-                    eetcd_kv:new(), Kv4), Vv4))),
-    Else = eetcd_op:get(eetcd_kv:with_key(eetcd_kv:new(), Kv4)),
+    Then = eetcd_op:put(#{key => Kv4, value => Vv4, prev_kv => true}),
+    Else = eetcd_op:get(#{key => Kv4}),
     {ok, #{
         succeeded := true,
         responses := [#{response := {response_put, #{}}
@@ -268,37 +244,25 @@ txn(Config) ->
 
     Cmp1 = eetcd_compare:with_range_end(eetcd_compare:new(Kv1), Kv3),
     If1 = eetcd_compare:value(Cmp1, "=", "1"),
-    Then1 = eetcd_op:put(
-        eetcd_kv:with_prev_kv(
-            eetcd_kv:with_value(
-                eetcd_kv:with_key(
-                    eetcd_kv:new(), Kv4), Vv4))),
-    Else1 = eetcd_op:get(eetcd_kv:with_key(eetcd_kv:new(), Kv4)),
+    Then1 = eetcd_op:put(#{key => Kv4, value => Vv4, prev_kv => true}),
+    Else1 = eetcd_op:get(#{key => Kv4}),
     {ok, #{
         succeeded := false,
         responses := [#{response := {response_range, #{kvs := [#{key := Kv4, value := Vv4}]}}}]}}
         = eetcd_kv:txn(?NAME(Config), If1, Then1, Else1),
     %% implement etcd v2 CompareAndSwap by Txn
     {ok, #{kvs := [#{key := Kv1, value := Vv1, mod_revision := ModRevision}]}}
-        = eetcd_kv:get(eetcd_kv:with_key(Ctx, Kv1)),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1}),
 
     Cmp2 = eetcd_compare:new(Kv1),
     If2 = eetcd_compare:mod_revision(Cmp2, "=", ModRevision - 1),
-    Then2 = eetcd_op:put(
-        eetcd_kv:with_prev_kv(
-            eetcd_kv:with_value(
-                eetcd_kv:with_key(
-                    eetcd_kv:new(), Kv1), Vv4))),
+    Then2 = eetcd_op:put(#{key => Kv1, value => Vv4, prev_kv => true}),
 
     {ok, #{succeeded := false, responses := []}} = eetcd_kv:txn(?NAME(Config), If2, Then2, []),
 
     Cmp3 = eetcd_compare:new(Kv1),
     If3 = eetcd_compare:mod_revision(Cmp3, "=", ModRevision),
-    Then3 = eetcd_op:put(
-        eetcd_kv:with_prev_kv(
-            eetcd_kv:with_value(
-                eetcd_kv:with_key(
-                    eetcd_kv:new(), Kv1), Vv4))),
+    Then3 = eetcd_op:put(#{key => Kv1, value => Vv4, prev_kv => true}),
     {ok, #{succeeded := true, responses := [#{response := {response_put, #{prev_kv := #{key := Kv1, value := Vv1}}}}]}}
     = eetcd_kv:txn(?NAME(Config), If3, Then3, []),
     ok.
@@ -307,42 +271,35 @@ compact(Config) ->
     %% Compact compacts the event history in the etcd key-value store.
     %% The key-value store should be periodically compacted or the event history will continue to grow indefinitely.
     [{Kv1, Vv1}, {Kv2, Vv2}, {Kv3, Vv3}, {Kv4, Vv4} | _] = get_kvs(Config),
-    Ctx = eetcd_kv:new(?NAME(Config)),
-    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv1), Vv1),
-    Ctx2 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv2), Vv2),
-    Ctx3 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv3), Vv3),
-    Ctx4 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Kv4), Vv4),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx1),
-    eetcd_kv:put(Ctx2),
-    eetcd_kv:put(Ctx2),
-    eetcd_kv:put(Ctx3),
-    eetcd_kv:put(Ctx4),
+    eetcd_kv_gen:put(?NAME(Config), Req1 = #{key => Kv1, value => Vv1}),
+    eetcd_kv_gen:put(?NAME(Config), Req1),
+    eetcd_kv_gen:put(?NAME(Config), Req1),
+    eetcd_kv_gen:put(?NAME(Config), Req1),
+    eetcd_kv_gen:put(?NAME(Config), Req2 = #{key => Kv2, value => Vv2}),
+    eetcd_kv_gen:put(?NAME(Config), Req2),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv3, value => Vv3}),
+    eetcd_kv_gen:put(?NAME(Config), #{key => Kv4, value => Vv4}),
     %% revision is the key-value store revision for the compaction operation.
     %% physical is set so the RPC will wait until the compaction is physically applied to the local database such that
     %% compacted entries are totally removed from the backend database.
-    {ok, #{kvs := [#{mod_revision := Revision}]}} = eetcd_kv:get(eetcd_kv:with_key(Ctx, Kv2)),
-    CompactReq = eetcd_kv:with_physical(eetcd_kv:with_rev(Ctx, Revision)),
-    eetcd_kv:compact(CompactReq),
+    {ok, #{kvs := [#{mod_revision := Revision}]}} = eetcd_kv_gen:range(?NAME(Config), #{key => Kv2}),
+    eetcd_kv_gen:compact(?NAME(Config), #{revision => Revision, physical => true}),
     {error, {grpc_error,
         #{'grpc-status' := 11, 'grpc-message' := <<"etcdserver: mvcc: required revision has been compacted">>}}}
-        = eetcd_kv:get(eetcd_kv:with_rev(eetcd_kv:with_key(Ctx, Kv1), Revision - 1)),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Kv1, revision => Revision - 1}),
     ok.
 
 prefix(Config) ->
     KVs = get_kvs(Config),
     %% seed all keys
     lists:foreach(fun({Key, Val}) ->
-                    Ctx = eetcd_kv:new(?NAME(Config)),
-                    Ctx1 = eetcd_kv:with_value(eetcd_kv:with_key(Ctx, Key), Val),
-                    eetcd_kv:put(Ctx1)
+                    eetcd_kv_gen:put(?NAME(Config), #{key => Key, value => Val})
                   end, KVs),
     %% find keys prefixed with an "a"
-    Ctx1 = eetcd_kv:new(?NAME(Config)),
+    Key1 = ?KEY("a"),
     {ok, #{header := #{}, more := false, count := 4, kvs := Results1}}
-        = eetcd_kv:get(eetcd_kv:with_prefix(eetcd_kv:with_key(Ctx1, ?KEY("a")))),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Key1,
+                                              range_end => eetcd:get_prefix_range_end(Key1)}),
 
     %% we expect results a1 through a4 but not v2 or z3
     ?assert(includes_key(?KEY("a1"), Results1)),
@@ -355,8 +312,10 @@ prefix(Config) ->
     ?assertNot(includes_key(?KEY("v2"), Results1)),
     ?assertNot(includes_key(?KEY("z3"), Results1)),
 
+    Key2 = ?KEY("z"),
     {ok, #{header := #{}, more := false, count := 3, kvs := Results2}}
-        = eetcd_kv:get(eetcd_kv:with_prefix(eetcd_kv:with_key(Ctx1, ?KEY("z")))),
+        = eetcd_kv_gen:range(?NAME(Config), #{key => Key2,
+                                              range_end => eetcd:get_prefix_range_end(Key2)}),
 
     ?assertNot(includes_key(?KEY("a1"), Results2)),
     ?assertNot(includes_key(?KEY("a2"), Results2)),

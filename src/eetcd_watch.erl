@@ -111,7 +111,7 @@ with_key(Request, Key) ->
 with_prefix(#{key := Key} = Request) ->
     with_range_end(Request, eetcd:get_prefix_range_end(Key)).
 
-%%  @doc Specifies the range of `get', `delete' requests
+%% @doc Specifies the range of `get', `delete' requests
 %% to be equal or greater than the key in the argument.
 -spec with_from_key(watch_request()) -> watch_request().
 with_from_key(Request) ->

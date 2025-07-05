@@ -19,6 +19,7 @@ See [the full v3 API documentation](https://etcd.io/docs/) for more:
 5. Maintenance -- User, Role, Authentication, Cluster, Alarms;
 6. Lock;
 7. Election.
+8. `grpc.health.v1.Health`.
 
 Quick Start
 -----
@@ -60,27 +61,22 @@ stop(_State) ->
           #{cluster_id := 11360555963653019356,
             member_id := 13803658152347727308,raft_term := 5,
             revision := 6}}}
-    = eetcd_kv:put(?NAME, <<"key">>, <<"value">>).
+    = eetcd_kv_gen:put(?NAME, #{key => <<"key">>, value => <<"value">>}).
 
 %% updates
-Ctx = eetcd_kv:new(?NAME),
-CtxExist = eetcd_kv:with_key(Ctx, <<"KeyExist">>),
-Ctx2 = eetcd_kv:with_value(CtxExist, <<"NewValue">>),
-Ctx3 = eetcd_kv:with_ignore_value(Ctx2),
+Request1 = #{key => <<"KeyExist">>, value => <<"NewValue">>, ignore_vale => true},
 {ok,#{header :=
           #{cluster_id := 11360555963653019356,
             member_id := 16409577466894847729,raft_term := 5,
             revision := 7}}}
-     = eetcd_kv:put(Ctx3).
+     = eetcd_kv_gen:put(?NAME, Request1}).
 
-CtxNoExist = eetcd_kv:with_key(Ctx, <<"KeyNoExist">>),
-Ctx5 = eetcd_kv:with_value(CtxNoExist, <<"NewValue">>),
-Ctx6 = eetcd_kv:with_ignore_value(Ctx5),
+Request2 = #{key => <<"KeyNoExist">>, value => <<"NewValue">>, ignore_vale => true},
 
 {error,{grpc_error,#{'grpc-message' :=
                          <<"etcdserver: value is provided">>,
                      'grpc-status' := 3}}}
-    = eetcd_kv:put(Ctx6).
+    = eetcd_kv:put(?NAME, Request2).
 
 %% fetches
 {ok,#{count := 1,
@@ -94,10 +90,7 @@ Ctx6 = eetcd_kv:with_ignore_value(Ctx5),
       more := false}}
             = eetcd_kv:get(?NAME, <<"KeyExist">>).
 %% fetches all keys
-Ctx = eetcd_kv:new(?Name),
-Ctx1 = eetcd_kv:with_key(Ctx, "\0"),
-Ctx2 = eetcd_kv:with_range_end(Ctx1, "\0"),
-Ctx3 = eetcd_kv:with_sort(Ctx2, 'KEY', 'ASCEND'),
+Request3 = eetcd_kv:with_sort(#{key => "\0", range_end => "\0"}, 'KEY', 'ASCEND'),
 {ok,#{count := 2,
       header :=
           #{cluster_id := 11360555963653019356,
@@ -108,7 +101,7 @@ Ctx3 = eetcd_kv:with_sort(Ctx2, 'KEY', 'ASCEND'),
              mod_revision := 7,value := <<"NewValue">>,version := 1}
            %% ....
           ], more := false}}
-    = eetcd_kv:get(Ctx3).
+    = eetcd_kv_gen:range(?NAME, Request3).
 
 %% deletes
 {ok,#{deleted := 1,
@@ -117,18 +110,18 @@ Ctx3 = eetcd_kv:with_sort(Ctx2, 'KEY', 'ASCEND'),
             member_id := 11020526813496739906,raft_term := 5,
             revision := 7},
       prev_kvs := []}}
-   = eetcd_kv:delete(?NAME, "KeyExist").
+   = eetcd_kv_gen:delete_range(?NAME, #{key => "KeyExist"}).
+
 %% batch deletes
-Ctx = eetcd_kv:new(register),
-Ctx1 = eetcd_kv:with_key(Ctx, "K"),
-Ctx2 = eetcd_kv:with_prefix(Ctx1),
+%% With prefix
+Request4 = #{key => "K", range_end => eetcd:get_prefix_range_end("K")},
 {ok,#{deleted := 100,
       header :=
           #{cluster_id := 11360555963653019356,
             member_id := 13803658152347727308,raft_term := 5,
             revision := 9},
       prev_kvs := []}}
-   = eetcd_kv:delete(Ctx2).
+   = eetcd_kv_gen:delete_range(?NAME, Request4).
 
 ```
 
@@ -145,7 +138,7 @@ Ctx2 = eetcd_kv:with_prefix(Ctx1),
 
 Cmp = eetcd_compare:new(Kv1),
 If = eetcd_compare:mod_revision(Cmp, "=", ModRev),
-Then = eetcd_op:put(eetcd_kv:with_value(eetcd_kv:with_key(eetcd_kv:new(), Key), <<"Change", Value/binary>>)),
+Then = eetcd_op:put(#{key => Key, value => <<"Change", Value/binary>>}),
 Else = [],
 eetcd_kv:txn(EtcdConnName, If, Then, Else).
 
@@ -153,7 +146,7 @@ eetcd_kv:txn(EtcdConnName, If, Then, Else).
 
 ##### Lease - Primitives for consuming client keep-alive messages.
 ```erlang
- 1> eetcd_lease:grant(Name, TTL),
+ 1> eetcd_lease_gen:lease_grant(Name, TTL),
 {ok,#{'ID' => 1076765125482045706,'TTL' => 100,error => <<>>,
       header =>
           #{cluster_id => 11360555963653019356,
@@ -162,7 +155,7 @@ eetcd_kv:txn(EtcdConnName, If, Then, Else).
 2> eetcd_lease:keep_alive(Name, 1076765125482045706).
 {ok,<0.456.0>}
 
-3> eetcd_lease:leases(Name).
+3> eetcd_lease_gen:lease_leases(Name, #{}).
 {ok,#{header =>
           #{cluster_id => 11360555963653019356,
             member_id => 11020526813496739906,raft_term => 5,
@@ -196,11 +189,9 @@ init([]) ->
     {ok, Conn}.
 
 get_exist_services() ->
-    Ctx = eetcd_kv:new(?NAME),
-    Ctx1 = eetcd_kv:with_key(Ctx, <<"heartbeat:">>),
-    Ctx2 = eetcd_kv:with_prefix(Ctx1),
-    Ctx3 = eetcd_kv:with_keys_only(Ctx2),
-    {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv:get(Ctx3),
+    Key = <<"heartbeat:">>,
+    Request = #{key => Key, range_end => eetcd:get_prefix_range_end(Key), keys_only => true},
+    {ok, #{header := #{revision := Revision}, kvs := Services}} = eetcd_kv_gen:range(?NAME, Request),
     Services1 =
         [begin
              [_, Type, IP, Port] = binary:split(Key, [<<"|">>], [global]),
@@ -209,10 +200,10 @@ get_exist_services() ->
     {ok, Services1, Revision}.
 
 watch_services_event(Revision) ->
-    ReqInit = eetcd_watch:new(),
-    ReqKey = eetcd_watch:with_key(ReqInit, <<"heartbeat:">>),
-    ReqPrefix = eetcd_watch:with_prefix(ReqKey),
-    Req = eetcd_watch:with_start_revision(ReqPrefix, Revision + 1),
+    Key = <<"heartbeat:">>,
+    Req = #{key => Key,
+            range_end => eetcd:get_prefix_range_end(Key),
+            start_revision => Revision + 1},
     eetcd_watch:watch(?NAME, Req).
 
 handle_info(Msg, Conn) ->
@@ -287,6 +278,7 @@ rebar3 ct
 Gen proto and client file
 -----
 ```erlang
+rebar3 protobuf compile
 rebar3 etcd gen
 ```
 

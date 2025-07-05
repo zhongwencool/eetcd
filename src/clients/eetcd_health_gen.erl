@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-07-04T09:57:14+00:00 and should not be modified manually
+%% This module was generated on 2025-07-05T16:57:53+00:00 and should not be modified manually
 
 -module(eetcd_health_gen).
 

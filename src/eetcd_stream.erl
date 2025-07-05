@@ -2,10 +2,8 @@
 -module(eetcd_stream).
 
 %% API
--export([unary/7, unary/9]).
--export([new/4, new/6]).
--export([data/6]).
--export([await/4]).
+-export([unary/7, bidi_streaming/4, server_streaming/6]).
+-export([data/6, await/4]).
 
 -include("eetcd.hrl").
 
@@ -13,7 +11,7 @@
 
 -type conn() :: {GunPid :: pid(), Headers :: gun:req_headers()}.
 
--spec new(Client, Path, PbModule, Opts) -> Result when
+-spec bidi_streaming(Client, Path, PbModule, Opts) -> Result when
     Result :: {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()},
     Client :: eetcd:client(),
     Path :: iodata(),
@@ -21,19 +19,19 @@
     Opts :: eetcd:request_opts(),
     GunPid :: pid(),
     Http2Ref :: eetcd:stream_ref().
-new(EtcdName, Path, PbModule, _Opts) when is_atom(EtcdName) ->
+bidi_streaming(EtcdName, Path, PbModule, _Opts) when is_atom(EtcdName) ->
     case eetcd_conn:round_robin_select(EtcdName) of
         {ok, GunPid, Headers} ->
-            new({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts);
+            bidi_streaming({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts);
         Err -> Err
     end;
-new({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts) when is_atom(EtcdName) ->
+bidi_streaming({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts) when is_atom(EtcdName) ->
     Ref = gun:headers(GunPid, <<"POST">>, Path, Headers),
     {ok, GunPid, Ref, PbModule}.
 
--spec new(EtcdName, EtcdMsg, EtcdMsgName, Http2Path, PbModule, Opts) -> Result when
+-spec server_streaming(Client, EtcdMsg, EtcdMsgName, Http2Path, PbModule, Opts) -> Result when
     Result :: {ok, GunPid, Http2Ref, PbModule} | {error, eetcd:eetcd_error()},
-    EtcdName :: etcd_name(),
+    Client :: eetcd:client(),
     EtcdMsg :: map(),
     EtcdMsgName :: atom(),
     Http2Path :: iodata(),
@@ -41,8 +39,8 @@ new({EtcdName, {GunPid, Headers}}, Path, PbModule, _Opts) when is_atom(EtcdName)
     Opts :: eetcd:request_opts(),
     GunPid :: pid(),
     Http2Ref :: eetcd:stream_ref().
-new(EtcdName, Msg, MsgName, Path, PbModule, Opts) ->
-    case new(EtcdName, Path, PbModule, Opts) of
+server_streaming(EtcdName, Msg, MsgName, Path, PbModule, Opts) ->
+    case bidi_streaming(EtcdName, Path, PbModule, Opts) of
         {ok, Pid, Ref, _} ->
             data(Pid, Ref, Msg, MsgName, nofin, PbModule),
             {ok, Pid, Ref, PbModule};

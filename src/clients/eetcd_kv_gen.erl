@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-07-04T09:57:21+00:00 and should not be modified manually
+%% This module was generated on 2025-07-05T16:58:01+00:00 and should not be modified manually
 
 -module(eetcd_kv_gen).
 

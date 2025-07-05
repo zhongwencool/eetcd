@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-07-04T09:57:21+00:00 and should not be modified manually
+%% This module was generated on 2025-07-05T16:58:01+00:00 and should not be modified manually
 
 -module(eetcd_lease_gen).
 
@@ -39,17 +39,17 @@ lease_revoke(Client, Request) ->
 lease_revoke(Client, Request, Opts) ->
     eetcd_stream:unary(Client, Request, 'Etcd.LeaseRevokeRequest', <<"/etcdserverpb.Lease/LeaseRevoke">>, 'Etcd.LeaseRevokeResponse', router_pb, Opts).
 
-%% @doc Stream RPC for service at path `/etcdserverpb.Lease/LeaseKeepAlive'
+%% @doc Bidirectional streaming RPC for service at path `/etcdserverpb.Lease/LeaseKeepAlive'
 -spec lease_keep_alive(Client :: eetcd:client()) ->
     {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 lease_keep_alive(Client) ->
     lease_keep_alive(Client, []).
 
-%% @doc Stream RPC for service at path `/etcdserverpb.Lease/LeaseKeepAlive'
+%% @doc Bidirectional streaming RPC for service at path `/etcdserverpb.Lease/LeaseKeepAlive'
 -spec lease_keep_alive(Client :: eetcd:client(), Opts :: eetcd:request_opts()) ->
     {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 lease_keep_alive(Client, Opts) ->
-    eetcd_stream:new(Client, <<"/etcdserverpb.Lease/LeaseKeepAlive">>, router_pb, Opts).
+    eetcd_stream:bidi_streaming(Client, <<"/etcdserverpb.Lease/LeaseKeepAlive">>, router_pb, Opts).
 
 %% @doc Unary RPC for service at path `/etcdserverpb.Lease/LeaseTimeToLive'
 -spec lease_time_to_live(Client :: eetcd:client(), Request :: router_pb:'Etcd.LeaseTimeToLiveRequest'()) ->

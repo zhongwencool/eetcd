@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-07-04T09:57:21+00:00 and should not be modified manually
+%% This module was generated on 2025-07-05T16:58:01+00:00 and should not be modified manually
 
 -module(eetcd_maintenance_gen).
 
@@ -77,17 +77,17 @@ hash_kv(Client, Request) ->
 hash_kv(Client, Request, Opts) ->
     eetcd_stream:unary(Client, Request, 'Etcd.HashKVRequest', <<"/etcdserverpb.Maintenance/HashKV">>, 'Etcd.HashKVResponse', router_pb, Opts).
 
-%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
+%% @doc Server streaming RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
 -spec snapshot(Client :: eetcd:client(), Request :: router_pb:'Etcd.SnapshotRequest'()) ->
-    {ok, router_pb:'Etcd.SnapshotResponse'()} | {error, eetcd:eetcd_error()}.
+    {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 snapshot(Client, Request) ->
     snapshot(Client, Request, []).
 
-%% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
+%% @doc Server streaming RPC for service at path `/etcdserverpb.Maintenance/Snapshot'
 -spec snapshot(Client :: eetcd:client(), Request :: router_pb:'Etcd.SnapshotRequest'(), Opts :: eetcd:request_opts()) ->
-    {ok, router_pb:'Etcd.SnapshotResponse'()} | {error, eetcd:eetcd_error()}.
+    {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 snapshot(Client, Request, Opts) ->
-    eetcd_stream:unary(Client, Request, 'Etcd.SnapshotRequest', <<"/etcdserverpb.Maintenance/Snapshot">>, 'Etcd.SnapshotResponse', router_pb, Opts).
+    eetcd_stream:server_streaming(Client, Request, 'Etcd.SnapshotRequest', <<"/etcdserverpb.Maintenance/Snapshot">>, router_pb, Opts).
 
 %% @doc Unary RPC for service at path `/etcdserverpb.Maintenance/MoveLeader'
 -spec move_leader(Client :: eetcd:client(), Request :: router_pb:'Etcd.MoveLeaderRequest'()) ->

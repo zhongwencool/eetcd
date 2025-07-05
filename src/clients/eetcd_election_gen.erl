@@ -5,7 +5,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
-%% This module was generated on 2025-07-04T09:57:21+00:00 and should not be modified manually
+%% This module was generated on 2025-07-05T16:58:01+00:00 and should not be modified manually
 
 -module(eetcd_election_gen).
 
@@ -51,17 +51,17 @@ leader(Client, Request) ->
 leader(Client, Request, Opts) ->
     eetcd_stream:unary(Client, Request, 'Etcd.LeaderRequest', <<"/v3electionpb.Election/Leader">>, 'Etcd.LeaderResponse', router_pb, Opts).
 
-%% @doc Stream RPC for service at path `/v3electionpb.Election/Observe'
+%% @doc Bidirectional streaming RPC for service at path `/v3electionpb.Election/Observe'
 -spec observe(Client :: eetcd:client()) ->
     {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 observe(Client) ->
     observe(Client, []).
 
-%% @doc Stream RPC for service at path `/v3electionpb.Election/Observe'
+%% @doc Bidirectional streaming RPC for service at path `/v3electionpb.Election/Observe'
 -spec observe(Client :: eetcd:client(), Opts :: eetcd:request_opts()) ->
     {ok, GunPid :: pid(), Http2Ref:: eetcd:stream_ref(), PbModule :: module()} | {error, eetcd:eetcd_error()}.
 observe(Client, Opts) ->
-    eetcd_stream:new(Client, <<"/v3electionpb.Election/Observe">>, router_pb, Opts).
+    eetcd_stream:bidi_streaming(Client, <<"/v3electionpb.Election/Observe">>, router_pb, Opts).
 
 %% @doc Unary RPC for service at path `/v3electionpb.Election/Resign'
 -spec resign(Client :: eetcd:client(), Request :: router_pb:'Etcd.ResignRequest'()) ->

@@ -13,6 +13,7 @@
     update_member_list/2,
     member_id_hex/1
 ]).
+-export([info/1]).
 
 -export([
     init/1,
@@ -107,6 +108,10 @@ refresh_token(EtcdName, Headers) ->
             Headers
     end.
 
+%% @private
+info(ServerRef) ->
+    gen_server:call(ServerRef, info).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -164,10 +169,12 @@ init({EtcdName, Hosts, Options}) ->
         end
     catch
         error:Reason0 ->
-            ?LOG_ERROR("~p failed to connect etcd endpoints: ~p ~p",
-                       [EtcdName, Hosts, Reason0]),
+            ?LOG_ERROR("~p failed to connect etcd endpoints: ~p ~p", [EtcdName, Hosts, Reason0]),
             {stop, Reason0}
     end.
+
+handle_call(info, _From, State) ->
+    {reply, maps:with([name, members, active_conns, opening_conns], State), State};
 
 handle_call(round_robin_select, _From, #{active_conns := []} = State) ->
     {reply, {error, eetcd_conn_unavailable}, State};
@@ -631,11 +638,10 @@ member_list(EtcdName, GunPid) ->
     Opts = [{reply_timeout, 10000}],
     case eetcd_cluster_gen:member_list(Conn, #{}, Opts) of
         {ok, #{members := Members0}} when is_list(Members0) ->
-            Members = lists:filter(
-                        fun(M) when is_map(M) ->
-                                IsLearner = maps:get(isLearner, M, false),
-                                IsLearner =/= true orelse IsLearner =/= 1
-                        end, Members0),
+            {Members, _} = lists:partition(fun(#{isLearner := 1}) -> false;
+                                              (#{isLearner := true}) -> false;
+                                              (_) -> true
+                                           end, Members0),
             {ok, parse_members(Members)};
         {error, _Reason} = Err -> Err
     end.

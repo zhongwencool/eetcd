@@ -24,18 +24,21 @@ stop_child(Name) ->
     end.
 
 info() ->
-    lists:foldl(
-        fun({_, Pid, _, _}, Acc) when is_pid(Pid), is_list(Acc) ->
-            #{name := Name, members := Members} = State = sys:get_state(Pid),
-            #{active_conns := Actives, opening_conns := Openings} = State,
-            Freezes0 = maps:without([Id || {Id, _GunPid, _MRef} <- Actives ++ Openings], Members),
-            Freezes = [{Id, Host, Port, 0} || {Id, {Host, Port, _Transport}} <- maps:to_list(Freezes0)],
-            [{Name, #{etcd => Pid,
-                      active_conns => Actives,
-                      opening_conns => Openings,
-                      freeze_conns => Freezes,
-                      members => Members}} | Acc]
-        end, [], supervisor:which_children(?MODULE)).
+    Children = supervisor:which_children(?MODULE),
+    {Children1, _NotRunnings} = lists:partition(fun({_, Pid, _, _}) -> is_pid(Pid) end, Children),
+    [child_info(Pid) || {_, Pid, _, _} <- Children1].
+
+child_info(Pid) ->
+    #{name := Name, members := Members, active_conns := Actives, opening_conns := Openings}
+        = eetcd_conn:info(Pid),
+    Freezes0 = maps:without([Id || {Id, _GunPid, _MRef} <- Actives ++ Openings], Members),
+    %% elp:ignore W0034
+    Freezes = [{Id, Host, Port, 0} || {Id, {Host, Port, _Transport}} <- maps:to_list(Freezes0)],
+    {Name, #{etcd => Pid,
+             active_conns => Actives,
+             opening_conns => Openings,
+             freeze_conns => Freezes,
+             members => Members}}.
 
 init([]) ->
     ets:new(?ETCD_CLIENT_CACHE, [named_table, public,

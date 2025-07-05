@@ -5,7 +5,7 @@
 -include("eetcd.hrl").
 
 %% API
--export([start_link/0, start_child/2, info/0]).
+-export([start_link/0, start_child/2, close/0, info/0]).
 -export([init/1]).
 
 start_link() ->
@@ -14,10 +14,20 @@ start_link() ->
 start_child(Name, LeaseID) ->
     supervisor:start_child(?MODULE, [self(), Name, LeaseID]).
 
+%% @doc Close releases all resources Lease keeps for efficient communication with the etcd server.
+%% Return the count of all close processes.
+%% If you want to revokes the given lease, please use `eetcd_lease_gen:lease_revoke/2'.
+close() ->
+    lists:foreach(fun({_, Pid, _, _}) ->
+                      supervisor:terminate_child(?MODULE, Pid)
+                  end,
+                  supervisor:which_children(?MODULE)),
+    ok.
+
 info() ->
-    lists:foldl(fun({_, Pid, _, _}, Acc) ->
-        #{gun := Gun} = sys:get_state(Pid),
-        maps:update_with(Gun, fun(C) -> C + 1 end, 1, Acc)
+    lists:foldl(fun({_, Pid, _, _}, #{} = Acc) ->
+                    Gun = eetcd_lease:gun_pid(Pid),
+                    maps:update_with(Gun, fun(C) -> C + 1 end, 1, Acc)
                 end, #{}, supervisor:which_children(?MODULE)).
 
 init([]) ->

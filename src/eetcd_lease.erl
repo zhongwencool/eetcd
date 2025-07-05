@@ -4,7 +4,7 @@
 
 -export([time_to_live/3]).
 -export([keep_alive/2, keep_alive_once/2]).
--export([close/0]).
+-export([gun_pid/1]).
 
 -export([start_link/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -57,17 +57,9 @@ keep_alive_once(EtcdName, LeaseID) when is_atom(EtcdName) ->
         Err -> Err
     end.
 
-%% @doc Close releases all resources Lease keeps for efficient communication with the etcd server.
-%% Return the count of all close processes.
-%% If you want to revokes the given lease, please use `revoke/2'.
--spec close() -> pos_integer().
-close() ->
-    lists:foldl(
-        fun({_Id, Pid, _Type, _Modules}, Acc) ->
-            gen_server:cast(Pid, close),
-            Acc + 1
-        end, 0,
-        supervisor:which_children(eetcd_lease_sup)).
+%% @private
+gun_pid(LeaseKeepalivePid) ->
+    gen_server:call(LeaseKeepalivePid, gun_pid).
 
 -spec start_link(pid(), etcd_name(), integer()) -> Result
       when Result :: {ok, Pid} | ignore | {error, Error},
@@ -83,8 +75,10 @@ start_link(Caller, EtcdName, LeaseID) ->
 %%%===================================================================
 
 init([Caller, EtcdName, LeaseID]) ->
+    process_flag(trap_exit, true),
     case first_keep_alive_once(EtcdName, LeaseID) of
         {ok, Gun, Ref, MRef, TTL, PbModule} ->
+            %% eqwalizer:ignore
             After = erlang:max(round(TTL / ?BLOCK), 1) * 1000,
             TimeRef = schedule_next_keep_alive(After),
             {ok, #{name => EtcdName, gun => Gun, caller => Caller, pb_module => PbModule,
@@ -95,12 +89,10 @@ init([Caller, EtcdName, LeaseID]) ->
         {error, Err} -> {stop, {shutdown, Err}}
     end.
 
+handle_call(gun_pid, _From, State = #{gun := Gun}) ->
+    {reply, Gun, State, State};
 handle_call(_Request, _From, State) ->
     {reply, ignore, State, State}.
-
-handle_cast(close, State = #{lease_id := ID, caller := Caller}) ->
-    erlang:send(Caller, ?Event(ID, <<"stream closed manually">>)),
-    {stop, normal, State};
 
 handle_cast(_Request, State) ->
     {noreply, State, State}.
@@ -113,12 +105,10 @@ handle_info({'DOWN', Ref, process, Gun, Reason}, #{gun := Gun, monitor_ref := Re
     reconnect(State);
 
 handle_info({gun_data, _Pid, Ref, nofin, Data},
-    State = #{stream_ref := Ref, ongoing := Ongoing, caller := Caller, pb_module := PbModule}) ->
+    State = #{stream_ref := Ref, ongoing := Ongoing, pb_module := PbModule}) ->
     case eetcd_grpc:decode(identity, Data, 'Etcd.LeaseKeepAliveResponse', PbModule) of
-        {ok, #{'ID' := ID, 'TTL' := TTL}, <<>>} when TTL =< 0 ->
-            Event = ?Event(ID, ?LeaseNotFound),
-            erlang:send(Caller, Event),
-            {stop, {shutdown, Event}, State};
+        {ok, #{'ID' := _ID, 'TTL' := TTL}, <<>>} when TTL =< 0 ->
+            {stop, {shutdown, lease_not_found}, State};
         {ok, #{'TTL' := _TTL}, <<>>} -> {noreply, State#{ongoing => Ongoing - 1}}
     end;
 
@@ -145,7 +135,21 @@ handle_info(Info, State) ->
         [?MODULE, self(), Info, State]),
     {noreply, State}.
 
-terminate(_Reason, #{stream_ref := Ref, gun := Gun}) ->
+terminate(Reason, #{stream_ref := Ref, gun := Gun, lease_id := ID, caller := Caller}) ->
+    case Reason of
+        normal ->
+            erlang:send(Caller, ?Event(ID, <<"stream closed manually">>));
+        shutdown ->
+            erlang:send(Caller, ?Event(ID, <<"stream closed manually">>));
+        {shutdown, lease_not_found} ->
+            erlang:send(Caller, ?Event(ID, ?LeaseNotFound));
+        {shutdown, Reason} ->
+            erlang:send(Caller, ?Event(ID, Reason));
+        _ ->
+            erlang:send(Caller,
+                        ?Event(ID, iolist_to_binary([<<"stream closed unexpectedly: ">>,
+                                                     io_lib:format("~p", [Reason])])))
+    end,
     gun:cancel(Gun, Ref),
     ok.
 
@@ -155,6 +159,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+-spec first_keep_alive_once(etcd_name(), pos_integer()) ->
+    {ok, Gun :: pid(), StreamRef :: eetcd:stream_ref(), MRef :: reference(),
+     TTL :: non_neg_integer(), PbModule :: module()} | {error, eetcd_error()}.
 first_keep_alive_once(EtcdName, LeaseID) ->
     case eetcd_lease_gen:lease_keep_alive(EtcdName) of
         {ok, Gun, StreamRef, PbModule} ->
@@ -185,8 +192,7 @@ keep_alive_once(Gun, StreamRef, LeaseID, MRef, PbModule) ->
 
 keep_ttl(Next, State) ->
     #{stream_ref := Ref, gun := Gun, pb_module := PbModule,
-      lease_id := ID, ongoing := Ongoing,
-        name := EtcdName, caller := Caller} = State,
+      lease_id := ID, ongoing := Ongoing, name := EtcdName} = State,
     case Ongoing =< 2 * ?BLOCK of
         true ->
             eetcd_stream:data(Gun, Ref, #{'ID' => ID}, 'Etcd.LeaseKeepAliveRequest', nofin, PbModule),
@@ -196,9 +202,7 @@ keep_ttl(Next, State) ->
             case time_to_live(EtcdName, ID, false) of
                 {ok, _} -> reconnect(State);
                 {error, Reason} ->
-                    Event = ?Event(ID, Reason),
-                    erlang:send(Caller, Event),
-                    {stop, {shutdown, Event}, State}
+                    {stop, {shutdown, Reason}, State}
             end
     end.
 
@@ -223,17 +227,13 @@ try_reconnecting(State) ->
             case time_to_live(EtcdName, LeaseID, false) of
                 {ok, _} -> reconnect(State);
                 {error, Reason} ->
-                    Event = ?Event(LeaseID, Reason),
-                    erlang:send(Caller, Event),
-                    {stop, {shutdown, Event}, State}
+                    {stop, {shutdown, Reason}, State}
             end;
         false ->
             case init([Caller, EtcdName, LeaseID]) of
                 {ok, NewState} -> {noreply, NewState};
-                {stop, {shutdown, #{'grpc-status' := ?GRPC_STATUS_NOT_FOUND} = Reason}} ->
-                    Event = ?Event(LeaseID, Reason),
-                    erlang:send(Caller, Event),
-                    {stop, {shutdown, Event}, State};
+                {stop, {shutdown, {grpc_error, #{'grpc-status' := ?GRPC_STATUS_NOT_FOUND} = Reason}}} ->
+                    {stop, {shutdown, Reason}, State};
                 {stop, _Reason} ->
                     erlang:send_after(1000, self(), ?TRY_RECONNECTING),
                     {noreply, State}

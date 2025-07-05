@@ -98,22 +98,22 @@ close(EtcdName) ->
 info() ->
     Leases = eetcd_lease_sup:info(),
     Conns = eetcd_conn_sup:info(),
-    io:format("|\e[4m\e[48;2;80;80;80m Name            |   Status |     MemberID     |    Host:Port    | Conn      | Gun       | LeaseNum \e[0m|~n"),
+    io:format("|\e[4m\e[48;2;80;80;80m Name            |   Status |     MemberID     |         Host:Port     | Conn      | Gun       | LeaseNum \e[0m|~n"),
     [begin
          {Name, #{etcd := Etcd, active_conns := Actives, opening_conns := Openings, members := Members}} = Conn,
          Availables = [{X, "Active"}|| X <- Actives] ++ [{Y, "Opening"} || Y <- Openings],
          [begin
               {Host, Port, _Transport} = maps:get(Id, Members),
-              io:format("| ~-15.15s | ~8s | ~16s | ~s:~w | ~p | ~p | ~8.7w |~n",
+              io:format("| ~-15.15s | ~8s | ~16s | ~15s:~-5w | ~p | ~p | ~8.7w |~n",
                         [Name, Status, eetcd_conn:member_id_hex(Id), Host, Port, Etcd, Gun, maps:get(Gun, Leases, 0)])
           end || {{Id, Gun, _MRef}, Status} <- Availables]
      end || Conn <- Conns],
 
-    io:format("|\e[4m\e[48;2;184;0;0m Name            |   Status |     MemberID     |    Host:Port    | Conn      | ReconnectSecond      \e[49m\e[0m|~n"),
+    io:format("|\e[4m\e[48;2;184;0;0m Name            |   Status |     MemberID     |         Host:Port     | Conn      | ReconnectSecond      \e[49m\e[0m|~n"),
     [begin
          {Name, #{etcd := Etcd, freeze_conns := Freezes}} = Conn,
          [begin
-              io:format("| ~-15.15s |   Freeze | ~16s | ~s:~w | ~p |   ~-18.15w |~n",
+              io:format("| ~-15.15s |   Freeze | ~16s | ~15s:~-5w | ~p |   ~-18.15w |~n",
                         [Name, eetcd_conn:member_id_hex(Id), Host, Port, Etcd, Ms / 1000])
           end || {Id, Host, Port, Ms} <- Freezes]
      end || Conn <- Conns],

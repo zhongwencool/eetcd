@@ -16,7 +16,7 @@ alarm_list(EtcdName) ->
     eetcd_maintenance_gen:alarm(EtcdName, Req).
 
 %%% @doc AlarmDisarm disarms a given alarm.
--spec alarm_disarm(etcd_name(), integer(), integer()) ->
+-spec alarm_disarm(etcd_name(), non_neg_integer(), integer()) ->
     {ok,router_pb:'Etcd.AlarmResponse'()}|{error,eetcd_error()}.
 alarm_disarm(EtcdName, MemberId, Alarm) ->
     Req = #{
@@ -27,21 +27,21 @@ alarm_disarm(EtcdName, MemberId, Alarm) ->
     eetcd_maintenance_gen:alarm(EtcdName, Req).
 
 %%% @doc AlarmDisarmAll disarms all alarm.
--spec alarm_disarm_all(etcd_name()) ->
-    router_pb:'Etcd.AlarmResponse'().
+-spec alarm_disarm_all(etcd_name()) -> router_pb:'Etcd.AlarmResponse'().
 alarm_disarm_all(EtcdName) ->
-    {ok, Acc0 = #{alarms := List}} = alarm_list(EtcdName),
-    lists:foldl(
-      fun(#{memberID := Id, alarm := Alarm}, Acc) ->
-              #{alarms := Old} = Acc,
-              case alarm_disarm(EtcdName, Id, Alarm) of
-                  {ok, #{alarms := L}} ->
-                      Acc#{alarms => L ++ Old};
-                  {error, Reason} ->
-                      ?LOG_ERROR("~p disarm ~p failed by ~p", [EtcdName, Alarm, Reason]),
-                      Acc
-              end
-      end, Acc0#{alarms => []}, List).
+    {ok, Resp0 = #{alarms := List}} = alarm_list(EtcdName),
+    Alarms = disarm_members(List, EtcdName, []),
+    Resp0#{alarms => Alarms}.
+
+disarm_members([], _EtcdName, Acc) -> Acc;
+disarm_members([#{memberID := Id, alarm := Alarm} | Rest], EtcdName, Acc) ->
+    case alarm_disarm(EtcdName, Id, Alarm) of
+        {ok, #{alarms := L}} ->
+            disarm_members(Rest, EtcdName, L ++ Acc);
+        {error, Reason} ->
+            ?LOG_ERROR("~p disarm ~p failed by ~p", [EtcdName, Alarm, Reason]),
+            disarm_members(Rest, EtcdName, Acc)
+    end.
 
 %%% @doc Defragment releases wasted space from internal fragmentation on a given etcd member.
 %%% Defragment is only needed when deleting a large number of keys and want to reclaim the resources.

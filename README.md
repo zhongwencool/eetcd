@@ -2,8 +2,7 @@
 [![GitHub tag](https://img.shields.io/github/tag/zhongwencool/eetcd.svg)](https://github.com/zhongwencool/eetcd)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/eetcd.svg)](https://hex.pm/packages/eetcd)
 
-eetcd
-=====
+# eetcd
 
 Erlang client for the [etcd](https://github.com/etcd-io/etcd) API v3.
 `eetcd` aims to be a high-quality, production-ready client for the Protocol Buffer-based etcd v3 API.
@@ -21,9 +20,9 @@ See [the full v3 API documentation](https://etcd.io/docs/) for more:
 7. Election.
 8. `grpc.health.v1.Health`.
 
-Quick Start
------
-#### 1. Setup
+## Quick Start
+
+### 1. Setup
 ```erlang
 ## rebar.config
 {deps, [eetcd]}.
@@ -31,7 +30,7 @@ Quick Start
 ```
 zero configuration.
 
-#### 2. Usage
+### 2. Usage
 All etcd3 API's are defined in [gRPC services](https://github.com/etcd-io/etcd/blob/master/etcdserver/etcdserverpb/rpc.proto), which categorize remote procedure calls (RPCs) understood by the etcd server.
 A full listing of all etcd RPCs are documented in markdown in the [gRPC API listing](https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/api_reference_v3.md).
 
@@ -53,7 +52,7 @@ stop(_State) ->
     ok.
 ```
 
-##### KV - Creates, updates, fetches, and deletes key-value pairs.
+#### KV - Creates, updates, fetches, and deletes key-value pairs.
 ```erlang
 
 %% creates
@@ -125,7 +124,7 @@ Request4 = #{key => "K", range_end => eetcd:get_prefix_range_end("K")},
 
 ```
 
-##### Txn - Transaction
+#### Txn - Transaction
 
 ```erlang
 %% implement etcd v2 CompareAndSwap by Txn
@@ -144,7 +143,7 @@ eetcd_kv:txn(EtcdConnName, If, Then, Else).
 
 ```
 
-##### Lease - Primitives for consuming client keep-alive messages.
+#### Lease - Primitives for consuming client keep-alive messages.
 ```erlang
  1> eetcd_lease_gen:lease_grant(Name, TTL),
 {ok,#{'ID' => 1076765125482045706,'TTL' => 100,error => <<>>,
@@ -165,7 +164,7 @@ eetcd_kv:txn(EtcdConnName, If, Then, Else).
 ```
 More detailed examples see [eetcd_kv_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_kv_SUITE.erl)  [eetcd_watch_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_watch_SUITE.erl)  [eetcd_lease_SUITE.erl](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_lease_SUITE.erl).
 
-##### Watch - Monitors changes to keys.
+#### Watch - Monitors changes to keys.
 ```erlang
 -module(watch_example).
 
@@ -254,10 +253,10 @@ update_services(#{events := Events}) ->
 
 We can use a single stream for multiplex watches, see [example](/test/eetcd_watch_example.erl).
 
-##### Election Example
+#### Election Example
 [Election Example](https://github.com/zhongwencool/eetcd/blob/master/test/eetcd_election_leader_example.erl)
 
-##### Debug information
+#### Debug information
 ```erlang
 1>eetcd:info().
 | Name           | Status |   IP:Port    | Conn     | Gun      |LeaseNum|
@@ -266,24 +265,24 @@ We can use a single stream for multiplex watches, see [example](/test/eetcd_watc
 | Name           | Status |   IP:Port    | Conn     | ReconnectSecond   |
 | test           | Freeze |127.0.0.1:2479|<0.535.0> |   1.6             |
 ```
+
 - `Active` is normal connection.
 - `Freeze` is a broken connection who try to reconnect after `ReconnectSecond`.
 
-Test
------
+## Test
 
 ```erlang
 rebar3 ct
 ```
-Gen proto and client file
------
+
+## Gen proto and client file
+
 ```erlang
 rebar3 protobuf compile
 rebar3 etcd gen
 ```
 
-Migration from eetcd 0.3.x to 0.4.x
------
+## Migration from eetcd 0.3.x to 0.4.x
 
 eetcd 0.4.x now dependents on Gun 2.0, which introduced some breaking changes,
 and propagate to eetcd.

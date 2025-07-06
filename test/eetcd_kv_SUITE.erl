@@ -3,9 +3,15 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1, init_per_testcase/2, end_per_testcase/2]).
-
--compile(export_all).
--compile(nowarn_export_all).
+-export([
+    put/1,
+    range/1,
+    delete_range/1,
+    txn/1,
+    compact/1,
+    prefix/1,
+    prefix_range_end/1
+]).
 
 -define(KEY(K), <<"eetcd_key_", (list_to_binary(K))/binary>>).
 
